@@ -1,0 +1,62 @@
+{
+	"expo": {
+		"name": "RunAm",
+		"slug": "runam-user",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/icon.png",
+		"scheme": "runam",
+		"userInterfaceStyle": "light",
+		"newArchEnabled": true,
+		"splash": {
+			"image": "./assets/splash-icon.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#3B82F6"
+		},
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "com.runam.user",
+			"infoPlist": {
+				"NSLocationWhenInUseUsageDescription": "RunAm needs your location to show nearby riders and estimate delivery times.",
+				"NSCameraUsageDescription": "RunAm needs camera access to scan packages and capture delivery proof."
+			}
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#3B82F6"
+			},
+			"package": "com.runam.user",
+			"permissions": [
+				"ACCESS_FINE_LOCATION",
+				"ACCESS_COARSE_LOCATION",
+				"CAMERA"
+			]
+		},
+		"plugins": [
+			"expo-router",
+			"expo-secure-store",
+			[
+				"expo-location",
+				{
+					"locationAlwaysAndWhenInUsePermission": "Allow RunAm to use your location to track deliveries."
+				}
+			],
+			[
+				"expo-camera",
+				{
+					"cameraPermission": "Allow RunAm to access your camera."
+				}
+			],
+			[
+				"expo-image-picker",
+				{
+					"photosPermission": "Allow RunAm to access your photos for package images."
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true
+		}
+	}
+}

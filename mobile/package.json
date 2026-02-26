@@ -1,0 +1,24 @@
+{
+	"name": "runam-mobile",
+	"version": "1.0.0",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"scripts": {
+		"user": "cd apps/user && npx expo start",
+		"user:ios": "cd apps/user && npx expo run:ios",
+		"user:android": "cd apps/user && npx expo run:android",
+		"rider": "cd apps/rider && npx expo start",
+		"rider:ios": "cd apps/rider && npx expo run:ios",
+		"rider:android": "cd apps/rider && npx expo run:android",
+		"lint": "eslint apps packages",
+		"typecheck": "tsc --noEmit --project apps/user/tsconfig.json && tsc --noEmit --project apps/rider/tsconfig.json"
+	},
+	"devDependencies": {
+		"@types/react": "~18.2.79",
+		"typescript": "~5.3.3",
+		"eslint": "^8.57.0"
+	}
+}

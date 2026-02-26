@@ -1,0 +1,65 @@
+{
+	"expo": {
+		"name": "RunAm Rider",
+		"slug": "runam-rider",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/icon.png",
+		"scheme": "runam-rider",
+		"userInterfaceStyle": "light",
+		"newArchEnabled": true,
+		"splash": {
+			"image": "./assets/splash-icon.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#3B82F6"
+		},
+		"ios": {
+			"supportsTablet": false,
+			"bundleIdentifier": "com.runam.rider",
+			"infoPlist": {
+				"NSLocationWhenInUseUsageDescription": "RunAm Rider needs your location to receive nearby tasks and navigate to pickups.",
+				"NSLocationAlwaysUsageDescription": "RunAm Rider needs background location to track active deliveries.",
+				"NSCameraUsageDescription": "RunAm Rider needs camera access for document verification and delivery proof."
+			}
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#3B82F6"
+			},
+			"package": "com.runam.rider",
+			"permissions": [
+				"ACCESS_FINE_LOCATION",
+				"ACCESS_COARSE_LOCATION",
+				"ACCESS_BACKGROUND_LOCATION",
+				"CAMERA"
+			]
+		},
+		"plugins": [
+			"expo-router",
+			"expo-secure-store",
+			[
+				"expo-location",
+				{
+					"locationAlwaysAndWhenInUsePermission": "Allow RunAm Rider to use your location to navigate deliveries.",
+					"isAndroidBackgroundLocationEnabled": true
+				}
+			],
+			[
+				"expo-camera",
+				{
+					"cameraPermission": "Allow RunAm Rider to access your camera for verification."
+				}
+			],
+			[
+				"expo-image-picker",
+				{
+					"photosPermission": "Allow RunAm Rider to access your photos for document uploads."
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true
+		}
+	}
+}

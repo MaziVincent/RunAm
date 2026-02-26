@@ -1,0 +1,82 @@
+# =========================
+# OS & Editor
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# =========================
+# .NET / C#
+# =========================
+backend/**/bin/
+backend/**/obj/
+backend/**/.vs/
+backend/**/packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# =========================
+# Node.js / JavaScript
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+web/.next/
+web/out/
+web/.env*.local
+
+# =========================
+# React Native / Expo
+# =========================
+mobile/**/ios/
+mobile/**/android/
+mobile/**/.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.local
+.env.*.local
+*.pem
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# =========================
+# Docker
+# =========================
+infra/docker/data/
+
+# =========================
+# Testing
+# =========================
+coverage/
+*.lcov
+TestResults/
+
+# =========================
+# Build Outputs
+# =========================
+dist/
+build/
+publish/
