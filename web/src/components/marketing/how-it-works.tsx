@@ -71,8 +71,8 @@ export function HowItWorks() {
 						How RunAm Works
 					</h2>
 					<p className="mt-4 text-lg text-muted-foreground">
-						From order to delivery in four simple steps. We handle the logistics so
-						you can focus on what matters.
+						From order to delivery in four simple steps. We handle the logistics
+						so you can focus on what matters.
 					</p>
 				</div>
 

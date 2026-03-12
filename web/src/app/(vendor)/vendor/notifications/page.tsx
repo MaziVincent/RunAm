@@ -41,8 +41,7 @@ function groupByDate(items: { createdAt: string }[]) {
 
 		let label: string;
 		if (d.toDateString() === today.toDateString()) label = "Today";
-		else if (d.toDateString() === yesterday.toDateString())
-			label = "Yesterday";
+		else if (d.toDateString() === yesterday.toDateString()) label = "Yesterday";
 		else
 			label = d.toLocaleDateString("en-NG", {
 				month: "short",
@@ -94,8 +93,7 @@ export default function VendorNotificationsPage() {
 						size="sm"
 						onClick={markAllRead}
 						disabled={markingAll}
-						className="gap-2"
-					>
+						className="gap-2">
 						<CheckCheck className="h-4 w-4" />
 						Mark all read
 					</Button>
@@ -132,8 +130,7 @@ export default function VendorNotificationsPage() {
 										className={cn(
 											"transition-colors",
 											!notification.isRead && "border-primary/20 bg-primary/5",
-										)}
-									>
+										)}>
 										<CardContent className="flex items-start gap-3 p-3 sm:p-4">
 											<div
 												className={cn(
@@ -141,8 +138,7 @@ export default function VendorNotificationsPage() {
 													!notification.isRead
 														? "bg-primary/10 text-primary"
 														: "bg-muted text-muted-foreground",
-												)}
-											>
+												)}>
 												{getIcon(notification.type)}
 											</div>
 											<div className="min-w-0 flex-1">
@@ -150,8 +146,7 @@ export default function VendorNotificationsPage() {
 													className={cn(
 														"text-sm",
 														!notification.isRead && "font-medium",
-													)}
-												>
+													)}>
 													{notification.title}
 												</p>
 												{notification.message && (

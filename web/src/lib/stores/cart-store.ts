@@ -60,13 +60,21 @@ interface CartState {
 
 const CART_STORAGE_KEY = "runam_cart";
 
-function persistCart(state: { vendorId: string | null; vendorName: string; items: CartItem[] }) {
+function persistCart(state: {
+	vendorId: string | null;
+	vendorName: string;
+	items: CartItem[];
+}) {
 	if (typeof window !== "undefined") {
 		localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state));
 	}
 }
 
-function loadCart(): { vendorId: string | null; vendorName: string; items: CartItem[] } {
+function loadCart(): {
+	vendorId: string | null;
+	vendorName: string;
+	items: CartItem[];
+} {
 	if (typeof window === "undefined") {
 		return { vendorId: null, vendorName: "", items: [] };
 	}
@@ -87,7 +95,15 @@ export const useCartStore = create<CartState>((set, get) => {
 		vendorName: initial.vendorName,
 		items: initial.items,
 
-		addItem: (vendorId, vendorName, product, quantity, variant, extras, notes) => {
+		addItem: (
+			vendorId,
+			vendorName,
+			product,
+			quantity,
+			variant,
+			extras,
+			notes,
+		) => {
 			set((state) => {
 				// If switching vendors, clear cart
 				let items = state.items;
@@ -168,9 +184,7 @@ export const useCartStore = create<CartState>((set, get) => {
 				const newState = {
 					...state,
 					items: newItems,
-					...(newItems.length === 0
-						? { vendorId: null, vendorName: "" }
-						: {}),
+					...(newItems.length === 0 ? { vendorId: null, vendorName: "" } : {}),
 				};
 				persistCart(newState);
 				return newState;

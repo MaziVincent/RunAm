@@ -41,16 +41,26 @@ const errandStatusLabel: Record<number, string> = {
 };
 
 const errandStatusColor: Record<number, string> = {
-	[ErrandStatus.Pending]: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-	[ErrandStatus.Accepted]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-	[ErrandStatus.EnRouteToPickup]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-	[ErrandStatus.ArrivedAtPickup]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-	[ErrandStatus.PackageCollected]: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-	[ErrandStatus.EnRouteToDropoff]: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
-	[ErrandStatus.ArrivedAtDropoff]: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
-	[ErrandStatus.Delivered]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-	[ErrandStatus.Cancelled]: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-	[ErrandStatus.Failed]: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+	[ErrandStatus.Pending]:
+		"bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+	[ErrandStatus.Accepted]:
+		"bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+	[ErrandStatus.EnRouteToPickup]:
+		"bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+	[ErrandStatus.ArrivedAtPickup]:
+		"bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+	[ErrandStatus.PackageCollected]:
+		"bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+	[ErrandStatus.EnRouteToDropoff]:
+		"bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300",
+	[ErrandStatus.ArrivedAtDropoff]:
+		"bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+	[ErrandStatus.Delivered]:
+		"bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+	[ErrandStatus.Cancelled]:
+		"bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+	[ErrandStatus.Failed]:
+		"bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
 };
 
 const priorityLabel: Record<number, string> = {
@@ -105,9 +115,7 @@ function TaskCard({
 							{errandStatusLabel[task.status]}
 						</span>
 						{task.priority === ErrandPriority.Express && (
-							<Badge
-								variant="destructive"
-								className="text-[10px] px-1.5 py-0">
+							<Badge variant="destructive" className="text-[10px] px-1.5 py-0">
 								Express
 							</Badge>
 						)}

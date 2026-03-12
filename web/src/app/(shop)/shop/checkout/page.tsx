@@ -75,9 +75,7 @@ function AddressSelector({
 		return (
 			<div className="rounded-lg border border-dashed p-6 text-center">
 				<MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
-				<p className="mt-2 text-sm text-muted-foreground">
-					No saved addresses
-				</p>
+				<p className="mt-2 text-sm text-muted-foreground">No saved addresses</p>
 				<Button variant="outline" size="sm" className="mt-3 gap-1.5">
 					<Plus className="h-3.5 w-3.5" />
 					Add Address
@@ -250,14 +248,8 @@ function OrderSummaryItems() {
 export default function CheckoutPage() {
 	const router = useRouter();
 	const { isAuthenticated } = useAuthStore();
-	const {
-		vendorId,
-		vendorName,
-		items,
-		getSubtotal,
-		getItemCount,
-		clearCart,
-	} = useCartStore();
+	const { vendorId, vendorName, items, getSubtotal, getItemCount, clearCart } =
+		useCartStore();
 
 	const itemCount = getItemCount();
 	const subtotal = getSubtotal();
@@ -285,7 +277,9 @@ export default function CheckoutPage() {
 	const walletBalance = walletData?.data?.balance ?? null;
 
 	// State
-	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+		null,
+	);
 	const [paymentMethod, setPaymentMethod] = useState(PaymentMethod.Wallet);
 	const [specialInstructions, setSpecialInstructions] = useState("");
 	const [promoCode, setPromoCode] = useState("");
@@ -353,8 +347,7 @@ export default function CheckoutPage() {
 			);
 		} catch (err: any) {
 			toast.error("Failed to place order", {
-				description:
-					err?.message || "Something went wrong. Please try again.",
+				description: err?.message || "Something went wrong. Please try again.",
 			});
 		}
 	}

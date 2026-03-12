@@ -225,9 +225,7 @@ export default function CartPage() {
 						</Button>
 					</div>
 					{promoApplied && (
-						<p className="mt-2 text-xs text-primary">
-							✓ 10% discount applied!
-						</p>
+						<p className="mt-2 text-xs text-primary">✓ 10% discount applied!</p>
 					)}
 				</CardContent>
 			</Card>

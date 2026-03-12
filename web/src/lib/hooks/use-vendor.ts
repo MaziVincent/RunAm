@@ -78,11 +78,13 @@ export function useToggleVendorOpen() {
 
 // ── Vendor Orders ──────────────────────────────────────
 
-export function useVendorOrders(params: {
-	status?: string;
-	page?: number;
-	pageSize?: number;
-} = {}) {
+export function useVendorOrders(
+	params: {
+		status?: string;
+		page?: number;
+		pageSize?: number;
+	} = {},
+) {
 	return useQuery({
 		queryKey: ["vendor-orders", params],
 		queryFn: () =>
@@ -138,11 +140,13 @@ export function useMarkOrderReady() {
 
 // ── Products ───────────────────────────────────────────
 
-export function useMyProducts(params: {
-	categoryId?: string;
-	page?: number;
-	pageSize?: number;
-} = {}) {
+export function useMyProducts(
+	params: {
+		categoryId?: string;
+		page?: number;
+		pageSize?: number;
+	} = {},
+) {
 	return useQuery({
 		queryKey: ["my-products", params],
 		queryFn: () =>
@@ -236,8 +240,11 @@ export function useMyProductCategories() {
 export function useCreateProductCategory() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { name: string; description?: string; sortOrder?: number }) =>
-			api.post<ProductCategoryDto>("/vendors/me/categories", data),
+		mutationFn: (data: {
+			name: string;
+			description?: string;
+			sortOrder?: number;
+		}) => api.post<ProductCategoryDto>("/vendors/me/categories", data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-product-categories"] });
 			queryClient.invalidateQueries({ queryKey: ["my-vendor"] });
@@ -248,8 +255,15 @@ export function useCreateProductCategory() {
 export function useUpdateProductCategory() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, ...data }: { id: string; name?: string; description?: string; sortOrder?: number }) =>
-			api.put(`/vendors/me/categories/${id}`, data),
+		mutationFn: ({
+			id,
+			...data
+		}: {
+			id: string;
+			name?: string;
+			description?: string;
+			sortOrder?: number;
+		}) => api.put(`/vendors/me/categories/${id}`, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-product-categories"] });
 		},

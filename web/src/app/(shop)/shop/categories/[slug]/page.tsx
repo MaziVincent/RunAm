@@ -132,9 +132,7 @@ export default function CategoryPage() {
 			{/* Toolbar: Sort + Filters */}
 			<div className="mb-6 flex flex-wrap items-center gap-3">
 				{/* Sort */}
-				<Select
-					value={sort}
-					onValueChange={(val) => updateParam("sort", val)}>
+				<Select value={sort} onValueChange={(val) => updateParam("sort", val)}>
 					<SelectTrigger className="h-10 w-[180px]">
 						<ArrowUpDown className="mr-2 h-3.5 w-3.5" />
 						<SelectValue placeholder="Sort by" />
@@ -209,7 +207,9 @@ export default function CategoryPage() {
 				<div className="mb-6 rounded-lg border bg-card p-4 md:hidden">
 					<div className="mb-3 flex items-center justify-between">
 						<h3 className="font-semibold text-sm">Filters</h3>
-						<button onClick={() => setFiltersOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-accent">
+						<button
+							onClick={() => setFiltersOpen(false)}
+							className="flex h-10 w-10 items-center justify-center rounded-md hover:bg-accent">
 							<X className="h-4 w-4" />
 						</button>
 					</div>

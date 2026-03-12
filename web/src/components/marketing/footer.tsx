@@ -58,8 +58,8 @@ export function Footer() {
 							<span className="text-xl font-bold text-white">RunAm</span>
 						</Link>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
-							Nigeria&apos;s on-demand delivery and marketplace platform.
-							Get anything delivered or shop from local vendors, all in one app.
+							Nigeria&apos;s on-demand delivery and marketplace platform. Get
+							anything delivered or shop from local vendors, all in one app.
 						</p>
 
 						{/* Contact info */}

@@ -19,9 +19,24 @@ const item = {
 };
 
 const floatingBadges = [
-	{ icon: Package, label: "Errands", delay: 0.6, position: "top-32 right-12 lg:right-24" },
-	{ icon: ShoppingBag, label: "Shop", delay: 0.8, position: "bottom-40 right-16 lg:right-32" },
-	{ icon: Truck, label: "Delivery", delay: 1.0, position: "bottom-24 left-8 lg:left-16" },
+	{
+		icon: Package,
+		label: "Errands",
+		delay: 0.6,
+		position: "top-32 right-12 lg:right-24",
+	},
+	{
+		icon: ShoppingBag,
+		label: "Shop",
+		delay: 0.8,
+		position: "bottom-40 right-16 lg:right-32",
+	},
+	{
+		icon: Truck,
+		label: "Delivery",
+		delay: 1.0,
+		position: "bottom-24 left-8 lg:left-16",
+	},
 ];
 
 export function Hero() {
@@ -29,10 +44,13 @@ export function Hero() {
 		<section className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-br from-primary via-green-600 to-emerald-700">
 			{/* Background pattern */}
 			<div className="absolute inset-0 opacity-10">
-				<div className="absolute inset-0" style={{
-					backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-					backgroundSize: "40px 40px",
-				}} />
+				<div
+					className="absolute inset-0"
+					style={{
+						backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+						backgroundSize: "40px 40px",
+					}}
+				/>
 			</div>
 
 			{/* Gradient overlays */}
@@ -46,7 +64,6 @@ export function Hero() {
 					initial="hidden"
 					animate="show"
 					className="mx-auto max-w-3xl text-center">
-
 					{/* Trust badge */}
 					<motion.div variants={item}>
 						<span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
@@ -68,8 +85,7 @@ export function Hero() {
 							<span className="absolute -bottom-2 left-0 z-0 h-3 w-full bg-white/20 rounded" />
 						</span>
 						.<br />
-						Your City,{" "}
-						<span className="text-green-200">Connected</span>.
+						Your City, <span className="text-green-200">Connected</span>.
 					</motion.h1>
 
 					{/* Subtitle */}
@@ -133,7 +149,9 @@ export function Hero() {
 						transition={{ delay: badge.delay, duration: 0.5 }}
 						className={`absolute hidden lg:flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 backdrop-blur-md ${badge.position}`}>
 						<badge.icon className="h-5 w-5 text-white" />
-						<span className="text-sm font-medium text-white">{badge.label}</span>
+						<span className="text-sm font-medium text-white">
+							{badge.label}
+						</span>
 					</motion.div>
 				))}
 			</div>

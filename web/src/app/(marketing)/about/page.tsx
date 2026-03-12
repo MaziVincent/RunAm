@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
-import {
-	Shield,
-	Heart,
-	Users,
-	Globe,
-	Zap,
-	Award,
-} from "lucide-react";
+import { Shield, Heart, Users, Globe, Zap, Award } from "lucide-react";
 
 export const metadata: Metadata = {
 	title: "About RunAm — Errands Done. Deliveries Made. Life Simplified.",
@@ -67,8 +60,9 @@ export default function AboutPage() {
 						at a time
 					</h1>
 					<p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-						RunAm is Nigeria&apos;s fastest-growing delivery and errand platform, connecting
-						people who need things done with reliable riders and trusted local vendors.
+						RunAm is Nigeria&apos;s fastest-growing delivery and errand
+						platform, connecting people who need things done with reliable
+						riders and trusted local vendors.
 					</p>
 				</div>
 			</section>
@@ -82,15 +76,16 @@ export default function AboutPage() {
 								Our Story
 							</h2>
 							<p className="mt-4 text-slate-600 dark:text-slate-400">
-								RunAm was born from a common frustration — the difficulty of getting
-								things delivered quickly and reliably in Nigerian cities. Long waits,
-								unreliable couriers, and fragmented marketplaces inspired us to build
-								something better.
+								RunAm was born from a common frustration — the difficulty of
+								getting things delivered quickly and reliably in Nigerian
+								cities. Long waits, unreliable couriers, and fragmented
+								marketplaces inspired us to build something better.
 							</p>
 							<p className="mt-4 text-slate-600 dark:text-slate-400">
-								Today, we power thousands of deliveries daily, connecting customers with
-								verified riders and curated vendors. From sending a package across Lagos
-								to ordering lunch from a local restaurant, RunAm makes it seamless.
+								Today, we power thousands of deliveries daily, connecting
+								customers with verified riders and curated vendors. From sending
+								a package across Lagos to ordering lunch from a local
+								restaurant, RunAm makes it seamless.
 							</p>
 						</div>
 						<div className="flex items-center justify-center">
@@ -98,9 +93,10 @@ export default function AboutPage() {
 								{STATS.map((stat) => (
 									<div
 										key={stat.label}
-										className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900"
-									>
-										<p className="text-2xl font-bold text-primary">{stat.value}</p>
+										className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+										<p className="text-2xl font-bold text-primary">
+											{stat.value}
+										</p>
 										<p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
 											{stat.label}
 										</p>
@@ -125,8 +121,7 @@ export default function AboutPage() {
 						{VALUES.map((value) => (
 							<div
 								key={value.title}
-								className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
-							>
+								className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
 								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
 									<value.icon className="h-5 w-5" />
 								</div>
@@ -150,9 +145,9 @@ export default function AboutPage() {
 						Our Mission
 					</h2>
 					<p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-						To become Africa&apos;s most trusted delivery and errand platform — empowering
-						local businesses, providing fair income for riders, and making everyday
-						logistics effortless for everyone.
+						To become Africa&apos;s most trusted delivery and errand platform —
+						empowering local businesses, providing fair income for riders, and
+						making everyday logistics effortless for everyone.
 					</p>
 				</div>
 			</section>
@@ -165,20 +160,18 @@ export default function AboutPage() {
 						Join the RunAm Community
 					</h2>
 					<p className="mt-3 text-slate-600 dark:text-slate-400">
-						Whether you&apos;re a customer, vendor, or rider — there&apos;s a place for
-						you on RunAm.
+						Whether you&apos;re a customer, vendor, or rider — there&apos;s a
+						place for you on RunAm.
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-4">
 						<a
 							href="/register"
-							className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-						>
+							className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
 							Get Started
 						</a>
 						<a
 							href="/contact"
-							className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-						>
+							className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
 							Contact Us
 						</a>
 					</div>

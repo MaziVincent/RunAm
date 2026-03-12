@@ -182,9 +182,7 @@ export default function VendorCategoriesPage() {
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
-						<DialogTitle>
-							{editingId ? "Edit" : "Create"} Category
-						</DialogTitle>
+						<DialogTitle>{editingId ? "Edit" : "Create"} Category</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-4">
 						<div className="space-y-2">
@@ -203,10 +201,7 @@ export default function VendorCategoriesPage() {
 								placeholder="Optional description"
 							/>
 						</div>
-						<Button
-							className="w-full"
-							onClick={handleSave}
-							disabled={isSaving}>
+						<Button className="w-full" onClick={handleSave} disabled={isSaving}>
 							{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{editingId ? "Update" : "Create"} Category
 						</Button>

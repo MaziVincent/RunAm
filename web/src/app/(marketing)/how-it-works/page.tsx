@@ -50,7 +50,8 @@ const USE_CASES = [
 	{
 		emoji: "🍔",
 		title: "Order Food",
-		description: "From local favourites to popular restaurants — delivered hot.",
+		description:
+			"From local favourites to popular restaurants — delivered hot.",
 	},
 	{
 		emoji: "📦",
@@ -60,7 +61,8 @@ const USE_CASES = [
 	{
 		emoji: "🛒",
 		title: "Shop Groceries",
-		description: "Get fresh produce and pantry essentials brought to your door.",
+		description:
+			"Get fresh produce and pantry essentials brought to your door.",
 	},
 	{
 		emoji: "💊",
@@ -89,7 +91,8 @@ export default function HowItWorksPage() {
 						How <span className="text-primary">RunAm</span> Works
 					</h1>
 					<p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-						Getting things done has never been easier. Three simple steps from request to delivery.
+						Getting things done has never been easier. Three simple steps from
+						request to delivery.
 					</p>
 				</div>
 			</section>
@@ -101,8 +104,7 @@ export default function HowItWorksPage() {
 						{STEPS.map((step, idx) => (
 							<div
 								key={step.number}
-								className={`flex flex-col gap-10 md:flex-row md:items-center ${idx % 2 === 1 ? "md:flex-row-reverse" : ""}`}
-							>
+								className={`flex flex-col gap-10 md:flex-row md:items-center ${idx % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
 								{/* Visual */}
 								<div className="flex flex-1 items-center justify-center">
 									<div className="relative flex h-48 w-48 items-center justify-center rounded-3xl bg-primary/10 dark:bg-primary/20">
@@ -123,7 +125,9 @@ export default function HowItWorksPage() {
 									</p>
 									<ul className="mt-4 space-y-2">
 										{step.details.map((detail) => (
-											<li key={detail} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+											<li
+												key={detail}
+												className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
 												<CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
 												{detail}
 											</li>
@@ -149,8 +153,7 @@ export default function HowItWorksPage() {
 						{USE_CASES.map((uc) => (
 							<div
 								key={uc.title}
-								className="rounded-2xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-							>
+								className="rounded-2xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
 								<span className="text-3xl">{uc.emoji}</span>
 								<h3 className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">
 									{uc.title}
@@ -171,19 +174,18 @@ export default function HowItWorksPage() {
 						Ready to Get Started?
 					</h2>
 					<p className="mt-3 text-slate-600 dark:text-slate-400">
-						Join thousands of Nigerians who trust RunAm for their everyday deliveries.
+						Join thousands of Nigerians who trust RunAm for their everyday
+						deliveries.
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-4">
 						<a
 							href="/shop"
-							className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-						>
+							className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
 							Start Shopping
 						</a>
 						<a
 							href="/register"
-							className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-						>
+							className="rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
 							Create Account
 						</a>
 					</div>

@@ -50,8 +50,10 @@ const statusIcon: Record<string, React.ReactNode> = {
 };
 
 const statusBadge: Record<string, string> = {
-	completed: "bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400",
-	pending: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
+	completed:
+		"bg-green-50 text-green-700 dark:bg-green-950/50 dark:text-green-400",
+	pending:
+		"bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
 	failed: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400",
 };
 
@@ -91,9 +93,7 @@ export default function VendorPayoutsPage() {
 						</div>
 						<div>
 							<p className="text-xs text-muted-foreground">Total Paid</p>
-							<p className="text-xl font-bold">
-								{formatCurrency(totalPaid)}
-							</p>
+							<p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
 						</div>
 					</CardContent>
 				</Card>
@@ -155,10 +155,7 @@ export default function VendorPayoutsPage() {
 										</p>
 										<Badge
 											variant="outline"
-											className={cn(
-												"text-[10px]",
-												statusBadge[payout.status],
-											)}>
+											className={cn("text-[10px]", statusBadge[payout.status])}>
 											{payout.status}
 										</Badge>
 									</div>

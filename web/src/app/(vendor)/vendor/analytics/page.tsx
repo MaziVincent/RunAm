@@ -42,11 +42,7 @@ function StatCard({
 	);
 }
 
-function RevenueChart({
-	data,
-}: {
-	data: { date: string; revenue: number }[];
-}) {
+function RevenueChart({ data }: { data: { date: string; revenue: number }[] }) {
 	if (!data.length) {
 		return (
 			<div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
@@ -82,11 +78,7 @@ function RevenueChart({
 	);
 }
 
-function OrdersChart({
-	data,
-}: {
-	data: { date: string; revenue: number }[];
-}) {
+function OrdersChart({ data }: { data: { date: string; revenue: number }[] }) {
 	if (!data.length) {
 		return (
 			<div className="flex h-48 items-center justify-center text-sm text-muted-foreground">

@@ -29,10 +29,14 @@ const payoutStatusLabel: Record<number, string> = {
 };
 
 const payoutStatusColor: Record<number, string> = {
-	[PayoutStatus.Pending]: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-	[PayoutStatus.Processing]: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-	[PayoutStatus.Completed]: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-	[PayoutStatus.Failed]: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+	[PayoutStatus.Pending]:
+		"bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+	[PayoutStatus.Processing]:
+		"bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+	[PayoutStatus.Completed]:
+		"bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+	[PayoutStatus.Failed]:
+		"bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
 };
 
 function EarningsOverview() {
@@ -124,10 +128,7 @@ function DailyBreakdown() {
 					<div className="space-y-2">
 						{/* Simple bar chart */}
 						{dailyData.slice(0, 14).map((day) => {
-							const maxAmount = Math.max(
-								...dailyData.map((d) => d.amount),
-								1,
-							);
+							const maxAmount = Math.max(...dailyData.map((d) => d.amount), 1);
 							const width = (day.amount / maxAmount) * 100;
 							return (
 								<div key={day.date} className="flex items-center gap-3">
@@ -201,9 +202,7 @@ function PayoutsHistory() {
 				) : payouts.length === 0 ? (
 					<div className="flex flex-col items-center py-8 text-center">
 						<Wallet className="h-8 w-8 text-muted-foreground/30" />
-						<p className="mt-2 text-sm text-muted-foreground">
-							No payouts yet
-						</p>
+						<p className="mt-2 text-sm text-muted-foreground">No payouts yet</p>
 					</div>
 				) : (
 					<div className="space-y-3">

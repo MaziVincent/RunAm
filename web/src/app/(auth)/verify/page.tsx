@@ -50,7 +50,10 @@ function VerifyForm() {
 
 	function handlePaste(e: React.ClipboardEvent) {
 		e.preventDefault();
-		const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, CODE_LENGTH);
+		const pasted = e.clipboardData
+			.getData("text")
+			.replace(/\D/g, "")
+			.slice(0, CODE_LENGTH);
 		const newCode = [...code];
 		for (let i = 0; i < pasted.length; i++) {
 			newCode[i] = pasted[i];
@@ -126,10 +129,14 @@ function VerifyForm() {
 				{email ? (
 					<>
 						We&apos;ve sent a {CODE_LENGTH}-digit code to{" "}
-						<span className="font-medium text-slate-700 dark:text-slate-300">{email}</span>
+						<span className="font-medium text-slate-700 dark:text-slate-300">
+							{email}
+						</span>
 					</>
 				) : (
-					<>Enter the {CODE_LENGTH}-digit verification code sent to your email</>
+					<>
+						Enter the {CODE_LENGTH}-digit verification code sent to your email
+					</>
 				)}
 			</p>
 
@@ -163,8 +170,7 @@ function VerifyForm() {
 			<button
 				onClick={handleVerify}
 				disabled={isSubmitting || code.join("").length !== CODE_LENGTH}
-				className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-60"
-			>
+				className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-60">
 				{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
 				Verify
 			</button>
@@ -177,8 +183,7 @@ function VerifyForm() {
 				) : (
 					<button
 						onClick={handleResend}
-						className="font-medium text-blue-600 hover:text-blue-500"
-					>
+						className="font-medium text-blue-600 hover:text-blue-500">
 						Resend Code
 					</button>
 				)}
@@ -187,8 +192,7 @@ function VerifyForm() {
 			<div className="mt-6 text-center">
 				<Link
 					href="/login"
-					className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500"
-				>
+					className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">
 					<ArrowLeft className="h-3.5 w-3.5" />
 					Back to login
 				</Link>
@@ -204,8 +208,7 @@ export default function VerifyPage() {
 				<div className="flex items-center justify-center py-12">
 					<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
 				</div>
-			}
-		>
+			}>
 			<VerifyForm />
 		</Suspense>
 	);

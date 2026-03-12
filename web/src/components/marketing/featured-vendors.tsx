@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Star, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+	ArrowRight,
+	Star,
+	Clock,
+	ChevronLeft,
+	ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInView } from "@/lib/hooks";
 import { motion } from "framer-motion";
@@ -130,7 +136,8 @@ export function FeaturedVendors() {
 							Popular Shops Near You
 						</h2>
 						<p className="mt-3 max-w-lg text-muted-foreground">
-							Discover top-rated local vendors delivering quality products and services.
+							Discover top-rated local vendors delivering quality products and
+							services.
 						</p>
 					</div>
 
@@ -160,8 +167,7 @@ export function FeaturedVendors() {
 					initial={{ opacity: 0, y: 20 }}
 					animate={isInView ? { opacity: 1, y: 0 } : {}}
 					transition={{ duration: 0.5 }}
-					className="mt-10"
-				>
+					className="mt-10">
 					<div ref={emblaRef} className="overflow-hidden">
 						<div className="flex gap-6">
 							{featuredVendors.map((vendor) => (

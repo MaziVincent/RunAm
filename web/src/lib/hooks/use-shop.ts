@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+	useQuery,
+	useMutation,
+	useQueryClient,
+	keepPreviousData,
+} from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type {
 	ServiceCategoryDto,
@@ -22,7 +27,8 @@ export function useServiceCategories() {
 export function useServiceCategoryBySlug(slug: string) {
 	return useQuery({
 		queryKey: ["service-categories", slug],
-		queryFn: () => api.get<ServiceCategoryDto>(`/service-categories/slug/${slug}`),
+		queryFn: () =>
+			api.get<ServiceCategoryDto>(`/service-categories/slug/${slug}`),
 		enabled: !!slug,
 	});
 }

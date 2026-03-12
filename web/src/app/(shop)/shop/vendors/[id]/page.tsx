@@ -110,7 +110,10 @@ function VendorHero({
 					</div>
 					<div className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm shadow-sm">
 						<Clock className="h-3.5 w-3.5 text-blue-500" />
-						<span>{vendor.estimatedPrepTimeMinutes}–{vendor.estimatedPrepTimeMinutes + 15} min</span>
+						<span>
+							{vendor.estimatedPrepTimeMinutes}–
+							{vendor.estimatedPrepTimeMinutes + 15} min
+						</span>
 					</div>
 					<div className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm shadow-sm">
 						<Truck className="h-3.5 w-3.5 text-primary" />
@@ -183,9 +186,9 @@ function ProductItem({
 	const hasExtras = !!product.extrasJson;
 	const discount = product.compareAtPrice
 		? Math.round(
-			((product.compareAtPrice - product.price) / product.compareAtPrice) *
-			100,
-		)
+				((product.compareAtPrice - product.price) / product.compareAtPrice) *
+					100,
+			)
 		: null;
 
 	return (
@@ -266,7 +269,9 @@ export default function VendorStorefrontPage() {
 
 	const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 	const [productSearch, setProductSearch] = useState("");
-	const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(null);
+	const [selectedProduct, setSelectedProduct] = useState<ProductDto | null>(
+		null,
+	);
 
 	const categoryRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -298,17 +303,14 @@ export default function VendorStorefrontPage() {
 		return () => observer.disconnect();
 	}, [categories]);
 
-	const handleCategorySelect = useCallback(
-		(catId: string) => {
-			const el = categoryRefs.current.get(catId);
-			if (el) {
-				const top = el.getBoundingClientRect().top + window.scrollY - 120;
-				window.scrollTo({ top, behavior: "smooth" });
-			}
-			setActiveCategoryId(catId);
-		},
-		[],
-	);
+	const handleCategorySelect = useCallback((catId: string) => {
+		const el = categoryRefs.current.get(catId);
+		if (el) {
+			const top = el.getBoundingClientRect().top + window.scrollY - 120;
+			window.scrollTo({ top, behavior: "smooth" });
+		}
+		setActiveCategoryId(catId);
+	}, []);
 
 	// Product search filter
 	const filteredCategories = useMemo(() => {

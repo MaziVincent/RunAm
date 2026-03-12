@@ -53,9 +53,7 @@ export function RatingStars({
 				<span className="text-sm font-medium">{rating.toFixed(1)}</span>
 			)}
 			{totalReviews !== undefined && (
-				<span className="text-sm text-muted-foreground">
-					({totalReviews})
-				</span>
+				<span className="text-sm text-muted-foreground">({totalReviews})</span>
 			)}
 		</div>
 	);

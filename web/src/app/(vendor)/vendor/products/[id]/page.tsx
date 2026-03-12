@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-	ArrowLeft,
-	Upload,
-	Plus,
-	X,
-	Loader2,
-	ImageIcon,
-} from "lucide-react";
+import { ArrowLeft, Upload, Plus, X, Loader2, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -173,9 +166,7 @@ export default function ProductEditorPage() {
 			variantsJson: form.variants.length
 				? JSON.stringify(form.variants)
 				: undefined,
-			extrasJson: form.extras.length
-				? JSON.stringify(form.extras)
-				: undefined,
+			extrasJson: form.extras.length ? JSON.stringify(form.extras) : undefined,
 		};
 
 		try {
@@ -198,10 +189,7 @@ export default function ProductEditorPage() {
 		<div className="mx-auto max-w-2xl space-y-6">
 			{/* Header */}
 			<div className="flex items-center gap-3">
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={() => router.back()}>
+				<Button variant="ghost" size="icon" onClick={() => router.back()}>
 					<ArrowLeft className="h-4 w-4" />
 				</Button>
 				<h1 className="text-xl font-bold">
@@ -267,10 +255,7 @@ export default function ProductEditorPage() {
 								type="number"
 								value={form.compareAtPrice || ""}
 								onChange={(e) =>
-									update(
-										"compareAtPrice",
-										parseFloat(e.target.value) || 0,
-									)
+									update("compareAtPrice", parseFloat(e.target.value) || 0)
 								}
 								placeholder="0"
 							/>
@@ -320,9 +305,7 @@ export default function ProductEditorPage() {
 									<Input
 										placeholder="Option name"
 										value={variant.name}
-										onChange={(e) =>
-											updateVariant(idx, "name", e.target.value)
-										}
+										onChange={(e) => updateVariant(idx, "name", e.target.value)}
 										className="flex-1"
 									/>
 									<Input
@@ -377,9 +360,7 @@ export default function ProductEditorPage() {
 									<Input
 										placeholder="Extra name"
 										value={extra.name}
-										onChange={(e) =>
-											updateExtra(idx, "name", e.target.value)
-										}
+										onChange={(e) => updateExtra(idx, "name", e.target.value)}
 										className="flex-1"
 									/>
 									<Input
@@ -387,11 +368,7 @@ export default function ProductEditorPage() {
 										placeholder="₦0"
 										value={extra.price || ""}
 										onChange={(e) =>
-											updateExtra(
-												idx,
-												"price",
-												parseFloat(e.target.value) || 0,
-											)
+											updateExtra(idx, "price", parseFloat(e.target.value) || 0)
 										}
 										className="w-24"
 									/>

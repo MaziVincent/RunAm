@@ -262,9 +262,7 @@ export default function AddressesPage() {
 						<p className="mt-1 text-sm text-muted-foreground">
 							Add your frequently used addresses for faster checkout
 						</p>
-						<Button
-							className="mt-4 gap-2"
-							onClick={() => setDialogOpen(true)}>
+						<Button className="mt-4 gap-2" onClick={() => setDialogOpen(true)}>
 							<Plus className="h-4 w-4" />
 							Add Your First Address
 						</Button>

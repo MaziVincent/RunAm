@@ -1,40 +1,40 @@
 {
-  "name": "@runam/user-app",
-  "version": "1.0.0",
-  "private": true,
-  "main": "expo-router/entry",
-  "scripts": {
-    "start": "expo start",
-    "ios": "expo run:ios",
-    "android": "expo run:android",
-    "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@microsoft/signalr": "^8.0.7",
-    "@runam/shared": "*",
-    "@tanstack/react-query": "^5.59.0",
-    "expo": "^55.0.5",
-    "expo-camera": "~55.0.9",
-    "expo-constants": "~55.0.7",
-    "expo-image-picker": "~55.0.11",
-    "expo-linking": "~55.0.7",
-    "expo-location": "~55.1.2",
-    "expo-router": "~55.0.4",
-    "expo-secure-store": "~55.0.8",
-    "expo-status-bar": "~55.0.4",
-    "react": "19.2.0",
-    "react-native": "0.83.2",
-    "react-native-gesture-handler": "~2.30.0",
-    "react-native-maps": "1.26.20",
-    "react-native-reanimated": "4.2.1",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0",
-    "zustand": "^5.0.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@types/react": "~19.2.10",
-    "typescript": "~5.9.2"
-  }
+	"name": "@runam/user-app",
+	"version": "1.0.0",
+	"private": true,
+	"main": "expo-router/entry",
+	"scripts": {
+		"start": "expo start",
+		"ios": "expo run:ios",
+		"android": "expo run:android",
+		"lint": "eslint .",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@microsoft/signalr": "^8.0.7",
+		"@runam/shared": "*",
+		"@tanstack/react-query": "^5.59.0",
+		"expo": "^55.0.5",
+		"expo-camera": "~55.0.9",
+		"expo-constants": "~55.0.7",
+		"expo-image-picker": "~55.0.11",
+		"expo-linking": "~55.0.7",
+		"expo-location": "~55.1.2",
+		"expo-router": "~55.0.4",
+		"expo-secure-store": "~55.0.8",
+		"expo-status-bar": "~55.0.4",
+		"react": "19.2.0",
+		"react-native": "0.83.2",
+		"react-native-gesture-handler": "~2.30.0",
+		"react-native-maps": "1.26.20",
+		"react-native-reanimated": "4.2.1",
+		"react-native-safe-area-context": "~5.6.2",
+		"react-native-screens": "~4.23.0",
+		"zustand": "^5.0.0"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.25.2",
+		"@types/react": "~19.2.10",
+		"typescript": "~5.9.2"
+	}
 }

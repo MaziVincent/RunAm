@@ -280,7 +280,9 @@ export default function SettingsPage() {
 					<Button
 						variant="outline"
 						onClick={handlePasswordChange}
-						disabled={!passwordForm.currentPassword || !passwordForm.newPassword}>
+						disabled={
+							!passwordForm.currentPassword || !passwordForm.newPassword
+						}>
 						Change Password
 					</Button>
 				</CardContent>

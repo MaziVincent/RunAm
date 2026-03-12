@@ -43,11 +43,7 @@ export function StatusBadge({ status, kind, className }: StatusBadgeProps) {
 	return (
 		<Badge
 			variant="outline"
-			className={cn(
-				"border-transparent font-medium",
-				color,
-				className,
-			)}>
+			className={cn("border-transparent font-medium", color, className)}>
 			{label}
 		</Badge>
 	);

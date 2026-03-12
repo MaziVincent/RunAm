@@ -8,7 +8,11 @@ export const metadata = {
 		"Browse restaurants, stores, and services near you. Order for delivery or pickup on RunAm.",
 };
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default function ShopLayout({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
 	return (
 		<div className="flex min-h-screen flex-col bg-muted/30">
 			<Suspense>

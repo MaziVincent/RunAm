@@ -101,7 +101,10 @@ export default function ErrandDetailPage() {
 			<div className="flex flex-col items-center py-20 text-center">
 				<Package className="h-16 w-16 text-muted-foreground/30" />
 				<h2 className="mt-4 text-lg font-semibold">Errand not found</h2>
-				<Button variant="outline" className="mt-4" onClick={() => router.back()}>
+				<Button
+					variant="outline"
+					className="mt-4"
+					onClick={() => router.back()}>
 					Go Back
 				</Button>
 			</div>
@@ -206,9 +209,7 @@ export default function ErrandDetailPage() {
 							</div>
 							<div className="flex-1">
 								<p className="text-sm font-semibold">{errand.riderName}</p>
-								<p className="text-xs text-muted-foreground">
-									Assigned rider
-								</p>
+								<p className="text-xs text-muted-foreground">Assigned rider</p>
 							</div>
 							{isActive && (
 								<Button variant="outline" size="icon">

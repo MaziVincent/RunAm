@@ -79,8 +79,7 @@ export default function VendorStorePage() {
 				<Button
 					onClick={handleSave}
 					disabled={updateProfile.isPending}
-					className="gap-2"
-				>
+					className="gap-2">
 					{updateProfile.isPending ? (
 						<Loader2 className="h-4 w-4 animate-spin" />
 					) : (

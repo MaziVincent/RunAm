@@ -40,13 +40,7 @@ const TAB_STATUS_MAP: Record<TabKey, VendorOrderStatus | undefined> = {
 	all: undefined,
 };
 
-function OrderCard({
-	order,
-	tab,
-}: {
-	order: any;
-	tab: TabKey;
-}) {
+function OrderCard({ order, tab }: { order: any; tab: TabKey }) {
 	const confirmOrder = useConfirmVendorOrder();
 	const rejectOrder = useRejectVendorOrder();
 	const markReady = useMarkOrderReady();
@@ -62,8 +56,17 @@ function OrderCard({
 							</p>
 							<Badge
 								variant="outline"
-								className={cn("text-xs", vendorOrderStatusColor[order.vendorOrderStatus ?? order.status])}>
-								{vendorOrderStatusLabel[order.vendorOrderStatus ?? order.status]}
+								className={cn(
+									"text-xs",
+									vendorOrderStatusColor[
+										order.vendorOrderStatus ?? order.status
+									],
+								)}>
+								{
+									vendorOrderStatusLabel[
+										order.vendorOrderStatus ?? order.status
+									]
+								}
 							</Badge>
 						</div>
 						<p className="mt-0.5 text-xs text-muted-foreground">
@@ -124,7 +127,10 @@ function OrderCard({
 								variant="outline"
 								onClick={async () => {
 									try {
-										await rejectOrder.mutateAsync({ orderId: order.id, reason: "Vendor rejected" });
+										await rejectOrder.mutateAsync({
+											orderId: order.id,
+											reason: "Vendor rejected",
+										});
 										toast.success("Order rejected");
 									} catch {
 										toast.error("Failed");
@@ -251,9 +257,7 @@ export default function VendorOrdersPage() {
 		<div className="space-y-6">
 			<h1 className="text-2xl font-bold">Orders</h1>
 
-			<Tabs
-				value={activeTab}
-				onValueChange={(v) => setActiveTab(v as TabKey)}>
+			<Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
 				<TabsList className="w-full justify-start overflow-x-auto">
 					<TabsTrigger value="new" className="gap-1.5">
 						New
@@ -270,13 +274,13 @@ export default function VendorOrdersPage() {
 					<TabsTrigger value="completed">Completed</TabsTrigger>
 					<TabsTrigger value="all">All</TabsTrigger>
 				</TabsList>
-				{(
-					["new", "preparing", "ready", "completed", "all"] as TabKey[]
-				).map((tab) => (
-					<TabsContent key={tab} value={tab}>
-						<OrderList tab={tab} status={TAB_STATUS_MAP[tab]} />
-					</TabsContent>
-				))}
+				{(["new", "preparing", "ready", "completed", "all"] as TabKey[]).map(
+					(tab) => (
+						<TabsContent key={tab} value={tab}>
+							<OrderList tab={tab} status={TAB_STATUS_MAP[tab]} />
+						</TabsContent>
+					),
+				)}
 			</Tabs>
 		</div>
 	);

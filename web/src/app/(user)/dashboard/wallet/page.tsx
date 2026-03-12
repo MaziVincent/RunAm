@@ -106,7 +106,9 @@ function TopUpDialog() {
 						) : (
 							<Wallet className="h-4 w-4" />
 						)}
-						{topUp.isPending ? "Processing..." : `Add ${amount ? formatCurrency(parseInt(amount)) : ""}`}
+						{topUp.isPending
+							? "Processing..."
+							: `Add ${amount ? formatCurrency(parseInt(amount)) : ""}`}
 					</Button>
 				</div>
 			</DialogContent>

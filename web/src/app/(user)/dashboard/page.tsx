@@ -19,7 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useMyErrands, useWallet, useCurrentUser } from "@/lib/hooks";
-import { formatCurrency, errandStatusLabel, errandStatusColor, errandCategoryLabel } from "@/lib/utils";
+import {
+	formatCurrency,
+	errandStatusLabel,
+	errandStatusColor,
+	errandCategoryLabel,
+} from "@/lib/utils";
 import { ErrandStatus } from "@/types";
 
 /* ------------------------------------------------------------------ */
@@ -106,7 +111,9 @@ function ActiveErrands() {
 			<CardHeader className="flex flex-row items-center justify-between pb-3">
 				<CardTitle className="text-base">Active Errands</CardTitle>
 				<Button variant="ghost" size="sm" asChild>
-					<Link href="/dashboard/errands?status=active" className="gap-1 text-xs">
+					<Link
+						href="/dashboard/errands?status=active"
+						className="gap-1 text-xs">
 						View all <ArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>
@@ -140,7 +147,7 @@ function ActiveErrands() {
 										<p className="truncate text-sm font-semibold">
 											{errand.vendorName
 												? `Order from ${errand.vendorName}`
-												: errandCategoryLabel[errand.category] ?? "Errand"}
+												: (errandCategoryLabel[errand.category] ?? "Errand")}
 										</p>
 										<Badge
 											className={`${errandStatusColor[errand.status]} shrink-0 text-[10px]`}>
@@ -254,9 +261,7 @@ function RecentOrders() {
 				) : errands.length === 0 ? (
 					<div className="flex flex-col items-center py-8 text-center">
 						<ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
-						<p className="mt-2 text-sm text-muted-foreground">
-							No orders yet
-						</p>
+						<p className="mt-2 text-sm text-muted-foreground">No orders yet</p>
 						<Button asChild variant="outline" size="sm" className="mt-3">
 							<Link href="/shop">Start Shopping</Link>
 						</Button>

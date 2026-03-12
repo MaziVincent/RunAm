@@ -100,11 +100,7 @@ export default function RiderOnboardingPage() {
 										? "border-primary text-primary"
 										: "border-muted text-muted-foreground",
 							)}>
-							{i < step ? (
-								<CheckCircle2 className="h-4 w-4" />
-							) : (
-								i + 1
-							)}
+							{i < step ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
 						</div>
 						<span className="text-[10px] font-medium">{label}</span>
 					</div>
@@ -165,9 +161,7 @@ export default function RiderOnboardingPage() {
 									<Bike className="mx-auto h-8 w-8 text-muted-foreground" />
 									<p className="mt-2 text-sm text-muted-foreground">
 										No license plate required for{" "}
-										{vehicleType === VehicleType.OnFoot
-											? "on-foot"
-											: "bicycle"}{" "}
+										{vehicleType === VehicleType.OnFoot ? "on-foot" : "bicycle"}{" "}
 										deliveries
 									</p>
 								</div>
@@ -192,17 +186,12 @@ export default function RiderOnboardingPage() {
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Vehicle Type</span>
 									<span className="font-medium">
-										{
-											VEHICLE_OPTIONS.find((v) => v.type === vehicleType)
-												?.label
-										}
+										{VEHICLE_OPTIONS.find((v) => v.type === vehicleType)?.label}
 									</span>
 								</div>
 								{needsPlate && licensePlate && (
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">
-											License Plate
-										</span>
+										<span className="text-muted-foreground">License Plate</span>
 										<span className="font-medium">{licensePlate}</span>
 									</div>
 								)}

@@ -352,7 +352,9 @@ export default function VendorOnboardingPage() {
 								</div>
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Minimum Order</span>
-									<span className="font-medium">₦{form.minimumOrder.toLocaleString()}</span>
+									<span className="font-medium">
+										₦{form.minimumOrder.toLocaleString()}
+									</span>
 								</div>
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Bank</span>
@@ -370,9 +372,7 @@ export default function VendorOnboardingPage() {
 								/>
 								<span>
 									I agree to the{" "}
-									<a
-										href="#"
-										className="text-primary underline">
+									<a href="#" className="text-primary underline">
 										Vendor Terms of Service
 									</a>{" "}
 									and{" "}

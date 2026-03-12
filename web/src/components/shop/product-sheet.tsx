@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
+import { Minus, Plus, ShoppingCart, Package, X } from "lucide-react";
 import {
-	Minus,
-	Plus,
-	ShoppingCart,
-	Package,
-	X,
-} from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -17,7 +16,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { useCartStore, type CartItemVariant, type CartItemExtra } from "@/lib/stores/cart-store";
+import {
+	useCartStore,
+	type CartItemVariant,
+	type CartItemExtra,
+} from "@/lib/stores/cart-store";
 import { formatCurrency, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { VendorSwitchDialog } from "@/components/shop/vendor-switch-dialog";
@@ -121,7 +124,10 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 	const lineTotal = (basePrice + variantAdj + extrasTotal) * quantity;
 
 	const requiresVariant = variants.length > 0;
-	const canAdd = product.isAvailable && vendor.isOpen && (!requiresVariant || !!selectedVariant);
+	const canAdd =
+		product.isAvailable &&
+		vendor.isOpen &&
+		(!requiresVariant || !!selectedVariant);
 
 	function handleToggleExtra(name: string) {
 		setSelectedExtras((prev) => {
@@ -166,7 +172,9 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 
 	return (
 		<Sheet open={!!product} onOpenChange={(open) => !open && onClose()}>
-			<SheetContent side="bottom" className="max-h-[90vh] overflow-y-auto rounded-t-2xl sm:max-w-lg sm:mx-auto pb-0">
+			<SheetContent
+				side="bottom"
+				className="max-h-[90vh] overflow-y-auto rounded-t-2xl sm:max-w-lg sm:mx-auto pb-0">
 				<SheetHeader className="pb-0">
 					<div className="flex items-start justify-between">
 						<SheetTitle className="text-left text-lg">

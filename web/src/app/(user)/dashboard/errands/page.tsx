@@ -138,7 +138,10 @@ export default function ErrandsPage() {
 				onValueChange={(val) => updateParam("status", val)}>
 				<TabsList className="w-full sm:w-auto">
 					{STATUS_TABS.map((tab) => (
-						<TabsTrigger key={tab.value} value={tab.value} className="flex-1 sm:flex-none">
+						<TabsTrigger
+							key={tab.value}
+							value={tab.value}
+							className="flex-1 sm:flex-none">
 							{tab.label}
 						</TabsTrigger>
 					))}

@@ -95,25 +95,16 @@ export default function VendorOrderDetailPage() {
 		<div className="space-y-6">
 			{/* Header */}
 			<div className="flex items-center gap-3">
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={() => router.back()}>
+				<Button variant="ghost" size="icon" onClick={() => router.back()}>
 					<ArrowLeft className="h-4 w-4" />
 				</Button>
 				<div className="flex-1">
-					<h1 className="text-xl font-bold">
-						Order #{orderId.slice(-6)}
-					</h1>
+					<h1 className="text-xl font-bold">Order #{orderId.slice(-6)}</h1>
 					<p className="text-xs text-muted-foreground">
 						{new Date(order.createdAt).toLocaleString("en-NG")}
 					</p>
 				</div>
-				<Badge
-					className={cn(
-						"text-xs",
-						vendorOrderStatusColor[currentStatus],
-					)}>
+				<Badge className={cn("text-xs", vendorOrderStatusColor[currentStatus])}>
 					{vendorOrderStatusLabel[currentStatus]}
 				</Badge>
 			</div>
@@ -183,7 +174,10 @@ export default function VendorOrderDetailPage() {
 						variant="destructive"
 						onClick={async () => {
 							try {
-								await rejectOrder.mutateAsync({ orderId, reason: "Vendor rejected" });
+								await rejectOrder.mutateAsync({
+									orderId,
+									reason: "Vendor rejected",
+								});
 								toast.success("Order rejected");
 								router.push("/vendor/orders");
 							} catch {
@@ -207,9 +201,7 @@ export default function VendorOrderDetailPage() {
 						}
 					}}
 					disabled={markReady.isPending}>
-					{markReady.isPending && (
-						<Loader2 className="h-4 w-4 animate-spin" />
-					)}
+					{markReady.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
 					<CheckCircle className="h-4 w-4" />
 					Mark Ready for Pickup
 				</Button>
@@ -268,9 +260,7 @@ export default function VendorOrderDetailPage() {
 					{order.riderName && (
 						<div className="flex items-center gap-3">
 							<Package className="h-4 w-4 text-muted-foreground" />
-							<span className="text-sm">
-								Rider: {order.riderName}
-							</span>
+							<span className="text-sm">Rider: {order.riderName}</span>
 						</div>
 					)}
 				</CardContent>

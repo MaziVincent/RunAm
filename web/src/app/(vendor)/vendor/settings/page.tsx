@@ -310,10 +310,7 @@ export default function VendorSettingsPage() {
 								<p className="text-sm font-medium">{pref.label}</p>
 								<p className="text-xs text-muted-foreground">{pref.desc}</p>
 							</div>
-							<Switch
-								checked={pref.checked}
-								onCheckedChange={pref.set}
-							/>
+							<Switch checked={pref.checked} onCheckedChange={pref.set} />
 						</div>
 					))}
 				</CardContent>

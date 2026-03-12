@@ -36,8 +36,8 @@ export function CTASection() {
 						Ready to Get Started?
 					</h2>
 					<p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
-						Join thousands of users, vendors, and riders making life easier across
-						Nigeria. Sign up today — it&apos;s free.
+						Join thousands of users, vendors, and riders making life easier
+						across Nigeria. Sign up today — it&apos;s free.
 					</p>
 
 					{/* CTA buttons */}

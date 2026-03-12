@@ -64,16 +64,36 @@ const STEPS = [
 ];
 
 const CATEGORIES = [
-	{ value: "package", label: "Package Delivery", icon: "📦", desc: "Send packages & parcels" },
-	{ value: "document", label: "Document Delivery", icon: "📄", desc: "Send important documents" },
-	{ value: "custom", label: "Custom Errand", icon: "🔧", desc: "Any other task" },
+	{
+		value: "package",
+		label: "Package Delivery",
+		icon: "📦",
+		desc: "Send packages & parcels",
+	},
+	{
+		value: "document",
+		label: "Document Delivery",
+		icon: "📄",
+		desc: "Send important documents",
+	},
+	{
+		value: "custom",
+		label: "Custom Errand",
+		icon: "🔧",
+		desc: "Any other task",
+	},
 ];
 
 const PACKAGE_SIZES = [
 	{ value: "small", label: "Small", desc: "Fits in a hand", hint: "< 2kg" },
 	{ value: "medium", label: "Medium", desc: "Fits in a bag", hint: "2-5kg" },
 	{ value: "large", label: "Large", desc: "Needs both hands", hint: "5-15kg" },
-	{ value: "extra_large", label: "Extra Large", desc: "Heavy / bulky", hint: "15kg+" },
+	{
+		value: "extra_large",
+		label: "Extra Large",
+		desc: "Heavy / bulky",
+		hint: "15kg+",
+	},
 ];
 
 export default function CreateErrandPage() {
@@ -301,7 +321,9 @@ export default function CreateErrandPage() {
 						</div>
 
 						<div className="flex justify-end">
-							<Button onClick={next} disabled={!form.pickupAddress || !form.dropoffAddress}>
+							<Button
+								onClick={next}
+								disabled={!form.pickupAddress || !form.dropoffAddress}>
 								Continue
 								<ArrowRight className="ml-2 h-4 w-4" />
 							</Button>
@@ -355,7 +377,9 @@ export default function CreateErrandPage() {
 								checked={form.isFragile}
 								onCheckedChange={(v) => update({ isFragile: Boolean(v) })}
 							/>
-							<Label htmlFor="fragile" className="flex items-center gap-2 cursor-pointer">
+							<Label
+								htmlFor="fragile"
+								className="flex items-center gap-2 cursor-pointer">
 								<AlertTriangle className="h-4 w-4 text-yellow-500" />
 								This package is fragile
 							</Label>
@@ -415,9 +439,7 @@ export default function CreateErrandPage() {
 									<opt.icon className="h-5 w-5 text-muted-foreground" />
 									<div className="flex-1">
 										<p className="text-sm font-semibold">{opt.label}</p>
-										<p className="text-xs text-muted-foreground">
-											{opt.desc}
-										</p>
+										<p className="text-xs text-muted-foreground">{opt.desc}</p>
 									</div>
 									{opt.price && (
 										<Badge variant="secondary" className="text-xs">
@@ -458,9 +480,7 @@ export default function CreateErrandPage() {
 					<CardContent className="space-y-4">
 						<RadioGroup
 							value={String(form.paymentMethod)}
-							onValueChange={(v) =>
-								update({ paymentMethod: Number(v) })
-							}>
+							onValueChange={(v) => update({ paymentMethod: Number(v) })}>
 							{[
 								{
 									value: PaymentMethod.Wallet,
@@ -499,9 +519,7 @@ export default function CreateErrandPage() {
 									<pm.icon className="h-5 w-5 text-muted-foreground" />
 									<div>
 										<p className="text-sm font-semibold">{pm.label}</p>
-										<p className="text-xs text-muted-foreground">
-											{pm.desc}
-										</p>
+										<p className="text-xs text-muted-foreground">{pm.desc}</p>
 									</div>
 								</label>
 							))}
@@ -526,7 +544,9 @@ export default function CreateErrandPage() {
 						<div className="space-y-3 rounded-lg bg-muted/50 p-4">
 							<div className="flex justify-between text-sm">
 								<span className="text-muted-foreground">Service</span>
-								<span className="font-medium capitalize">{form.category} delivery</span>
+								<span className="font-medium capitalize">
+									{form.category} delivery
+								</span>
 							</div>
 							<Separator />
 							<div className="space-y-1">
@@ -543,7 +563,8 @@ export default function CreateErrandPage() {
 							<div className="flex justify-between text-sm">
 								<span className="text-muted-foreground">Package</span>
 								<span className="font-medium capitalize">
-									{form.packageSize}{form.isFragile ? " (Fragile)" : ""}
+									{form.packageSize}
+									{form.isFragile ? " (Fragile)" : ""}
 								</span>
 							</div>
 							<div className="flex justify-between text-sm">

@@ -90,11 +90,12 @@ function ProductCard({ product }: { product: ProductDto }) {
 							checked={product.isAvailable}
 							onCheckedChange={async () => {
 								try {
-									await toggleAvailability.mutateAsync({ id: product.id, isAvailable: !product.isAvailable });
+									await toggleAvailability.mutateAsync({
+										id: product.id,
+										isAvailable: !product.isAvailable,
+									});
 									toast.success(
-										product.isAvailable
-											? "Product hidden"
-											: "Product visible",
+										product.isAvailable ? "Product hidden" : "Product visible",
 									);
 								} catch {
 									toast.error("Failed");

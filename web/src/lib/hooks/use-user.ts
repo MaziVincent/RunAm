@@ -23,8 +23,11 @@ export function useCurrentUser() {
 export function useUpdateProfile() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { firstName?: string; lastName?: string; phoneNumber?: string }) =>
-			api.put("/users/profile", data),
+		mutationFn: (data: {
+			firstName?: string;
+			lastName?: string;
+			phoneNumber?: string;
+		}) => api.put("/users/profile", data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["current-user"] });
 		},
@@ -33,11 +36,13 @@ export function useUpdateProfile() {
 
 // ── Errands ────────────────────────────────────────────
 
-export function useMyErrands(params: {
-	status?: string;
-	page?: number;
-	pageSize?: number;
-} = {}) {
+export function useMyErrands(
+	params: {
+		status?: string;
+		page?: number;
+		pageSize?: number;
+	} = {},
+) {
 	return useQuery({
 		queryKey: ["my-errands", params],
 		queryFn: () =>

@@ -6,9 +6,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
  * Hook that triggers when an element scrolls into view.
  * Returns { ref, isInView }.
  */
-export function useInView<T extends HTMLElement = HTMLDivElement>(
-	options?: { threshold?: number; triggerOnce?: boolean },
-) {
+export function useInView<T extends HTMLElement = HTMLDivElement>(options?: {
+	threshold?: number;
+	triggerOnce?: boolean;
+}) {
 	const threshold = options?.threshold ?? 0.1;
 	const triggerOnce = options?.triggerOnce ?? true;
 	const ref = useRef<T>(null);

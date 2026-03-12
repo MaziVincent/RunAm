@@ -215,7 +215,10 @@ function NewOrders() {
 										variant="outline"
 										onClick={async () => {
 											try {
-												await rejectOrder.mutateAsync({ orderId: order.id, reason: "Vendor rejected" });
+												await rejectOrder.mutateAsync({
+													orderId: order.id,
+													reason: "Vendor rejected",
+												});
 												toast.success("Order rejected");
 											} catch {
 												toast.error("Failed to reject");
@@ -255,9 +258,7 @@ function RevenueChart() {
 				) : (
 					<div className="flex h-40 items-end gap-2">
 						{weeklyRevenue.slice(0, 7).map((day, i) => (
-							<div
-								key={i}
-								className="flex flex-1 flex-col items-center gap-1">
+							<div key={i} className="flex flex-1 flex-col items-center gap-1">
 								<div className="relative w-full">
 									<div
 										className="w-full rounded-t bg-primary/80 transition-all"
@@ -294,9 +295,7 @@ function TopProducts() {
 				) : (
 					<div className="space-y-3">
 						{products.slice(0, 5).map((product, idx) => (
-							<div
-								key={idx}
-								className="flex items-center justify-between">
+							<div key={idx} className="flex items-center justify-between">
 								<div className="flex items-center gap-3">
 									<span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
 										{idx + 1}
@@ -333,7 +332,10 @@ export default function VendorDashboardPage() {
 							receive a notification once it&apos;s approved.
 						</p>
 						<Badge className="mt-4" variant="secondary">
-							Status: {vendor.status === VendorStatus.Pending ? "Pending Review" : "Suspended"}
+							Status:{" "}
+							{vendor.status === VendorStatus.Pending
+								? "Pending Review"
+								: "Suspended"}
 						</Badge>
 					</CardContent>
 				</Card>

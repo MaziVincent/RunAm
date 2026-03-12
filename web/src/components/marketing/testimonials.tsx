@@ -93,7 +93,8 @@ export function Testimonials() {
 						Loved by Thousands
 					</h2>
 					<p className="mt-4 text-lg text-muted-foreground">
-						Hear from our customers, vendors, and riders about their RunAm experience.
+						Hear from our customers, vendors, and riders about their RunAm
+						experience.
 					</p>
 				</div>
 
@@ -134,7 +135,10 @@ export function Testimonials() {
 							{/* Author */}
 							<div className="mt-4 flex items-center gap-3 border-t pt-4">
 								<div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-									{testimonial.name.split(" ").map(n => n[0]).join("")}
+									{testimonial.name
+										.split(" ")
+										.map((n) => n[0])
+										.join("")}
 								</div>
 								<div>
 									<p className="text-sm font-semibold">{testimonial.name}</p>

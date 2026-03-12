@@ -40,7 +40,13 @@ const NAV_ITEMS = [
 	{ href: "/dashboard/settings", label: "Settings", icon: Settings },
 ] as const;
 
-function NavContent({ pathname, onClose }: { pathname: string; onClose?: () => void }) {
+function NavContent({
+	pathname,
+	onClose,
+}: {
+	pathname: string;
+	onClose?: () => void;
+}) {
 	const { user, logout } = useAuthStore();
 	const { data: unreadData } = useUnreadNotificationCount();
 	const unreadCount = unreadData?.data?.count ?? 0;

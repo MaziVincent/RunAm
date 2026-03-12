@@ -62,15 +62,13 @@ export default function ForgotPasswordPage() {
 					Didn&apos;t receive the email? Check your spam folder or{" "}
 					<button
 						onClick={() => setSubmitted(false)}
-						className="font-medium text-blue-600 hover:text-blue-500"
-					>
+						className="font-medium text-blue-600 hover:text-blue-500">
 						try again
 					</button>
 				</p>
 				<Link
 					href="/login"
-					className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500"
-				>
+					className="mt-6 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">
 					<ArrowLeft className="h-3.5 w-3.5" />
 					Back to login
 				</Link>
@@ -107,8 +105,7 @@ export default function ForgotPasswordPage() {
 				<div>
 					<label
 						htmlFor="email"
-						className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-					>
+						className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 						Email
 					</label>
 					<input
@@ -127,8 +124,7 @@ export default function ForgotPasswordPage() {
 				<button
 					type="submit"
 					disabled={isSubmitting}
-					className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-60"
-				>
+					className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-60">
 					{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
 					Send Reset Link
 				</button>
@@ -138,8 +134,7 @@ export default function ForgotPasswordPage() {
 				Remember your password?{" "}
 				<Link
 					href="/login"
-					className="font-medium text-blue-600 hover:text-blue-500"
-				>
+					className="font-medium text-blue-600 hover:text-blue-500">
 					Sign in
 				</Link>
 			</p>

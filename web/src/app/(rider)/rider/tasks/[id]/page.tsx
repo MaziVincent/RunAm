@@ -21,11 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-	useTaskDetail,
-	useUpdateTaskStatus,
-	useAcceptTask,
-} from "@/lib/hooks";
+import { useTaskDetail, useUpdateTaskStatus, useAcceptTask } from "@/lib/hooks";
 import { formatCurrency, cn } from "@/lib/utils";
 import { ErrandStatus, ErrandPriority } from "@/types";
 import { toast } from "sonner";
@@ -176,10 +172,7 @@ export default function RiderTaskDetailPage() {
 		<div className="space-y-6">
 			{/* Header */}
 			<div className="flex items-center gap-3">
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={() => router.back()}>
+				<Button variant="ghost" size="icon" onClick={() => router.back()}>
 					<ArrowLeft className="h-5 w-5" />
 				</Button>
 				<div>
@@ -207,9 +200,7 @@ export default function RiderTaskDetailPage() {
 								Earn {formatCurrency(task.totalAmount)} for this delivery
 							</p>
 						</div>
-						<Button
-							onClick={handleAccept}
-							disabled={acceptTask.isPending}>
+						<Button onClick={handleAccept} disabled={acceptTask.isPending}>
 							{acceptTask.isPending && (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}
@@ -398,9 +389,7 @@ export default function RiderTaskDetailPage() {
 						<CardTitle className="text-base">Status History</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<StatusTimeline
-							history={[...task.statusHistory].reverse()}
-						/>
+						<StatusTimeline history={[...task.statusHistory].reverse()} />
 					</CardContent>
 				</Card>
 			)}

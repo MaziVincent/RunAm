@@ -68,7 +68,7 @@ export default function RiderSettingsPage() {
 	}
 
 	const VehicleIcon = profile
-		? vehicleTypeIcon[profile.vehicleType] ?? Bike
+		? (vehicleTypeIcon[profile.vehicleType] ?? Bike)
 		: Bike;
 
 	return (
@@ -102,9 +102,7 @@ export default function RiderSettingsPage() {
 						</div>
 						<div>
 							<Label className="text-muted-foreground">Rider Name</Label>
-							<p className="text-sm font-medium">
-								{profile?.riderName ?? "—"}
-							</p>
+							<p className="text-sm font-medium">{profile?.riderName ?? "—"}</p>
 						</div>
 						<div>
 							<Label className="text-muted-foreground">Status</Label>
@@ -140,7 +138,7 @@ export default function RiderSettingsPage() {
 							<Label className="text-muted-foreground">Vehicle Type</Label>
 							<p className="text-sm font-medium">
 								{profile
-									? vehicleTypeLabel[profile.vehicleType] ?? "Unknown"
+									? (vehicleTypeLabel[profile.vehicleType] ?? "Unknown")
 									: "—"}
 							</p>
 						</div>
@@ -195,10 +193,7 @@ export default function RiderSettingsPage() {
 								Play sound for incoming task notifications
 							</p>
 						</div>
-						<Switch
-							checked={soundEnabled}
-							onCheckedChange={setSoundEnabled}
-						/>
+						<Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
 					</div>
 				</CardContent>
 			</Card>

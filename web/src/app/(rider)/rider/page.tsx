@@ -74,8 +74,7 @@ function RejectedStatus() {
 }
 
 function StatsCards() {
-	const { data: earningsData, isLoading: earningsLoading } =
-		useRiderEarnings();
+	const { data: earningsData, isLoading: earningsLoading } = useRiderEarnings();
 	const { data: perfData, isLoading: perfLoading } = useRiderPerformance();
 	const earnings = earningsData?.data;
 	const perf = perfData?.data;

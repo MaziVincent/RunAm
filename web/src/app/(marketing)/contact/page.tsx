@@ -62,7 +62,8 @@ export default function ContactPage() {
 						Get in <span className="text-primary">Touch</span>
 					</h1>
 					<p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-						Have a question, suggestion, or need help? We&apos;d love to hear from you.
+						Have a question, suggestion, or need help? We&apos;d love to hear
+						from you.
 					</p>
 				</div>
 			</section>
@@ -77,8 +78,8 @@ export default function ContactPage() {
 								Contact Information
 							</h2>
 							<p className="mt-3 text-slate-600 dark:text-slate-400">
-								Reach out through any of these channels and we&apos;ll get back to you
-								within 24 hours.
+								Reach out through any of these channels and we&apos;ll get back
+								to you within 24 hours.
 							</p>
 
 							<div className="mt-8 space-y-6">
@@ -94,8 +95,7 @@ export default function ContactPage() {
 											{item.href ? (
 												<a
 													href={item.href}
-													className="text-sm text-primary hover:underline"
-												>
+													className="text-sm text-primary hover:underline">
 													{item.value}
 												</a>
 											) : (
@@ -136,13 +136,12 @@ export default function ContactPage() {
 											Message Sent!
 										</h3>
 										<p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-											Thank you for reaching out. We&apos;ll get back to you within
-											24 hours.
+											Thank you for reaching out. We&apos;ll get back to you
+											within 24 hours.
 										</p>
 										<button
 											onClick={() => setSubmitted(false)}
-											className="mt-6 text-sm font-medium text-primary hover:underline"
-										>
+											className="mt-6 text-sm font-medium text-primary hover:underline">
 											Send another message
 										</button>
 									</div>
@@ -153,13 +152,11 @@ export default function ContactPage() {
 										</h2>
 										<form
 											onSubmit={handleSubmit(onSubmit)}
-											className="mt-6 space-y-5"
-										>
+											className="mt-6 space-y-5">
 											<div>
 												<label
 													htmlFor="name"
-													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-												>
+													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 													Full Name
 												</label>
 												<input
@@ -178,8 +175,7 @@ export default function ContactPage() {
 											<div>
 												<label
 													htmlFor="email"
-													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-												>
+													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 													Email
 												</label>
 												<input
@@ -199,8 +195,7 @@ export default function ContactPage() {
 											<div>
 												<label
 													htmlFor="subject"
-													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-												>
+													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 													Subject
 												</label>
 												<input
@@ -219,8 +214,7 @@ export default function ContactPage() {
 											<div>
 												<label
 													htmlFor="message"
-													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
-												>
+													className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
 													Message
 												</label>
 												<textarea
@@ -240,8 +234,7 @@ export default function ContactPage() {
 											<button
 												type="submit"
 												disabled={isSubmitting}
-												className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
-											>
+												className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60">
 												{isSubmitting ? (
 													<Loader2 className="h-4 w-4 animate-spin" />
 												) : (

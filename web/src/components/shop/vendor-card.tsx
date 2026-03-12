@@ -71,9 +71,7 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
 				{vendor.serviceCategories.length > 0 && (
 					<div className="mt-1.5 flex flex-wrap gap-1">
 						{vendor.serviceCategories.slice(0, 2).map((cat) => (
-							<span
-								key={cat.id}
-								className="text-xs text-muted-foreground">
+							<span key={cat.id} className="text-xs text-muted-foreground">
 								{cat.name}
 							</span>
 						))}
@@ -99,7 +97,8 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
 
 					<span className="flex items-center gap-1">
 						<Clock className="h-3.5 w-3.5" />
-						{vendor.estimatedPrepTimeMinutes ?? 20}-{(vendor.estimatedPrepTimeMinutes ?? 20) + 15} min
+						{vendor.estimatedPrepTimeMinutes ?? 20}-
+						{(vendor.estimatedPrepTimeMinutes ?? 20) + 15} min
 					</span>
 
 					<span className="ml-auto text-xs font-medium">

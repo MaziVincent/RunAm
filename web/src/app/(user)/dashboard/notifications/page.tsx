@@ -42,8 +42,7 @@ function groupByDate(items: { createdAt: string }[]) {
 
 		let label: string;
 		if (d.toDateString() === today.toDateString()) label = "Today";
-		else if (d.toDateString() === yesterday.toDateString())
-			label = "Yesterday";
+		else if (d.toDateString() === yesterday.toDateString()) label = "Yesterday";
 		else
 			label = d.toLocaleDateString("en-NG", {
 				month: "short",

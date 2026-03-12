@@ -32,7 +32,12 @@ function OrderConfirmationContent() {
 			<motion.div
 				initial={{ scale: 0, opacity: 0 }}
 				animate={{ scale: 1, opacity: 1 }}
-				transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}>
+				transition={{
+					type: "spring",
+					stiffness: 200,
+					damping: 15,
+					delay: 0.1,
+				}}>
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
 					<CheckCircle2 className="h-12 w-12 text-primary" />
 				</div>
@@ -97,7 +102,9 @@ function OrderConfirmationContent() {
 							{/* Cost */}
 							<Separator />
 							<div className="flex justify-between">
-								<span className="text-sm text-muted-foreground">Total Paid</span>
+								<span className="text-sm text-muted-foreground">
+									Total Paid
+								</span>
 								<span className="font-bold">
 									{formatCurrency(errand.totalAmount)}
 								</span>
