@@ -23,17 +23,17 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 const navItems = [
-	{ label: "Dashboard", href: "/", icon: LayoutDashboard },
-	{ label: "Users", href: "/users", icon: Users },
-	{ label: "Riders", href: "/riders", icon: Bike },
-	{ label: "Vendors", href: "/vendors", icon: Store },
-	{ label: "Categories", href: "/service-categories", icon: Tags },
-	{ label: "Errands", href: "/errands", icon: Package },
-	{ label: "Tracking", href: "/tracking", icon: MapPin },
-	{ label: "Finance", href: "/finance", icon: DollarSign },
-	{ label: "Reviews", href: "/reviews", icon: Star },
-	{ label: "Analytics", href: "/analytics", icon: BarChart3 },
-	{ label: "Settings", href: "/settings", icon: Settings },
+	{ label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+	{ label: "Users", href: "/admin/users", icon: Users },
+	{ label: "Riders", href: "/admin/riders", icon: Bike },
+	{ label: "Vendors", href: "/admin/vendors", icon: Store },
+	{ label: "Categories", href: "/admin/service-categories", icon: Tags },
+	{ label: "Errands", href: "/admin/errands", icon: Package },
+	{ label: "Tracking", href: "/admin/tracking", icon: MapPin },
+	{ label: "Finance", href: "/admin/finance", icon: DollarSign },
+	{ label: "Reviews", href: "/admin/reviews", icon: Star },
+	{ label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+	{ label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export default function DashboardLayout({
@@ -61,7 +61,7 @@ export default function DashboardLayout({
 	if (!hydrated || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
 			</div>
 		);
 	}
@@ -90,9 +90,9 @@ export default function DashboardLayout({
 				{/* Logo */}
 				<div className="flex h-16 items-center justify-between border-b border-slate-200 px-6 dark:border-slate-800">
 					<Link
-						href="/"
+						href="/admin"
 						className="text-xl font-bold text-slate-900 dark:text-white">
-						Run<span className="text-blue-600">Am</span>
+						Run<span className="text-primary">Am</span>
 					</Link>
 					<button
 						onClick={() => setSidebarOpen(false)}
@@ -104,7 +104,10 @@ export default function DashboardLayout({
 				{/* Nav */}
 				<nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
 					{navItems.map((item) => {
-						const isActive = pathname === item.href;
+						const isActive =
+							item.href === "/admin"
+								? pathname === "/admin"
+								: pathname.startsWith(item.href);
 						return (
 							<Link
 								key={item.href}
@@ -113,7 +116,7 @@ export default function DashboardLayout({
 								className={cn(
 									"flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
 									isActive
-										? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+										? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
 										: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white",
 								)}>
 								<item.icon className="h-5 w-5 shrink-0" />
@@ -126,7 +129,7 @@ export default function DashboardLayout({
 				{/* User section */}
 				<div className="border-t border-slate-200 p-4 dark:border-slate-800">
 					<div className="flex items-center gap-3">
-						<div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+						<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
 							{user?.firstName?.[0]}
 							{user?.lastName?.[0]}
 						</div>
@@ -163,7 +166,7 @@ export default function DashboardLayout({
 							</p>
 							<p className="text-xs text-slate-500">Administrator</p>
 						</div>
-						<div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+						<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
 							{user?.firstName?.[0]}
 							{user?.lastName?.[0]}
 						</div>

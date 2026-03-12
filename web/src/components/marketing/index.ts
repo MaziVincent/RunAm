@@ -1,0 +1,10 @@
+export { Navbar } from "./navbar";
+export { Footer } from "./footer";
+export { Hero } from "./hero";
+export { HowItWorks } from "./how-it-works";
+export { ServiceCategories } from "./service-categories";
+export { FeaturedVendors } from "./featured-vendors";
+export { ValueProps } from "./value-props";
+export { StatsCounter } from "./stats-counter";
+export { Testimonials } from "./testimonials";
+export { CTASection } from "./cta-section";

@@ -15,7 +15,8 @@
 		},
 		"ios": {
 			"supportsTablet": true,
-			"bundleIdentifier": "com.runam.user",
+			"bundleIdentifier": "com.vincent.runam",
+			"appleTeamId": "7V85XXD2BL",
 			"infoPlist": {
 				"NSLocationWhenInUseUsageDescription": "RunAm needs your location to show nearby riders and estimate delivery times.",
 				"NSCameraUsageDescription": "RunAm needs camera access to scan packages and capture delivery proof."
