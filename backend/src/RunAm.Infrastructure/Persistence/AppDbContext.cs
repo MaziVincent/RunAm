@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid
     public DbSet<RiderPayout> RiderPayouts => Set<RiderPayout>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+    public DbSet<VerificationCode> VerificationCodes => Set<VerificationCode>();
 
     // Marketplace
     public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();

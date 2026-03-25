@@ -15,7 +15,6 @@ import {
 	Settings,
 	LogOut,
 	Menu,
-	ChevronRight,
 	Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useMyVendor } from "@/lib/hooks";
+import { UserRole, VendorStatus } from "@/types";
 
 const NAV_ITEMS = [
 	{ href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
@@ -113,18 +113,10 @@ function NavContent({
 
 			{/* Bottom actions */}
 			<div className="space-y-1 p-3">
-				<Link
-					href="/dashboard"
-					onClick={onClose}
-					className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-					<LayoutDashboard className="h-4 w-4" />
-					User Dashboard
-					<ChevronRight className="ml-auto h-3.5 w-3.5" />
-				</Link>
 				<button
 					onClick={() => {
 						logout();
-						router.push("/login");
+						router.push("/login?role=vendor");
 					}}
 					className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">
 					<LogOut className="h-4 w-4" />
@@ -143,8 +135,13 @@ export default function VendorDashboardLayout({
 	const pathname = usePathname();
 	const router = useRouter();
 	const { isAuthenticated, hydrate } = useAuthStore();
+	const { user } = useAuthStore();
+	const { data: vendorData, isLoading: vendorLoading } = useMyVendor();
+	const vendor = vendorData?.data;
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [hydrated, setHydrated] = useState(false);
+
+	const isOnboarding = pathname === "/vendor/onboarding";
 
 	useEffect(() => {
 		hydrate();
@@ -153,11 +150,100 @@ export default function VendorDashboardLayout({
 
 	useEffect(() => {
 		if (hydrated && !isAuthenticated) {
-			router.push("/login?redirect=" + encodeURIComponent(pathname));
+			router.push(
+				"/login?role=vendor&redirect=" + encodeURIComponent(pathname),
+			);
 		}
 	}, [hydrated, isAuthenticated]);
 
+	useEffect(() => {
+		if (
+			hydrated &&
+			isAuthenticated &&
+			user &&
+			user.role !== UserRole.Merchant
+		) {
+			router.push("/dashboard");
+		}
+	}, [hydrated, isAuthenticated, user]);
+
+	// Redirect to onboarding if no vendor profile (but not if already there)
+	useEffect(() => {
+		if (
+			hydrated &&
+			isAuthenticated &&
+			!vendorLoading &&
+			!vendor &&
+			!isOnboarding
+		) {
+			router.replace("/vendor/onboarding");
+		}
+	}, [hydrated, isAuthenticated, vendorLoading, vendor, isOnboarding]);
+
+	const isPendingVendor = vendor && vendor.status !== VendorStatus.Active;
+
+	// If vendor is pending/suspended, only allow the main dashboard page
+	useEffect(() => {
+		if (
+			hydrated &&
+			isPendingVendor &&
+			pathname !== "/vendor" &&
+			!isOnboarding
+		) {
+			router.replace("/vendor");
+		}
+	}, [hydrated, isPendingVendor, pathname, isOnboarding]);
+
 	if (!hydrated || !isAuthenticated) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+			</div>
+		);
+	}
+
+	// Show a minimal layout for onboarding (no sidebar)
+	if (isOnboarding) {
+		return (
+			<div className="min-h-screen bg-muted/30">
+				<header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-4">
+					<Link href="/" className="flex items-center gap-2">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white text-sm">
+							R
+						</div>
+						<span className="text-lg font-bold">RunAm</span>
+						<Badge variant="secondary" className="text-[10px]">
+							Vendor
+						</Badge>
+					</Link>
+				</header>
+				<main className="mx-auto max-w-3xl p-4 md:p-6">{children}</main>
+			</div>
+		);
+	}
+
+	// Show minimal layout for pending/suspended vendors (no sidebar)
+	if (isPendingVendor) {
+		return (
+			<div className="min-h-screen bg-muted/30">
+				<header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-4">
+					<Link href="/vendor" className="flex items-center gap-2">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white text-sm">
+							R
+						</div>
+						<span className="text-lg font-bold">RunAm</span>
+						<Badge variant="secondary" className="text-[10px]">
+							Vendor
+						</Badge>
+					</Link>
+				</header>
+				<main className="mx-auto max-w-3xl p-4 md:p-6">{children}</main>
+			</div>
+		);
+	}
+
+	// Still loading vendor profile
+	if (vendorLoading) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

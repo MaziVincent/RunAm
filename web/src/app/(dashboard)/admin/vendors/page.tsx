@@ -55,7 +55,8 @@ export default function VendorsPage() {
 	const meta = res?.meta;
 
 	const approveMutation = useMutation({
-		mutationFn: (vendorId: string) => api.post(`/vendors/${vendorId}/approve`),
+		mutationFn: (vendorId: string) =>
+			api.put(`/vendors/${vendorId}/approve?approve=true`),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["vendors"] });
 		},
@@ -67,14 +68,9 @@ export default function VendorsPage() {
 
 	const handleSuspend = (vendorId: string) => {
 		const reason = window.prompt("Reason for suspension (optional):");
-		api
-			.put(`/vendors/${vendorId}/status`, {
-				status: VendorStatus.Suspended,
-				reason: reason ?? undefined,
-			})
-			.then(() => {
-				queryClient.invalidateQueries({ queryKey: ["vendors"] });
-			});
+		api.put(`/vendors/${vendorId}/approve?approve=false`).then(() => {
+			queryClient.invalidateQueries({ queryKey: ["vendors"] });
+		});
 	};
 
 	return (

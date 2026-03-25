@@ -87,6 +87,7 @@ public record ServiceCategorySlimDto(Guid Id, string Name, string Slug);
 public record CreateVendorRequest(
     string BusinessName,
     string? BusinessDescription,
+    string? LogoUrl,
     string Address,
     double Latitude,
     double Longitude,

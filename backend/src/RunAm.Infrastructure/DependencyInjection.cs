@@ -42,7 +42,8 @@ public static class DependencyInjection
 
         // JWT Authentication
         var jwtSettings = configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? "RunAm-Super-Secret-Key-That-Is-At-Least-256-Bits-Long!";
+        var secretKey = jwtSettings["SecretKey"]
+            ?? throw new InvalidOperationException("JwtSettings:SecretKey is not configured. Set the JWT_SECRET_KEY environment variable.");
 
         services.AddAuthentication(options =>
             {
@@ -106,12 +107,17 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IFileStorageService, CloudinaryStorageService>();
+        services.AddScoped<IOtpService, OtpService>();
 
         // Notification services
         services.AddHttpClient<IEmailService, ZeptoMailEmailService>();
         services.AddHttpClient<ISmsService, TermiiSmsService>();
         services.AddSingleton<IPushNotificationService, FcmPushNotificationService>();
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+        // Geocoding
+        services.AddHttpClient<IGeocodingService, GoogleMapsGeocodingService>();
 
         return services;
     }

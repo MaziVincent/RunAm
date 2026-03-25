@@ -9,22 +9,37 @@ using RunAm.Shared.DTOs.Auth;
 
 namespace RunAm.Application.Auth.Commands;
 
-public record RegisterCommand(RegisterRequest Request) : IRequest<AuthResponse>;
+public record RegisterCommand(RegisterRequest Request) : IRequest<RegisterResponse>;
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResponse>
+public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterResponse>
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IOtpService _otpService;
+    private readonly ISmsService _smsService;
 
-    public RegisterCommandHandler(UserManager<ApplicationUser> userManager, IJwtTokenService jwtTokenService)
+    public RegisterCommandHandler(
+        UserManager<ApplicationUser> userManager,
+        IOtpService otpService,
+        ISmsService smsService)
     {
         _userManager = userManager;
-        _jwtTokenService = jwtTokenService;
+        _otpService = otpService;
+        _smsService = smsService;
     }
 
-    public async Task<AuthResponse> Handle(RegisterCommand command, CancellationToken cancellationToken)
+    private static readonly HashSet<UserRole> AllowedRegistrationRoles = new()
+    {
+        UserRole.Customer,
+        UserRole.Rider,
+        UserRole.Merchant
+    };
+
+    public async Task<RegisterResponse> Handle(RegisterCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
+
+        // Prevent privilege escalation — only allow safe roles via self-registration
+        var role = AllowedRegistrationRoles.Contains(request.Role) ? request.Role : UserRole.Customer;
 
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
@@ -37,8 +52,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             PhoneNumber = request.PhoneNumber,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Role = request.Role,
-            Status = UserStatus.Active,
+            Role = role,
+            Status = UserStatus.PendingVerification,
             IsEmailVerified = false,
             IsPhoneVerified = false
         };
@@ -50,24 +65,20 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             throw new InvalidOperationException($"Registration failed: {errors}");
         }
 
-        await _userManager.AddToRoleAsync(user, request.Role.ToString());
+        await _userManager.AddToRoleAsync(user, role.ToString());
 
-        var accessToken = _jwtTokenService.GenerateAccessToken(user);
-        var refreshToken = _jwtTokenService.GenerateRefreshToken();
+        // Generate and send OTP via SMS
+        var otp = await _otpService.GenerateAsync(user.Id, user.PhoneNumber!, VerificationCodeType.PhoneVerification, cancellationToken);
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(AppConstants.Auth.RefreshTokenExpirationDays);
-        await _userManager.UpdateAsync(user);
+        await _smsService.SendAsync(
+            user.PhoneNumber!,
+            $"Your RunAm verification code is: {otp}. It expires in 10 minutes.",
+            cancellationToken);
 
-        return new AuthResponse(
-            AccessToken: accessToken,
-            RefreshToken: refreshToken,
-            ExpiresAt: DateTime.UtcNow.AddMinutes(AppConstants.Auth.AccessTokenExpirationMinutes),
-            User: new UserDto(
-                user.Id, user.Email!, user.PhoneNumber ?? "", user.FirstName, user.LastName,
-                user.ProfileImageUrl, user.Role, user.Status, user.IsPhoneVerified, user.IsEmailVerified,
-                user.CreatedAt
-            )
+        return new RegisterResponse(
+            Message: "Registration successful. Please verify your phone number with the OTP sent via SMS.",
+            PhoneNumber: user.PhoneNumber!,
+            RequiresVerification: true
         );
     }
 }

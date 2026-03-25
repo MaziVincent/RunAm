@@ -35,6 +35,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
         if (user.Status == Domain.Enums.UserStatus.Deactivated)
             throw new UnauthorizedAccessException("Your account has been deactivated.");
 
+        if (user.Status == Domain.Enums.UserStatus.PendingVerification)
+            throw new UnauthorizedAccessException("Please verify your email before logging in.");
+
         var isValidPassword = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isValidPassword)
         {

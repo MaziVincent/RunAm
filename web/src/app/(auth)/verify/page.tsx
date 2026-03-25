@@ -5,13 +5,31 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api/client";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { UserRole } from "@/types";
+import type { AuthResponse } from "@/types";
+
+function getDashboardPath(role: UserRole): string {
+	switch (role) {
+		case UserRole.Merchant:
+			return "/vendor";
+		case UserRole.Rider:
+			return "/rider";
+		case UserRole.Admin:
+		case UserRole.SupportAgent:
+			return "/admin";
+		default:
+			return "/dashboard";
+	}
+}
 
 const CODE_LENGTH = 6;
 
 function VerifyForm() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const email = searchParams.get("email") ?? "";
+	const phone = searchParams.get("phone") ?? "";
+	const loginUser = useAuthStore((s) => s.login);
 
 	const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
 	const [error, setError] = useState<string | null>(null);
@@ -73,10 +91,15 @@ function VerifyForm() {
 		setError(null);
 		setIsSubmitting(true);
 		try {
-			const res = await api.post("/auth/verify", { email, code: otp });
-			if (res.success) {
+			const res = await api.post<AuthResponse>("/auth/verify-otp", {
+				phoneNumber: phone,
+				code: otp,
+			});
+			if (res.success && res.data) {
 				setVerified(true);
-				setTimeout(() => router.push("/login"), 2000);
+				loginUser(res.data.accessToken, res.data.refreshToken, res.data.user);
+				const dest = getDashboardPath(res.data.user.role);
+				setTimeout(() => router.push(dest), 2000);
 			} else {
 				setError(res.error?.message ?? "Invalid code. Please try again.");
 			}
@@ -90,7 +113,7 @@ function VerifyForm() {
 	async function handleResend() {
 		if (resendCooldown > 0) return;
 		try {
-			await api.post("/auth/resend-verification", { email });
+			await api.post("/auth/resend-otp", { phoneNumber: phone });
 			setResendCooldown(60);
 		} catch {
 			setError("Failed to resend code.");
@@ -107,7 +130,7 @@ function VerifyForm() {
 					Verified!
 				</h2>
 				<p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-					Your account has been verified. Redirecting to login...
+					Your account has been verified. Redirecting to dashboard...
 				</p>
 			</div>
 		);
@@ -126,16 +149,16 @@ function VerifyForm() {
 			</div>
 
 			<p className="mb-6 text-center text-sm text-slate-600 dark:text-slate-400">
-				{email ? (
+				{phone ? (
 					<>
 						We&apos;ve sent a {CODE_LENGTH}-digit code to{" "}
 						<span className="font-medium text-slate-700 dark:text-slate-300">
-							{email}
+							{phone}
 						</span>
 					</>
 				) : (
 					<>
-						Enter the {CODE_LENGTH}-digit verification code sent to your email
+						Enter the {CODE_LENGTH}-digit verification code sent to your phone
 					</>
 				)}
 			</p>

@@ -44,10 +44,10 @@ export function useUpdateVendorProfile() {
 export function useRegisterVendor() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: {
+		mutationFn: async (data: {
 			businessName: string;
-			description: string;
-			phoneNumber: string;
+			businessDescription?: string;
+			logoUrl?: string;
 			address: string;
 			latitude: number;
 			longitude: number;
@@ -56,7 +56,12 @@ export function useRegisterVendor() {
 			deliveryFee: number;
 			estimatedPrepTimeMinutes: number;
 			operatingHours?: string;
-		}) => api.post<VendorDto>("/vendors", data),
+		}) => {
+			const res = await api.post<VendorDto>("/vendors/me", data);
+			if (!res.success)
+				throw new Error(res.error?.message ?? "Failed to register vendor");
+			return res;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-vendor"] });
 		},

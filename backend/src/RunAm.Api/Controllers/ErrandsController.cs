@@ -44,7 +44,7 @@ public class ErrandsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _mediator.Send(new GetErrandByIdQuery(id));
+        var result = await _mediator.Send(new GetErrandByIdQuery(id, GetUserId()));
         return Ok(ApiResponse<ErrandDto>.Ok(result));
     }
 

@@ -6,7 +6,7 @@ using RunAm.Shared.DTOs.Errands;
 
 namespace RunAm.Application.Errands.Queries;
 
-public record GetErrandByIdQuery(Guid ErrandId) : IRequest<ErrandDto>;
+public record GetErrandByIdQuery(Guid ErrandId, Guid RequestingUserId) : IRequest<ErrandDto>;
 
 public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, ErrandDto>
 {
@@ -18,6 +18,10 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
     {
         var errand = await _errandRepo.GetByIdWithDetailsAsync(query.ErrandId, cancellationToken)
             ?? throw new NotFoundException("Errand", query.ErrandId);
+
+        // Ownership check: only the customer or assigned rider may view
+        if (errand.CustomerId != query.RequestingUserId && errand.RiderId != query.RequestingUserId)
+            throw new UnauthorizedAccessException("You do not have access to this errand.");
 
         return new ErrandDto(
             errand.Id, errand.CustomerId, errand.Customer?.FullName ?? "", errand.RiderId, errand.Rider?.FullName,

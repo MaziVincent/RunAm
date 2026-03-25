@@ -43,6 +43,82 @@ public static class DataSeeder
             await userManager.AddToRoleAsync(admin, AppConstants.Roles.Admin);
         }
 
+        // Seed rider user
+        var riderEmail = "rider@runam.app";
+        if (await userManager.FindByEmailAsync(riderEmail) == null)
+        {
+            var rider = new ApplicationUser
+            {
+                UserName = riderEmail,
+                Email = riderEmail,
+                FirstName = "Demo",
+                LastName = "Rider",
+                Role = UserRole.Rider,
+                Status = UserStatus.Active,
+                IsEmailVerified = true,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(rider, "Rider@123456");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(rider, AppConstants.Roles.Rider);
+                if (!await db.RiderProfiles.AnyAsync(r => r.UserId == rider.Id))
+                {
+                    db.RiderProfiles.Add(new RiderProfile
+                    {
+                        UserId = rider.Id,
+                        VehicleType = VehicleType.Motorcycle,
+                        ApprovalStatus = ApprovalStatus.Approved,
+                        IsOnline = true
+                    });
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+
+        // Seed vendor user
+        var vendorEmail = "vendor@runam.app";
+        if (await userManager.FindByEmailAsync(vendorEmail) == null)
+        {
+            var vendor = new ApplicationUser
+            {
+                UserName = vendorEmail,
+                Email = vendorEmail,
+                FirstName = "Demo",
+                LastName = "Vendor",
+                Role = UserRole.Merchant,
+                Status = UserStatus.Active,
+                IsEmailVerified = true,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(vendor, "Vendor@123456");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(vendor, AppConstants.Roles.Merchant);
+                if (!await db.Vendors.AnyAsync(v => v.UserId == vendor.Id))
+                {
+                    db.Vendors.Add(new Vendor
+                    {
+                        UserId = vendor.Id,
+                        BusinessName = "Demo Store",
+                        BusinessDescription = "A demo vendor for testing",
+                        Address = "123 Main Street, Lagos",
+                        Latitude = 6.5244,
+                        Longitude = 3.3792,
+                        IsOpen = true,
+                        IsActive = true,
+                        MinimumOrderAmount = 500,
+                        DeliveryFee = 200,
+                        EstimatedPrepTimeMinutes = 15,
+                        Status = VendorStatus.Active
+                    });
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+
         // Seed service categories (mirrors ErrandCategory enum for backward compat)
         if (!await db.ServiceCategories.AnyAsync())
         {

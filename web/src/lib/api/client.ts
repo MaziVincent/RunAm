@@ -54,6 +54,9 @@ async function request<T>(
 		if (typeof window !== "undefined") {
 			localStorage.removeItem("access_token");
 			localStorage.removeItem("refresh_token");
+			localStorage.removeItem("user");
+			document.cookie = "has_session=; path=/; max-age=0";
+			document.cookie = "user_role=; path=/; max-age=0";
 			window.location.href = "/login";
 		}
 		throw new Error("Unauthorized");
@@ -97,5 +100,34 @@ export const api = {
 
 	delete<T>(path: string) {
 		return request<T>(path, { method: "DELETE" });
+	},
+
+	async upload<T>(
+		path: string,
+		file: File,
+		fieldName = "file",
+	): Promise<ApiResponse<T>> {
+		const token = getToken();
+		const formData = new FormData();
+		formData.append(fieldName, file);
+
+		const headers: Record<string, string> = {};
+		if (token) headers["Authorization"] = `Bearer ${token}`;
+
+		const response = await fetch(buildUrl(path), {
+			method: "POST",
+			headers,
+			body: formData,
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({
+				success: false,
+				error: { code: "UPLOAD_ERROR", message: response.statusText },
+			}));
+			return error as ApiResponse<T>;
+		}
+
+		return response.json() as Promise<ApiResponse<T>>;
 	},
 };

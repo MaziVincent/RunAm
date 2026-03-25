@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
 	Store,
 	MapPin,
 	Clock,
-	Banknote,
 	CheckCircle2,
 	ArrowLeft,
 	ArrowRight,
 	Loader2,
 	Upload,
+	X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,55 +20,57 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRegisterVendor } from "@/lib/hooks";
+import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AddressAutocomplete } from "@/components/shared/location-picker";
 
 const STEPS = [
 	{ label: "Business Info", icon: Store },
 	{ label: "Location", icon: MapPin },
 	{ label: "Operations", icon: Clock },
-	{ label: "Payment", icon: Banknote },
 	{ label: "Review", icon: CheckCircle2 },
 ];
 
 interface FormData {
 	businessName: string;
 	description: string;
+	logoUrl: string;
 	address: string;
 	city: string;
 	state: string;
+	latitude: number;
+	longitude: number;
 	deliveryRadius: number;
 	openingTime: string;
 	closingTime: string;
 	minimumOrder: number;
-	deliveryFee: number;
 	prepTime: string;
-	bankName: string;
-	accountNumber: string;
-	accountName: string;
 }
 
 const initialForm: FormData = {
 	businessName: "",
 	description: "",
+	logoUrl: "",
 	address: "",
 	city: "",
 	state: "",
+	latitude: 0,
+	longitude: 0,
 	deliveryRadius: 5,
 	openingTime: "08:00",
 	closingTime: "22:00",
 	minimumOrder: 500,
-	deliveryFee: 300,
 	prepTime: "15-30 min",
-	bankName: "",
-	accountNumber: "",
-	accountName: "",
 };
 
 export default function VendorOnboardingPage() {
 	const [step, setStep] = useState(0);
 	const [form, setForm] = useState<FormData>(initialForm);
 	const [agreed, setAgreed] = useState(false);
+	const [logoUploading, setLogoUploading] = useState(false);
+	const [logoPreview, setLogoPreview] = useState<string | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const router = useRouter();
 	const registerVendor = useRegisterVendor();
 
@@ -75,14 +78,74 @@ export default function VendorOnboardingPage() {
 		setForm((prev) => ({ ...prev, [key]: value }));
 	}
 
-	function nextStep() {
-		if (step === 0 && !form.businessName) {
-			toast.error("Business name required");
+	async function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error("Logo must be under 5MB");
 			return;
 		}
-		if (step === 1 && !form.address) {
-			toast.error("Address required");
+
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please select an image file");
 			return;
+		}
+
+		setLogoUploading(true);
+		try {
+			const res = await api.upload<{ url: string }>(
+				"/files/vendor-image",
+				file,
+			);
+			if (res.success && res.data?.url) {
+				setLogoPreview(URL.createObjectURL(file));
+				update("logoUrl", res.data.url);
+				toast.success("Logo uploaded");
+			} else {
+				toast.error(res.error?.message ?? "Upload failed");
+			}
+		} catch {
+			toast.error("Failed to upload logo");
+		} finally {
+			setLogoUploading(false);
+			if (fileInputRef.current) fileInputRef.current.value = "";
+		}
+	}
+
+	function removeLogo() {
+		setLogoPreview(null);
+		update("logoUrl", "");
+	}
+
+	function nextStep() {
+		if (step === 0) {
+			if (!form.businessName) {
+				toast.error("Business name is required");
+				return;
+			}
+			if (!form.logoUrl) {
+				toast.error("Business logo is required");
+				return;
+			}
+		}
+		if (step === 1) {
+			if (!form.address) {
+				toast.error("Address is required");
+				return;
+			}
+			if (!form.city) {
+				toast.error("City is required");
+				return;
+			}
+			if (!form.state) {
+				toast.error("State is required");
+				return;
+			}
+			if (!form.latitude || !form.longitude) {
+				toast.error("Latitude and longitude are required");
+				return;
+			}
 		}
 		setStep((s) => Math.min(s + 1, STEPS.length - 1));
 	}
@@ -95,23 +158,33 @@ export default function VendorOnboardingPage() {
 		try {
 			await registerVendor.mutateAsync({
 				businessName: form.businessName,
-				description: form.description,
-				phoneNumber: "",
+				businessDescription: form.description || undefined,
+				logoUrl: form.logoUrl || undefined,
 				address: [form.address, form.city, form.state]
 					.filter(Boolean)
 					.join(", "),
-				latitude: 0,
-				longitude: 0,
+				latitude: form.latitude,
+				longitude: form.longitude,
 				serviceCategoryIds: [],
 				minimumOrderAmount: form.minimumOrder,
-				deliveryFee: form.deliveryFee,
+				deliveryFee: 0,
 				estimatedPrepTimeMinutes: parseInt(form.prepTime) || 30,
-				operatingHours: `${form.openingTime}-${form.closingTime}`,
+				operatingHours: JSON.stringify({
+					mon: `${form.openingTime}-${form.closingTime}`,
+					tue: `${form.openingTime}-${form.closingTime}`,
+					wed: `${form.openingTime}-${form.closingTime}`,
+					thu: `${form.openingTime}-${form.closingTime}`,
+					fri: `${form.openingTime}-${form.closingTime}`,
+					sat: `${form.openingTime}-${form.closingTime}`,
+					sun: `${form.openingTime}-${form.closingTime}`,
+				}),
 			});
 			toast.success("Application submitted!");
 			router.push("/vendor");
-		} catch {
-			toast.error("Failed to submit application");
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to submit application",
+			);
 		}
 	}
 
@@ -182,13 +255,52 @@ export default function VendorOnboardingPage() {
 								/>
 							</div>
 							<div className="space-y-2">
-								<Label>Logo</Label>
-								<div className="flex h-24 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors hover:border-primary">
-									<div className="flex flex-col items-center text-muted-foreground">
-										<Upload className="h-6 w-6" />
-										<span className="mt-1 text-xs">Upload logo</span>
+								<Label>Logo *</Label>
+								<input
+									ref={fileInputRef}
+									type="file"
+									accept="image/*"
+									onChange={handleLogoSelect}
+									className="hidden"
+								/>
+								{form.logoUrl ? (
+									<div className="relative inline-block">
+										<div className="h-24 w-24 overflow-hidden rounded-lg border">
+											{/* eslint-disable-next-line @next/next/no-img-element */}
+											<img
+												src={logoPreview ?? form.logoUrl}
+												alt="Logo preview"
+												className="h-full w-full object-cover"
+											/>
+										</div>
+										<button
+											type="button"
+											onClick={removeLogo}
+											className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm">
+											<X className="h-3.5 w-3.5" />
+										</button>
 									</div>
-								</div>
+								) : (
+									<button
+										type="button"
+										onClick={() => fileInputRef.current?.click()}
+										disabled={logoUploading}
+										className="flex h-24 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50">
+										<div className="flex flex-col items-center text-muted-foreground">
+											{logoUploading ? (
+												<Loader2 className="h-6 w-6 animate-spin" />
+											) : (
+												<Upload className="h-6 w-6" />
+											)}
+											<span className="mt-1 text-xs">
+												{logoUploading ? "Uploading..." : "Upload logo"}
+											</span>
+										</div>
+									</button>
+								)}
+								<p className="text-xs text-muted-foreground">
+									Max 5MB. JPG, PNG, or WebP.
+								</p>
 							</div>
 						</div>
 					)}
@@ -197,7 +309,25 @@ export default function VendorOnboardingPage() {
 						<div className="space-y-4">
 							<h2 className="text-lg font-semibold">Location</h2>
 							<div className="space-y-2">
-								<Label>Business Address *</Label>
+								<Label>Search Address</Label>
+								<AddressAutocomplete
+									onSelect={(result) => {
+										setForm((prev) => ({
+											...prev,
+											address: result.address,
+											city: result.city,
+											state: result.state,
+											latitude: result.latitude,
+											longitude: result.longitude,
+										}));
+									}}
+								/>
+								<p className="text-xs text-muted-foreground">
+									Select a suggestion to auto-fill the fields below
+								</p>
+							</div>
+							<div className="space-y-2">
+								<Label>Address *</Label>
 								<Input
 									value={form.address}
 									onChange={(e) => update("address", e.target.value)}
@@ -206,7 +336,7 @@ export default function VendorOnboardingPage() {
 							</div>
 							<div className="grid grid-cols-2 gap-3">
 								<div className="space-y-2">
-									<Label>City</Label>
+									<Label>City *</Label>
 									<Input
 										value={form.city}
 										onChange={(e) => update("city", e.target.value)}
@@ -214,11 +344,37 @@ export default function VendorOnboardingPage() {
 									/>
 								</div>
 								<div className="space-y-2">
-									<Label>State</Label>
+									<Label>State *</Label>
 									<Input
 										value={form.state}
 										onChange={(e) => update("state", e.target.value)}
 										placeholder="State"
+									/>
+								</div>
+							</div>
+							<div className="grid grid-cols-2 gap-3">
+								<div className="space-y-2">
+									<Label>Latitude *</Label>
+									<Input
+										type="number"
+										step="any"
+										value={form.latitude || ""}
+										onChange={(e) =>
+											update("latitude", parseFloat(e.target.value) || 0)
+										}
+										placeholder="e.g. 6.5244"
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label>Longitude *</Label>
+									<Input
+										type="number"
+										step="any"
+										value={form.longitude || ""}
+										onChange={(e) =>
+											update("longitude", parseFloat(e.target.value) || 0)
+										}
+										placeholder="e.g. 3.3792"
 									/>
 								</div>
 							</div>
@@ -263,27 +419,15 @@ export default function VendorOnboardingPage() {
 									/>
 								</div>
 							</div>
-							<div className="grid grid-cols-2 gap-3">
-								<div className="space-y-2">
-									<Label>Minimum Order (₦)</Label>
-									<Input
-										type="number"
-										value={form.minimumOrder}
-										onChange={(e) =>
-											update("minimumOrder", parseInt(e.target.value) || 0)
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label>Delivery Fee (₦)</Label>
-									<Input
-										type="number"
-										value={form.deliveryFee}
-										onChange={(e) =>
-											update("deliveryFee", parseInt(e.target.value) || 0)
-										}
-									/>
-								</div>
+							<div className="space-y-2">
+								<Label>Minimum Order (₦)</Label>
+								<Input
+									type="number"
+									value={form.minimumOrder}
+									onChange={(e) =>
+										update("minimumOrder", parseInt(e.target.value) || 0)
+									}
+								/>
 							</div>
 							<div className="space-y-2">
 								<Label>Prep Time</Label>
@@ -298,50 +442,29 @@ export default function VendorOnboardingPage() {
 
 					{step === 3 && (
 						<div className="space-y-4">
-							<h2 className="text-lg font-semibold">Payment Details</h2>
-							<p className="text-sm text-muted-foreground">
-								Your earnings will be deposited to this bank account.
-							</p>
-							<div className="space-y-2">
-								<Label>Bank Name</Label>
-								<Input
-									value={form.bankName}
-									onChange={(e) => update("bankName", e.target.value)}
-									placeholder="e.g. GTBank"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Account Number</Label>
-								<Input
-									value={form.accountNumber}
-									onChange={(e) => update("accountNumber", e.target.value)}
-									placeholder="10-digit account number"
-									maxLength={10}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Account Name</Label>
-								<Input
-									value={form.accountName}
-									onChange={(e) => update("accountName", e.target.value)}
-									placeholder="Account holder name"
-								/>
-							</div>
-						</div>
-					)}
-
-					{step === 4 && (
-						<div className="space-y-4">
 							<h2 className="text-lg font-semibold">Review & Submit</h2>
 							<div className="space-y-3 rounded-lg bg-muted/50 p-4 text-sm">
-								<div className="flex justify-between">
-									<span className="text-muted-foreground">Business Name</span>
-									<span className="font-medium">{form.businessName}</span>
-								</div>
+								{form.logoUrl && (
+									<div className="flex items-center gap-3 pb-2">
+										{/* eslint-disable-next-line @next/next/no-img-element */}
+										<img
+											src={logoPreview ?? form.logoUrl}
+											alt="Logo"
+											className="h-12 w-12 rounded-lg object-cover"
+										/>
+										<span className="font-medium">{form.businessName}</span>
+									</div>
+								)}
+								{!form.logoUrl && (
+									<div className="flex justify-between">
+										<span className="text-muted-foreground">Business Name</span>
+										<span className="font-medium">{form.businessName}</span>
+									</div>
+								)}
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Address</span>
 									<span className="font-medium text-right">
-										{form.address}, {form.city}
+										{form.address}, {form.city}, {form.state}
 									</span>
 								</div>
 								<div className="flex justify-between">
@@ -354,12 +477,6 @@ export default function VendorOnboardingPage() {
 									<span className="text-muted-foreground">Minimum Order</span>
 									<span className="font-medium">
 										₦{form.minimumOrder.toLocaleString()}
-									</span>
-								</div>
-								<div className="flex justify-between">
-									<span className="text-muted-foreground">Bank</span>
-									<span className="font-medium">
-										{form.bankName} • ••••{form.accountNumber.slice(-4)}
 									</span>
 								</div>
 							</div>

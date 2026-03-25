@@ -35,6 +35,7 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
             UserId = command.UserId,
             BusinessName = req.BusinessName,
             BusinessDescription = req.BusinessDescription,
+            LogoUrl = req.LogoUrl,
             Address = req.Address,
             Latitude = req.Latitude,
             Longitude = req.Longitude,

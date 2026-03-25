@@ -13,7 +13,6 @@ import {
 	Settings,
 	LogOut,
 	Menu,
-	ChevronRight,
 	Bike,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useRiderProfile, useUpdateRiderStatus } from "@/lib/hooks";
+import { UserRole } from "@/types";
 
 const NAV_ITEMS = [
 	{ href: "/rider", label: "Dashboard", icon: LayoutDashboard },
@@ -126,18 +126,10 @@ function NavContent({
 
 			{/* Bottom actions */}
 			<div className="space-y-1 p-3">
-				<Link
-					href="/dashboard"
-					onClick={onClose}
-					className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-					<LayoutDashboard className="h-4 w-4" />
-					User Dashboard
-					<ChevronRight className="ml-auto h-3.5 w-3.5" />
-				</Link>
 				<button
 					onClick={() => {
 						logout();
-						router.push("/login");
+						router.push("/login?role=rider");
 					}}
 					className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">
 					<LogOut className="h-4 w-4" />
@@ -166,9 +158,16 @@ export default function RiderDashboardLayout({
 
 	useEffect(() => {
 		if (hydrated && !isAuthenticated) {
-			router.push("/login?redirect=" + encodeURIComponent(pathname));
+			router.push("/login?role=rider&redirect=" + encodeURIComponent(pathname));
 		}
 	}, [hydrated, isAuthenticated]);
+
+	const { user } = useAuthStore();
+	useEffect(() => {
+		if (hydrated && isAuthenticated && user && user.role !== UserRole.Rider) {
+			router.push("/dashboard");
+		}
+	}, [hydrated, isAuthenticated, user]);
 
 	if (!hydrated || !isAuthenticated) {
 		return (

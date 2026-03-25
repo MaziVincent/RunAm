@@ -38,5 +38,15 @@ public record ResetPasswordRequest(
 
 public record VerifyOtpRequest(
     string PhoneNumber,
-    string Otp
+    string Code
+);
+
+public record ResendOtpRequest(
+    string PhoneNumber
+);
+
+public record RegisterResponse(
+    string Message,
+    string PhoneNumber,
+    bool RequiresVerification
 );

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api/client";
-import { useAuthStore } from "@/lib/stores/auth-store";
-import type { AuthResponse } from "@/types";
+import { UserRole } from "@/types";
+import type { RegisterResponse } from "@/types";
 
 const registerSchema = z.object({
 	firstName: z.string().min(1, "First name is required"),
@@ -19,28 +19,53 @@ const registerSchema = z.object({
 	password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-type RegisterForm = z.infer<typeof registerSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function RegisterPage() {
+const ROLE_CONFIG: Record<
+	string,
+	{ subtitle: string; placeholder: string; userRole: UserRole }
+> = {
+	vendor: {
+		subtitle: "Create your vendor account",
+		placeholder: "vendor@example.com",
+		userRole: UserRole.Merchant,
+	},
+	rider: {
+		subtitle: "Create your rider account",
+		placeholder: "rider@example.com",
+		userRole: UserRole.Rider,
+	},
+	default: {
+		subtitle: "Create your account",
+		placeholder: "you@example.com",
+		userRole: UserRole.Customer,
+	},
+};
+
+function RegisterForm() {
 	const router = useRouter();
-	const login = useAuthStore((s) => s.login);
+	const searchParams = useSearchParams();
+	const role = searchParams.get("role") ?? "";
+	const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.default;
 	const [error, setError] = useState<string | null>(null);
 
 	const {
 		register,
 		handleSubmit,
 		formState: { errors, isSubmitting },
-	} = useForm<RegisterForm>({
+	} = useForm<RegisterFormData>({
 		resolver: zodResolver(registerSchema),
 	});
 
-	const onSubmit = async (data: RegisterForm) => {
+	const onSubmit = async (data: RegisterFormData) => {
 		setError(null);
 		try {
-			const res = await api.post<AuthResponse>("/auth/register", data);
-			if (res.success && res.data) {
-				login(res.data.accessToken, res.data.refreshToken, res.data.user);
-				router.push("/");
+			const res = await api.post<RegisterResponse>("/auth/register", {
+				...data,
+				role: config.userRole,
+			});
+			if (res.success && res.data?.requiresVerification) {
+				router.push(`/verify?phone=${encodeURIComponent(data.phoneNumber)}`);
 			} else {
 				setError(
 					res.error?.message ?? "Registration failed. Please try again.",
@@ -59,7 +84,7 @@ export default function RegisterPage() {
 					Run<span className="text-blue-600">Am</span>
 				</h1>
 				<p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-					Create your admin account
+					{config.subtitle}
 				</p>
 			</div>
 
@@ -125,7 +150,7 @@ export default function RegisterPage() {
 						autoComplete="email"
 						{...register("email")}
 						className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-						placeholder="admin@runam.com"
+						placeholder={config.placeholder}
 					/>
 					{errors.email && (
 						<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
@@ -185,11 +210,24 @@ export default function RegisterPage() {
 			<p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
 				Already have an account?{" "}
 				<Link
-					href="/login"
+					href={role ? `/login?role=${role}` : "/login"}
 					className="font-medium text-blue-600 hover:text-blue-500">
 					Sign in
 				</Link>
 			</p>
 		</>
+	);
+}
+
+export default function RegisterPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex items-center justify-center py-12">
+					<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+				</div>
+			}>
+			<RegisterForm />
+		</Suspense>
 	);
 }

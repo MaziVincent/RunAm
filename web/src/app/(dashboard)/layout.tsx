@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { UserRole } from "@/types";
 
 const navItems = [
 	{ label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -55,8 +56,19 @@ export default function DashboardLayout({
 	useEffect(() => {
 		if (hydrated && !isAuthenticated) {
 			router.push("/login");
+			return;
 		}
-	}, [hydrated, isAuthenticated, router]);
+		// Role check: only Admin and SupportAgent
+		if (
+			hydrated &&
+			isAuthenticated &&
+			user &&
+			user.role !== UserRole.Admin &&
+			user.role !== UserRole.SupportAgent
+		) {
+			router.push("/dashboard");
+		}
+	}, [hydrated, isAuthenticated, user, router]);
 
 	if (!hydrated || !isAuthenticated) {
 		return (

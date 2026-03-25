@@ -12,6 +12,7 @@ public record GetVendorsQuery(
     double? Latitude,
     double? Longitude,
     double? RadiusKm,
+    int? Status = null,
     int Page = 1,
     int PageSize = 20
 ) : IRequest<(IReadOnlyList<VendorDto> Vendors, int TotalCount)>;
@@ -26,9 +27,9 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, (IReadOnl
     {
         var vendors = query.Latitude.HasValue && query.Longitude.HasValue && query.RadiusKm.HasValue
             ? await _repo.GetNearbyAsync(query.Latitude.Value, query.Longitude.Value, query.RadiusKm.Value, query.Page, query.PageSize, ct)
-            : await _repo.SearchAsync(query.Search, query.CategoryId, query.Page, query.PageSize, ct);
+            : await _repo.SearchAsync(query.Search, query.CategoryId, query.Status, query.Page, query.PageSize, ct);
 
-        var totalCount = await _repo.GetCountAsync(query.CategoryId, ct);
+        var totalCount = await _repo.GetCountAsync(query.CategoryId, query.Status, ct);
 
         var dtos = vendors.Select(MapToDto).ToList();
         return (dtos, totalCount);

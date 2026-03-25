@@ -8,6 +8,7 @@ using Serilog;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using DotNetEnv;
+using System.Threading.RateLimiting;
 
 // Load .env file (no-throw if missing — production uses real env vars)
 Env.Load();
@@ -63,6 +64,18 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     ["Fcm:ProjectId"] = E("FCM_PROJECT_ID"),
     ["Fcm:CredentialsJson"] = E("FCM_CREDENTIALS_JSON"),
 
+    // Cloudinary
+    ["Cloudinary:CloudName"] = E("CLOUDINARY_CLOUD_NAME"),
+    ["Cloudinary:ApiKey"] = E("CLOUDINARY_API_KEY"),
+    ["Cloudinary:ApiSecret"] = E("CLOUDINARY_API_SECRET"),
+
+    // OTP
+    ["Otp:MockCode"] = E("MOCK_OTP_CODE"),
+    ["Otp:ExpiryMinutes"] = E("OTP_EXPIRY_MINUTES"),
+
+    // Google Maps
+    ["GoogleMaps:ApiKey"] = E("GOOGLE_MAPS_API_KEY"),
+
     // CORS
     ["Cors:Origins"] = E("CORS_ORIGINS"),
 }.Where(kv => kv.Value is not null)!);
@@ -107,6 +120,34 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSignalR();
 
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Strict policy for auth endpoints (login, register)
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // General API policy
+    options.AddPolicy("api", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
     .AddRedis(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379");
@@ -115,6 +156,26 @@ var app = builder.Build();
 
 // Middleware pipeline
 app.UseMiddleware<ExceptionMiddleware>();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
+// CORS — must be before auth, rate limiting, etc.
+app.UseCors("AllowAll");
+
+// Security headers
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)";
+    await next();
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -128,7 +189,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSerilogRequestLogging();
-app.UseCors("AllowAll");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

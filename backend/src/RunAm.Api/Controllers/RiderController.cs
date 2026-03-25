@@ -56,8 +56,6 @@ public class RiderController : BaseApiController
 
     /// <summary>Create rider profile (onboarding)</summary>
     [HttpPost("profile")]
-    [AllowAnonymous]
-    [Authorize]
     [ProducesResponseType(typeof(ApiResponse<RiderProfileDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateProfile([FromBody] CreateRiderProfileRequest request)
     {

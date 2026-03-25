@@ -73,18 +73,18 @@ export function formatCurrency(amount: number): string {
 	}).format(amount);
 }
 
-export const vendorStatusLabel: Record<number, string> = {
-	0: "Pending",
-	1: "Active",
-	2: "Suspended",
-	3: "Closed",
+export const vendorStatusLabel: Record<string, string> = {
+	Pending: "Pending",
+	Active: "Active",
+	Suspended: "Suspended",
+	Closed: "Closed",
 };
 
-export const vendorStatusColor: Record<number, string> = {
-	0: "bg-yellow-100 text-yellow-800",
-	1: "bg-green-100 text-green-800",
-	2: "bg-red-100 text-red-800",
-	3: "bg-slate-100 text-slate-800",
+export const vendorStatusColor: Record<string, string> = {
+	Pending: "bg-yellow-100 text-yellow-800",
+	Active: "bg-green-100 text-green-800",
+	Suspended: "bg-red-100 text-red-800",
+	Closed: "bg-slate-100 text-slate-800",
 };
 
 export const vendorOrderStatusLabel: Record<number, string> = {

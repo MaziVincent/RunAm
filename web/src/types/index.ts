@@ -112,6 +112,12 @@ export interface AuthResponse {
 	user: UserDto;
 }
 
+export interface RegisterResponse {
+	message: string;
+	phoneNumber: string;
+	requiresVerification: boolean;
+}
+
 export interface LoginRequest {
 	email: string;
 	password: string;
@@ -463,10 +469,10 @@ export interface NotificationTemplateDto {
 // ── Vendor / Marketplace ───────────────────────────────
 
 export enum VendorStatus {
-	Pending = 0,
-	Active = 1,
-	Suspended = 2,
-	Closed = 3,
+	Pending = "Pending",
+	Active = "Active",
+	Suspended = "Suspended",
+	Closed = "Closed",
 }
 
 export enum OrderItemStatus {

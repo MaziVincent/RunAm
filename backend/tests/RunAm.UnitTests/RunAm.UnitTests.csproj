@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\RunAm.Application\RunAm.Application.csproj" />
     <ProjectReference Include="..\..\src\RunAm.Domain\RunAm.Domain.csproj" />
+    <ProjectReference Include="..\..\src\RunAm.Infrastructure\RunAm.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

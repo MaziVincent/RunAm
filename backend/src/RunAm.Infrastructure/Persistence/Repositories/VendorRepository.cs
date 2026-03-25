@@ -59,10 +59,11 @@ public class VendorRepository : IVendorRepository
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Vendor>> SearchAsync(string? query, Guid? categoryId, int page, int pageSize, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Vendor>> SearchAsync(string? query, Guid? categoryId, int? status, int page, int pageSize, CancellationToken ct = default)
     {
-        var q = _db.Vendors
-            .Where(v => v.IsActive && v.Status == VendorStatus.Active);
+        var q = status.HasValue
+            ? _db.Vendors.Where(v => v.Status == (VendorStatus)status.Value)
+            : _db.Vendors.Where(v => v.IsActive && v.Status == VendorStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(query))
             q = q.Where(v => EF.Functions.ILike(v.BusinessName, $"%{query}%"));
@@ -71,7 +72,7 @@ public class VendorRepository : IVendorRepository
             q = q.Where(v => v.VendorServiceCategories.Any(vsc => vsc.ServiceCategoryId == categoryId));
 
         return await q
-            .OrderByDescending(v => v.Rating)
+            .OrderByDescending(v => v.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Include(v => v.VendorServiceCategories)
@@ -79,9 +80,11 @@ public class VendorRepository : IVendorRepository
             .ToListAsync(ct);
     }
 
-    public async Task<int> GetCountAsync(Guid? categoryId = null, CancellationToken ct = default)
+    public async Task<int> GetCountAsync(Guid? categoryId = null, int? status = null, CancellationToken ct = default)
     {
-        var q = _db.Vendors.Where(v => v.IsActive && v.Status == VendorStatus.Active);
+        var q = status.HasValue
+            ? _db.Vendors.Where(v => v.Status == (VendorStatus)status.Value)
+            : _db.Vendors.Where(v => v.IsActive && v.Status == VendorStatus.Active);
         if (categoryId.HasValue)
             q = q.Where(v => v.VendorServiceCategories.Any(vsc => vsc.ServiceCategoryId == categoryId));
         return await q.CountAsync(ct);

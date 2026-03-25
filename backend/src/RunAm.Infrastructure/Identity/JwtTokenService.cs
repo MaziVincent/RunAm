@@ -22,7 +22,8 @@ public class JwtTokenService : IJwtTokenService
     public string GenerateAccessToken(ApplicationUser user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"] ?? "RunAm-Super-Secret-Key-That-Is-At-Least-256-Bits-Long!";
+        var secretKey = jwtSettings["SecretKey"]
+            ?? throw new InvalidOperationException("JwtSettings:SecretKey is not configured.");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -61,7 +62,8 @@ public class JwtTokenService : IJwtTokenService
         try
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var secretKey = jwtSettings["SecretKey"] ?? "RunAm-Super-Secret-Key-That-Is-At-Least-256-Bits-Long!";
+            var secretKey = jwtSettings["SecretKey"]
+                ?? throw new InvalidOperationException("JwtSettings:SecretKey is not configured.");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
 
             var tokenHandler = new JwtSecurityTokenHandler();

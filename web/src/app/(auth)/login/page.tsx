@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +9,22 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { UserRole } from "@/types";
 import type { AuthResponse } from "@/types";
+
+function getDashboardPath(role: UserRole): string {
+	switch (role) {
+		case UserRole.Merchant:
+			return "/vendor";
+		case UserRole.Rider:
+			return "/rider";
+		case UserRole.Admin:
+		case UserRole.SupportAgent:
+			return "/admin";
+		default:
+			return "/dashboard";
+	}
+}
 
 const loginSchema = z.object({
 	email: z.string().email("Please enter a valid email"),
@@ -18,9 +33,27 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+const ROLE_CONFIG: Record<string, { subtitle: string; placeholder: string }> = {
+	vendor: {
+		subtitle: "Sign in to your vendor dashboard",
+		placeholder: "vendor@example.com",
+	},
+	rider: {
+		subtitle: "Sign in to your rider account",
+		placeholder: "rider@example.com",
+	},
+	default: {
+		subtitle: "Sign in to your account",
+		placeholder: "you@example.com",
+	},
+};
+
+function LoginForm() {
 	const router = useRouter();
-	const login = useAuthStore((s) => s.login);
+	const searchParams = useSearchParams();
+	const role = searchParams.get("role") ?? "";
+	const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.default;
+	const loginUser = useAuthStore((s) => s.login);
 	const [error, setError] = useState<string | null>(null);
 
 	const {
@@ -36,8 +69,9 @@ export default function LoginPage() {
 		try {
 			const res = await api.post<AuthResponse>("/auth/login", data);
 			if (res.success && res.data) {
-				login(res.data.accessToken, res.data.refreshToken, res.data.user);
-				router.push("/");
+				loginUser(res.data.accessToken, res.data.refreshToken, res.data.user);
+				const redirect = searchParams.get("redirect");
+				router.push(redirect ?? getDashboardPath(res.data.user.role));
 			} else {
 				setError(res.error?.message ?? "Login failed. Please try again.");
 			}
@@ -54,7 +88,7 @@ export default function LoginPage() {
 					Run<span className="text-blue-600">Am</span>
 				</h1>
 				<p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-					Sign in to the admin dashboard
+					{config.subtitle}
 				</p>
 			</div>
 
@@ -79,7 +113,7 @@ export default function LoginPage() {
 						autoComplete="email"
 						{...register("email")}
 						className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
-						placeholder="admin@runam.com"
+						placeholder={config.placeholder}
 					/>
 					{errors.email && (
 						<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
@@ -119,11 +153,24 @@ export default function LoginPage() {
 			<p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
 				Don&apos;t have an account?{" "}
 				<Link
-					href="/register"
+					href={role ? `/register?role=${role}` : "/register"}
 					className="font-medium text-blue-600 hover:text-blue-500">
 					Register
 				</Link>
 			</p>
 		</>
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex items-center justify-center py-12">
+					<Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+				</div>
+			}>
+			<LoginForm />
+		</Suspense>
 	);
 }

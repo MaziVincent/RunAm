@@ -28,7 +28,7 @@ public class ChatController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ChatMessageDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMessages(Guid errandId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var result = await _mediator.Send(new GetMessagesQuery(errandId, page, pageSize));
+        var result = await _mediator.Send(new GetMessagesQuery(errandId, GetUserId(), page, pageSize));
         return Ok(ApiResponse<IReadOnlyList<ChatMessageDto>>.Ok(result));
     }
 

@@ -13,16 +13,25 @@ public record SendMessageCommand(Guid ErrandId, Guid SenderId, SendMessageReques
 public class SendMessageCommandHandler : IRequestHandler<SendMessageCommand, ChatMessageDto>
 {
     private readonly IChatRepository _chatRepo;
+    private readonly IErrandRepository _errandRepo;
     private readonly IUnitOfWork _uow;
 
-    public SendMessageCommandHandler(IChatRepository chatRepo, IUnitOfWork uow)
+    public SendMessageCommandHandler(IChatRepository chatRepo, IErrandRepository errandRepo, IUnitOfWork uow)
     {
         _chatRepo = chatRepo;
+        _errandRepo = errandRepo;
         _uow = uow;
     }
 
     public async Task<ChatMessageDto> Handle(SendMessageCommand command, CancellationToken ct)
     {
+        // Verify the sender is a participant in this errand
+        var errand = await _errandRepo.GetByIdAsync(command.ErrandId, ct)
+            ?? throw new KeyNotFoundException("Errand not found.");
+
+        if (errand.CustomerId != command.SenderId && errand.RiderId != command.SenderId)
+            throw new UnauthorizedAccessException("You do not have access to this conversation.");
+
         var message = new ChatMessage
         {
             ErrandId = command.ErrandId,

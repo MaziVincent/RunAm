@@ -25,10 +25,11 @@ public class VendorsController : BaseApiController
         [FromQuery] double? lat,
         [FromQuery] double? lng,
         [FromQuery] double? radius,
+        [FromQuery] int? status,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var (vendors, totalCount) = await _mediator.Send(new GetVendorsQuery(search, categoryId, lat, lng, radius, page, pageSize));
+        var (vendors, totalCount) = await _mediator.Send(new GetVendorsQuery(search, categoryId, lat, lng, radius, status, page, pageSize));
         return Ok(ApiResponse<IReadOnlyList<VendorDto>>.Ok(vendors, new PaginationMeta
         {
             Page = page,
