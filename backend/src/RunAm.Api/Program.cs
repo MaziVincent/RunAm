@@ -42,17 +42,17 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     ["Termii:ApiKey"] = E("TERMII_API_KEY"),
     ["Termii:SenderId"] = E("TERMII_SENDER_ID"),
 
-    // Paystack
-    ["Paystack:SecretKey"] = E("PAYSTACK_SECRET_KEY"),
-    ["Paystack:PublicKey"] = E("PAYSTACK_PUBLIC_KEY"),
-    ["Paystack:WebhookSecret"] = E("PAYSTACK_WEBHOOK_SECRET"),
+    // Monnify
+    ["Monnify:ApiKey"] = E("MONNIFY_API_KEY"),
+    ["Monnify:SecretKey"] = E("MONNIFY_SECRET_KEY"),
+    ["Monnify:ContractCode"] = E("MONNIFY_CONTRACT_CODE"),
+    ["Monnify:BaseUrl"] = E("MONNIFY_BASE_URL"),
+    ["Monnify:SourceAccountNumber"] = E("MONNIFY_SOURCE_ACCOUNT_NUMBER"),
+    ["Monnify:WebhookSecret"] = E("MONNIFY_WEBHOOK_SECRET"),
 
-    // File Storage
-    ["Storage:Endpoint"] = E("STORAGE_ENDPOINT"),
-    ["Storage:AccessKey"] = E("STORAGE_ACCESS_KEY"),
-    ["Storage:SecretKey"] = E("STORAGE_SECRET_KEY"),
-    ["Storage:Bucket"] = E("STORAGE_BUCKET"),
-    ["Storage:UseSsl"] = E("STORAGE_USE_SSL"),
+    // Delivery Pricing
+    ["Pricing:BaseFare"] = E("DELIVERY_BASE_FARE"),
+    ["Pricing:PerKmRate"] = E("DELIVERY_PER_KM_RATE"),
 
     // RabbitMQ
     ["RabbitMQ:Host"] = E("RABBITMQ_HOST"),
@@ -96,6 +96,12 @@ builder.Host.UseSerilog();
 // Add services
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Override pricing constants from config (env vars)
+if (decimal.TryParse(builder.Configuration["Pricing:BaseFare"], out var baseFare))
+    RunAm.Shared.Constants.AppConstants.Pricing.BaseFare = baseFare;
+if (decimal.TryParse(builder.Configuration["Pricing:PerKmRate"], out var perKmRate))
+    RunAm.Shared.Constants.AppConstants.Pricing.PerKmRate = perKmRate;
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -155,7 +161,6 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 // Middleware pipeline
-app.UseMiddleware<ExceptionMiddleware>();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -163,8 +168,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// CORS — must be before auth, rate limiting, etc.
+// CORS — must be before everything else so preflight requests get headers
 app.UseCors("AllowAll");
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Security headers
 app.Use(async (context, next) =>

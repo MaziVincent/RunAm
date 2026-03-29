@@ -275,7 +275,7 @@ export default function VendorsPage() {
 										<td className="whitespace-nowrap px-6 py-3">
 											<div className="flex items-center gap-1">
 												<Link
-													href={`/vendors/${vendor.id}`}
+													href={`/admin/vendors/${vendor.id}`}
 													className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800">
 													<Eye className="h-4 w-4" />
 												</Link>

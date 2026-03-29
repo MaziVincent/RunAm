@@ -94,6 +94,49 @@ export function useTopUpWallet() {
 	});
 }
 
+// ── Delivery Estimate ──────────────────────────────────
+
+interface PriceEstimateResponse {
+	estimatedPrice: number;
+	baseFare: number;
+	distanceFare: number;
+	weightSurcharge: number;
+	prioritySurcharge: number;
+	estimatedDistanceKm: number;
+	estimatedDurationMinutes: number;
+}
+
+export function useDeliveryEstimate(params: {
+	pickupLatitude: number;
+	pickupLongitude: number;
+	dropoffLatitude: number;
+	dropoffLongitude: number;
+	enabled: boolean;
+}) {
+	const {
+		pickupLatitude,
+		pickupLongitude,
+		dropoffLatitude,
+		dropoffLongitude,
+		enabled,
+	} = params;
+	return useQuery({
+		queryKey: [
+			"delivery-estimate",
+			pickupLatitude,
+			pickupLongitude,
+			dropoffLatitude,
+			dropoffLongitude,
+		],
+		queryFn: () =>
+			api.get<PriceEstimateResponse>(
+				`/errands/estimate?Category=0&PickupLatitude=${pickupLatitude}&PickupLongitude=${pickupLongitude}&DropoffLatitude=${dropoffLatitude}&DropoffLongitude=${dropoffLongitude}&Priority=0`,
+			),
+		enabled: enabled && pickupLatitude !== 0 && dropoffLatitude !== 0,
+		staleTime: 5 * 60_000, // 5 minutes
+	});
+}
+
 // ── Place Order (Marketplace Errand) ───────────────────
 
 export interface PlaceOrderPayload {

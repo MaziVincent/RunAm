@@ -171,3 +171,41 @@ public class ApproveVendorCommandHandler : IRequestHandler<ApproveVendorCommand,
         return Queries.GetVendorsQueryHandler.MapToDto(updated!);
     }
 }
+
+// ─── Update Vendor Categories (Admin) ───────────────────────
+
+public record UpdateVendorCategoriesCommand(Guid VendorId, List<Guid> ServiceCategoryIds) : IRequest<VendorDto>;
+
+public class UpdateVendorCategoriesCommandHandler : IRequestHandler<UpdateVendorCategoriesCommand, VendorDto>
+{
+    private readonly IVendorRepository _vendorRepo;
+    private readonly IUnitOfWork _uow;
+
+    public UpdateVendorCategoriesCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow)
+    {
+        _vendorRepo = vendorRepo;
+        _uow = uow;
+    }
+
+    public async Task<VendorDto> Handle(UpdateVendorCategoriesCommand command, CancellationToken ct)
+    {
+        var vendor = await _vendorRepo.GetByIdWithDetailsAsync(command.VendorId, ct)
+            ?? throw new KeyNotFoundException($"Vendor {command.VendorId} not found.");
+
+        vendor.VendorServiceCategories.Clear();
+        foreach (var catId in command.ServiceCategoryIds)
+        {
+            vendor.VendorServiceCategories.Add(new VendorServiceCategory
+            {
+                VendorId = vendor.Id,
+                ServiceCategoryId = catId
+            });
+        }
+
+        await _vendorRepo.UpdateAsync(vendor, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        var updated = await _vendorRepo.GetByIdWithDetailsAsync(command.VendorId, ct);
+        return Queries.GetVendorsQueryHandler.MapToDto(updated!);
+    }
+}

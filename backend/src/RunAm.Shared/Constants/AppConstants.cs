@@ -16,8 +16,8 @@ public static class AppConstants
 
     public static class Pricing
     {
-        public const decimal BaseFare = 500m;             // Base fare in smallest currency unit
-        public const decimal PerKmRate = 100m;            // Per kilometer rate
+        public static decimal BaseFare { get; set; } = 500m;             // Overridden by DELIVERY_BASE_FARE env var
+        public static decimal PerKmRate { get; set; } = 100m;            // Overridden by DELIVERY_PER_KM_RATE env var
         public const decimal PerMinuteRate = 15m;         // Per minute rate
         public const decimal ExpressMultiplier = 1.5m;    // Express priority multiplier
         public const decimal SmallPackageSurcharge = 0m;

@@ -53,13 +53,17 @@ function CategoriesSection() {
 							<Card className="group h-full cursor-pointer border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
 								<CardContent className="flex flex-col items-center justify-center gap-2 p-4 text-center">
 									{cat.iconUrl ? (
-										<Image
-											src={cat.iconUrl}
-											alt={cat.name}
-											width={40}
-											height={40}
-											className="h-10 w-10 object-contain"
-										/>
+										cat.iconUrl.startsWith("http") ? (
+											<Image
+												src={cat.iconUrl}
+												alt={cat.name}
+												width={40}
+												height={40}
+												className="h-10 w-10 object-contain"
+											/>
+										) : (
+											<span className="text-3xl">{cat.iconUrl}</span>
+										)
 									) : (
 										<span className="text-3xl">
 											{iconFallback[cat.slug] ?? iconFallback.default}

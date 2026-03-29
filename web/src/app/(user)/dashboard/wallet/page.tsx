@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -75,6 +76,9 @@ function TopUpDialog() {
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Top Up Wallet</DialogTitle>
+					<DialogDescription>
+						Add funds to your wallet balance.
+					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
 					<div className="grid grid-cols-2 gap-2">

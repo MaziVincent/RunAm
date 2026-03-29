@@ -5,7 +5,7 @@ const REFRESH_TOKEN_KEY = "refresh_token";
 
 // Change this to your backend URL
 const BASE_URL = __DEV__
-	? "http://localhost:5000/api/v1"
+	? "http://localhost:5001/api/v1"
 	: "https://api.runam.com/api/v1";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -64,8 +64,10 @@ class ApiClient {
 		const { method = "GET", body, headers = {}, params } = options;
 		const token = await this.getToken();
 
+		const isFormData = body instanceof FormData;
+
 		const requestHeaders: Record<string, string> = {
-			"Content-Type": "application/json",
+			...(isFormData ? {} : { "Content-Type": "application/json" }),
 			Accept: "application/json",
 			...headers,
 		};
@@ -79,7 +81,11 @@ class ApiClient {
 		const response = await fetch(url, {
 			method,
 			headers: requestHeaders,
-			body: body ? JSON.stringify(body) : undefined,
+			body: body
+				? isFormData
+					? (body as FormData)
+					: JSON.stringify(body)
+				: undefined,
 		});
 
 		if (response.status === 401) {

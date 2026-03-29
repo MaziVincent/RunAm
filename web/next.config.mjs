@@ -5,6 +5,7 @@ const nextConfig = {
 		remotePatterns: [
 			{ protocol: "https", hostname: "*.runam.app" },
 			{ protocol: "https", hostname: "runam.app" },
+			{ protocol: "https", hostname: "res.cloudinary.com" },
 		],
 	},
 	headers: async () => [

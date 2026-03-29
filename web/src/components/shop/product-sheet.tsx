@@ -42,7 +42,12 @@ interface ExtraOption {
 function parseVariants(json: string | null): VariantOption[] {
 	if (!json) return [];
 	try {
-		return JSON.parse(json);
+		const parsed = JSON.parse(json);
+		if (!Array.isArray(parsed)) return [];
+		return parsed.map((v: any) => ({
+			name: v.name ?? "",
+			options: Array.isArray(v.options) ? v.options : [],
+		}));
 	} catch {
 		return [];
 	}
@@ -51,7 +56,11 @@ function parseVariants(json: string | null): VariantOption[] {
 function parseExtras(json: string | null): ExtraOption[] {
 	if (!json) return [];
 	try {
-		return JSON.parse(json);
+		const parsed = JSON.parse(json);
+		if (!Array.isArray(parsed)) return [];
+		return parsed.filter(
+			(e: any) => typeof e.name === "string" && typeof e.price === "number",
+		);
 	} catch {
 		return [];
 	}
@@ -89,10 +98,11 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 		}
 	}, [product?.id]);
 
-	if (!product) return null;
+	const variantsJson = product?.variantsJson ?? null;
+	const extrasJson = product?.extrasJson ?? null;
 
-	const variants = parseVariants(product.variantsJson);
-	const extras = parseExtras(product.extrasJson);
+	const variants = useMemo(() => parseVariants(variantsJson), [variantsJson]);
+	const extras = useMemo(() => parseExtras(extrasJson), [extrasJson]);
 
 	// Find selected variant details
 	const activeVariant = useMemo(() => {
@@ -116,6 +126,8 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 			.filter((e) => selectedExtras.has(e.name))
 			.map((e) => ({ name: e.name, price: e.price }));
 	}, [selectedExtras, extras]);
+
+	if (!product) return null;
 
 	// Calculate total
 	const basePrice = product.price;
@@ -190,6 +202,7 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 							src={product.imageUrl}
 							alt={product.name}
 							fill
+							sizes="(max-width: 640px) 100vw, 32rem"
 							className="object-cover"
 						/>
 					</div>

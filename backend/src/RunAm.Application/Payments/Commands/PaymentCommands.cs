@@ -54,11 +54,13 @@ public record WithdrawCommand(Guid UserId, WithdrawRequest Request) : IRequest<W
 public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, WalletDto>
 {
     private readonly IWalletRepository _walletRepo;
+    private readonly IMonnifyService _monnify;
     private readonly IUnitOfWork _uow;
 
-    public WithdrawCommandHandler(IWalletRepository walletRepo, IUnitOfWork uow)
+    public WithdrawCommandHandler(IWalletRepository walletRepo, IMonnifyService monnify, IUnitOfWork uow)
     {
         _walletRepo = walletRepo;
+        _monnify = monnify;
         _uow = uow;
     }
 
@@ -66,6 +68,22 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, WalletDto
     {
         var wallet = await _walletRepo.GetByUserIdAsync(command.UserId, ct)
             ?? throw new NotFoundException("Wallet", command.UserId);
+
+        if (wallet.Balance < command.Request.Amount)
+            throw new InvalidOperationException("Insufficient wallet balance.");
+
+        // Initiate bank transfer via Monnify FIRST — only debit wallet on success
+        var reference = $"WD-{Guid.NewGuid():N}";
+        var transfer = await _monnify.InitiateTransferAsync(
+            command.Request.Amount,
+            command.Request.BankCode,
+            command.Request.AccountNumber,
+            command.Request.AccountName,
+            reference,
+            ct);
+
+        if (!transfer.Success)
+            throw new InvalidOperationException($"Bank transfer failed: {transfer.Message}");
 
         wallet.Debit(command.Request.Amount);
         await _walletRepo.UpdateAsync(wallet, ct);
@@ -77,7 +95,7 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, WalletDto
             Amount = command.Request.Amount,
             BalanceAfter = wallet.Balance,
             Source = TransactionSource.Withdrawal,
-            Description = $"Withdrawal to {command.Request.BankCode} - {command.Request.AccountNumber}"
+            Description = $"Withdrawal to {command.Request.BankCode} - {command.Request.AccountNumber} (ref: {transfer.Reference})"
         };
 
         await _walletRepo.AddTransactionAsync(transaction, ct);

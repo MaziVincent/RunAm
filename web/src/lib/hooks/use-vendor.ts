@@ -73,8 +73,7 @@ export function useRegisterVendor() {
 export function useToggleVendorOpen() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (isOpen: boolean) =>
-			api.patch("/vendors/me/toggle", { isOpen }),
+		mutationFn: (isOpen: boolean) => api.put("/vendors/me/status", { isOpen }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-vendor"] });
 		},

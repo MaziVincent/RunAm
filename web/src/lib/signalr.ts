@@ -1,7 +1,7 @@
 import * as signalR from "@microsoft/signalr";
 
 const HUB_BASE_URL =
-	process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:5000/hubs";
+	process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:5001/hubs";
 
 function getToken(): string | null {
 	if (typeof window === "undefined") return null;

@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
@@ -183,6 +184,11 @@ export default function VendorCategoriesPage() {
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
 						<DialogTitle>{editingId ? "Edit" : "Create"} Category</DialogTitle>
+						<DialogDescription>
+							{editingId
+								? "Update your category details."
+								: "Add a new category for your products."}
+						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
 						<div className="space-y-2">

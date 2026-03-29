@@ -122,6 +122,10 @@ public record RiderPayoutDto(
 
 public record TipRequest(decimal Amount);
 
+// ── Monnify ─────────────────────────────────────
+
+public record ReserveAccountRequest(string AccountName, string Email);
+
 // ── Finance Dashboard ───────────────────────────
 
 public record FinanceOverviewDto(

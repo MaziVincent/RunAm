@@ -54,6 +54,7 @@ function VendorHero({
 						src={vendor.bannerUrl}
 						alt={vendor.businessName}
 						fill
+						sizes="100vw"
 						className="object-cover"
 						priority
 					/>
@@ -71,6 +72,7 @@ function VendorHero({
 								src={vendor.logoUrl}
 								alt={vendor.businessName}
 								fill
+								sizes="6rem"
 								className="object-cover"
 							/>
 						) : (
@@ -206,6 +208,7 @@ function ProductItem({
 						src={product.imageUrl}
 						alt={product.name}
 						fill
+						sizes="(max-width: 640px) 5rem, 6rem"
 						className="object-cover"
 					/>
 					{!product.isAvailable && (

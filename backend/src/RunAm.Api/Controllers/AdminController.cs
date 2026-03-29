@@ -5,14 +5,17 @@ using RunAm.Application.Admin.Commands;
 using RunAm.Application.Matching.Queries;
 using RunAm.Application.Notifications.Commands;
 using RunAm.Application.Payments.Commands;
+using RunAm.Application.Products.Commands;
 using RunAm.Application.Reviews.Commands;
 using RunAm.Application.Reviews.Queries;
+using RunAm.Application.Vendors.Queries;
 using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs;
 using RunAm.Shared.DTOs.Errands;
 using RunAm.Shared.DTOs.Payments;
 using RunAm.Shared.DTOs.Reviews;
 using RunAm.Shared.DTOs.Riders;
+using RunAm.Shared.DTOs.Vendors;
 
 namespace RunAm.Api.Controllers;
 
@@ -168,5 +171,33 @@ public class AdminController : BaseApiController
     {
         await _mediator.Send(new BroadcastNotificationCommand(request));
         return NoContent();
+    }
+
+    /// <summary>Activate or deactivate a product (admin only)</summary>
+    [HttpPatch("products/{id:guid}/active")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ToggleProductActive(Guid id, [FromBody] ToggleProductActiveRequest request)
+    {
+        var result = await _mediator.Send(new ToggleProductActiveCommand(id, request.IsActive));
+        return Ok(ApiResponse<ProductDto>.Ok(result));
+    }
+
+    /// <summary>Update vendor service categories (admin)</summary>
+    [HttpPut("vendors/{id:guid}/categories")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateVendorCategories(Guid id, [FromBody] UpdateVendorCategoriesRequest request)
+    {
+        var result = await _mediator.Send(new Application.Vendors.Commands.UpdateVendorCategoriesCommand(id, request.ServiceCategoryIds));
+        return Ok(ApiResponse<VendorDto>.Ok(result));
+    }
+
+    /// <summary>Get vendor details with ALL products (including inactive)</summary>
+    [HttpGet("vendors/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetVendorDetail(Guid id)
+    {
+        var result = await _mediator.Send(new GetVendorByIdAdminQuery(id));
+        if (result is null) return NotFound();
+        return Ok(ApiResponse<VendorDetailDto>.Ok(result));
     }
 }

@@ -37,6 +37,7 @@ function CartItemRow({ item }: { item: CartItem }) {
 						src={item.imageUrl}
 						alt={item.productName}
 						fill
+						sizes="4rem"
 						className="object-cover"
 					/>
 				</div>
@@ -148,7 +149,7 @@ export default function CartPage() {
 
 	const subtotal = getSubtotal();
 	const itemCount = getItemCount();
-	// Placeholder delivery fee (will come from vendor in real flow)
+	// Estimated delivery fee (accurate fee calculated at checkout based on distance)
 	const deliveryFee = 500;
 	const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
 	const total = subtotal + deliveryFee - discount;

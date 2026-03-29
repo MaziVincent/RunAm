@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RunAm.Application.Payments.Commands;
 using RunAm.Application.Payments.Queries;
+using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs;
 using RunAm.Shared.DTOs.Payments;
 
@@ -13,8 +14,13 @@ namespace RunAm.Api.Controllers;
 public class PaymentsController : BaseApiController
 {
     private readonly IMediator _mediator;
+    private readonly IMonnifyService _monnify;
 
-    public PaymentsController(IMediator mediator) => _mediator = mediator;
+    public PaymentsController(IMediator mediator, IMonnifyService monnify)
+    {
+        _mediator = mediator;
+        _monnify = monnify;
+    }
 
     // ── Wallet ──────────────────────────────────
 
@@ -136,5 +142,26 @@ public class PaymentsController : BaseApiController
         var now = DateTime.UtcNow;
         var result = await _mediator.Send(new CreateRiderPayoutCommand(GetUserId(), now.AddDays(-7), now));
         return Created("", ApiResponse<RiderPayoutDto>.Ok(result));
+    }
+
+    // ── Monnify Reserved Account ────────────────
+
+    /// <summary>Get or create a reserved virtual account for wallet top-up</summary>
+    [HttpPost("wallet/reserve-account")]
+    [ProducesResponseType(typeof(ApiResponse<MonnifyReservedAccount>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReserveAccount([FromBody] ReserveAccountRequest request)
+    {
+        var account = await _monnify.ReserveAccountAsync(
+            GetUserId(), request.AccountName, request.Email);
+        return Ok(ApiResponse<MonnifyReservedAccount>.Ok(account));
+    }
+
+    /// <summary>Verify a Monnify transaction</summary>
+    [HttpGet("verify/{transactionReference}")]
+    [ProducesResponseType(typeof(ApiResponse<MonnifyTransactionStatus>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> VerifyTransaction(string transactionReference)
+    {
+        var status = await _monnify.VerifyTransactionAsync(transactionReference);
+        return Ok(ApiResponse<MonnifyTransactionStatus>.Ok(status));
     }
 }

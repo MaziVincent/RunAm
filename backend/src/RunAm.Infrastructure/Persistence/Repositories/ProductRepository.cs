@@ -17,7 +17,7 @@ public class ProductRepository : IProductRepository
 
     public async Task<IReadOnlyList<Product>> GetByVendorIdAsync(Guid vendorId, CancellationToken ct = default)
         => await _db.Products
-            .Where(p => p.VendorId == vendorId && p.IsActive)
+            .Where(p => p.VendorId == vendorId)
             .OrderBy(p => p.ProductCategory.SortOrder)
             .ThenBy(p => p.SortOrder)
             .Include(p => p.ProductCategory)

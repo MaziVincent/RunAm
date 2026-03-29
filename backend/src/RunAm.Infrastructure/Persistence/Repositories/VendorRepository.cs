@@ -23,6 +23,15 @@ public class VendorRepository : IVendorRepository
             .Include(v => v.Products.Where(p => p.IsActive && p.IsAvailable))
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
+    public async Task<Vendor?> GetByIdWithAllDetailsAsync(Guid id, CancellationToken ct = default)
+        => await _db.Vendors
+            .Include(v => v.User)
+            .Include(v => v.VendorServiceCategories)
+                .ThenInclude(vsc => vsc.ServiceCategory)
+            .Include(v => v.ProductCategories.OrderBy(pc => pc.SortOrder))
+            .Include(v => v.Products)
+            .FirstOrDefaultAsync(v => v.Id == id, ct);
+
     public async Task<Vendor?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _db.Vendors
             .Include(v => v.VendorServiceCategories)

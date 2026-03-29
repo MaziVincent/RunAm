@@ -205,6 +205,9 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         if (product.VendorId != vendor.Id)
             throw new UnauthorizedAccessException("You don't own this product.");
 
+        if (!product.IsActive)
+            throw new InvalidOperationException("This product has been deactivated by an admin. Contact support.");
+
         var req = command.Request;
         product.ProductCategoryId = req.ProductCategoryId;
         product.Name = req.Name;
@@ -214,7 +217,6 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         product.ImageUrl = req.ImageUrl;
         product.SortOrder = req.SortOrder;
         product.IsAvailable = req.IsAvailable;
-        product.IsActive = req.IsActive;
         product.VariantsJson = req.VariantsJson;
         product.ExtrasJson = req.ExtrasJson;
 
@@ -291,7 +293,43 @@ public class ToggleProductAvailabilityCommandHandler : IRequestHandler<TogglePro
         if (product.VendorId != vendor.Id)
             throw new UnauthorizedAccessException("You don't own this product.");
 
+        if (!product.IsActive)
+            throw new InvalidOperationException("This product has been deactivated by an admin. Contact support.");
+
         product.IsAvailable = command.IsAvailable;
+        await _productRepo.UpdateAsync(product, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return new ProductDto(
+            product.Id, product.VendorId, product.ProductCategoryId, product.ProductCategory.Name,
+            product.Name, product.Description, product.Price, product.CompareAtPrice,
+            product.ImageUrl, product.IsAvailable, product.IsActive, product.SortOrder,
+            product.VariantsJson, product.ExtrasJson
+        );
+    }
+}
+
+// ─── Toggle Product Active Status (Admin) ───────────────────
+
+public record ToggleProductActiveCommand(Guid ProductId, bool IsActive) : IRequest<ProductDto>;
+
+public class ToggleProductActiveCommandHandler : IRequestHandler<ToggleProductActiveCommand, ProductDto>
+{
+    private readonly IProductRepository _productRepo;
+    private readonly IUnitOfWork _uow;
+
+    public ToggleProductActiveCommandHandler(IProductRepository productRepo, IUnitOfWork uow)
+    {
+        _productRepo = productRepo;
+        _uow = uow;
+    }
+
+    public async Task<ProductDto> Handle(ToggleProductActiveCommand command, CancellationToken ct)
+    {
+        var product = await _productRepo.GetByIdAsync(command.ProductId, ct)
+            ?? throw new KeyNotFoundException($"Product {command.ProductId} not found.");
+
+        product.IsActive = command.IsActive;
         await _productRepo.UpdateAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
 

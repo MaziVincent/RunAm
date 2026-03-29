@@ -189,12 +189,15 @@ public record UpdateProductRequest(
     string? ImageUrl,
     int SortOrder,
     bool IsAvailable,
-    bool IsActive,
     string? VariantsJson,
     string? ExtrasJson
 );
 
 public record ToggleProductAvailabilityRequest(bool IsAvailable);
+
+public record ToggleProductActiveRequest(bool IsActive);
+
+public record UpdateVendorCategoriesRequest(List<Guid> ServiceCategoryIds);
 
 // ─── Order Items ────────────────────────────────────────────
 
@@ -232,3 +235,16 @@ public record VendorOrderDto(
 );
 
 public record ConfirmVendorOrderRequest(string? Notes);
+
+// ─── Vendor Analytics ───────────────────────────────────────
+
+public record VendorAnalyticsDto(
+    int TodayOrders,
+    decimal TodayRevenue,
+    List<DailyRevenueDto> WeeklyRevenue,
+    List<TopProductDto> TopProducts,
+    int PendingOrders
+);
+
+public record DailyRevenueDto(string Date, decimal Revenue, int Orders);
+public record TopProductDto(string ProductName, int OrderCount, decimal Revenue);

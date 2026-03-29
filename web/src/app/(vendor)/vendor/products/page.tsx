@@ -12,6 +12,7 @@ import {
 	Trash2,
 	Loader2,
 	ImageIcon,
+	ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,10 +44,23 @@ function ProductCard({ product }: { product: ProductDto }) {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const deleteProduct = useDeleteProduct();
 	const toggleAvailability = useToggleProductAvailability();
+	const isDeactivated = !product.isActive;
 
 	return (
 		<>
-			<Card className={cn(!product.isAvailable && "opacity-60")}>
+			<Card
+				className={cn(
+					!product.isAvailable && !isDeactivated && "opacity-60",
+					isDeactivated && "opacity-50 border-destructive/30",
+				)}>
+				{isDeactivated && (
+					<div className="flex items-center gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
+						<ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+						<p className="text-xs text-destructive">
+							This product has been deactivated by admin. Contact support.
+						</p>
+					</div>
+				)}
 				<CardContent className="flex items-start gap-3 p-3">
 					{/* Image */}
 					<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -88,6 +102,7 @@ function ProductCard({ product }: { product: ProductDto }) {
 					<div className="flex shrink-0 flex-col items-end gap-2">
 						<Switch
 							checked={product.isAvailable}
+							disabled={isDeactivated}
 							onCheckedChange={async () => {
 								try {
 									await toggleAvailability.mutateAsync({
@@ -103,15 +118,18 @@ function ProductCard({ product }: { product: ProductDto }) {
 							}}
 						/>
 						<div className="flex gap-1">
-							<Link href={`/vendor/products/${product.id}`}>
-								<Button variant="ghost" size="icon" className="h-8 w-8">
-									<Pencil className="h-3.5 w-3.5" />
-								</Button>
-							</Link>
+							{!isDeactivated && (
+								<Link href={`/vendor/products/${product.id}`}>
+									<Button variant="ghost" size="icon" className="h-8 w-8">
+										<Pencil className="h-3.5 w-3.5" />
+									</Button>
+								</Link>
+							)}
 							<Button
 								variant="ghost"
 								size="icon"
 								className="h-8 w-8 text-destructive hover:text-destructive"
+								disabled={isDeactivated}
 								onClick={() => setDeleteOpen(true)}>
 								<Trash2 className="h-3.5 w-3.5" />
 							</Button>

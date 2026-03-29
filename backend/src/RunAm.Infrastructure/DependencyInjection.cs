@@ -104,6 +104,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderItemRepository, OrderItemRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<Application.Common.Interfaces.IVendorAnalyticsService, VendorAnalyticsService>();
 
         // Services
         services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -118,6 +119,9 @@ public static class DependencyInjection
 
         // Geocoding
         services.AddHttpClient<IGeocodingService, GoogleMapsGeocodingService>();
+
+        // Payment gateway
+        services.AddHttpClient<IMonnifyService, MonnifyService>();
 
         return services;
     }

@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRegisterVendor } from "@/lib/hooks";
+import { useServiceCategories } from "@/lib/hooks";
 import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ interface FormData {
 	businessName: string;
 	description: string;
 	logoUrl: string;
+	serviceCategoryIds: string[];
 	address: string;
 	city: string;
 	state: string;
@@ -52,6 +54,7 @@ const initialForm: FormData = {
 	businessName: "",
 	description: "",
 	logoUrl: "",
+	serviceCategoryIds: [],
 	address: "",
 	city: "",
 	state: "",
@@ -73,6 +76,8 @@ export default function VendorOnboardingPage() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const router = useRouter();
 	const registerVendor = useRegisterVendor();
+	const { data: categoriesRes } = useServiceCategories();
+	const serviceCategories = categoriesRes?.data ?? [];
 
 	function update(key: keyof FormData, value: string | number) {
 		setForm((prev) => ({ ...prev, [key]: value }));
@@ -128,6 +133,10 @@ export default function VendorOnboardingPage() {
 				toast.error("Business logo is required");
 				return;
 			}
+			if (form.serviceCategoryIds.length === 0) {
+				toast.error("Select at least one service category");
+				return;
+			}
 		}
 		if (step === 1) {
 			if (!form.address) {
@@ -165,7 +174,7 @@ export default function VendorOnboardingPage() {
 					.join(", "),
 				latitude: form.latitude,
 				longitude: form.longitude,
-				serviceCategoryIds: [],
+				serviceCategoryIds: form.serviceCategoryIds,
 				minimumOrderAmount: form.minimumOrder,
 				deliveryFee: 0,
 				estimatedPrepTimeMinutes: parseInt(form.prepTime) || 30,
@@ -301,6 +310,48 @@ export default function VendorOnboardingPage() {
 								<p className="text-xs text-muted-foreground">
 									Max 5MB. JPG, PNG, or WebP.
 								</p>
+							</div>
+							<div className="space-y-2">
+								<Label>Service Categories *</Label>
+								<p className="text-xs text-muted-foreground">
+									Select the categories that best describe your business.
+								</p>
+								<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+									{serviceCategories.map((cat) => {
+										const selected = form.serviceCategoryIds.includes(cat.id);
+										return (
+											<button
+												key={cat.id}
+												type="button"
+												onClick={() =>
+													setForm((prev) => ({
+														...prev,
+														serviceCategoryIds: selected
+															? prev.serviceCategoryIds.filter(
+																	(id) => id !== cat.id,
+																)
+															: [...prev.serviceCategoryIds, cat.id],
+													}))
+												}
+												className={cn(
+													"flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors",
+													selected
+														? "border-primary bg-primary/10 text-primary font-medium"
+														: "hover:bg-accent",
+												)}>
+												{cat.iconUrl && (
+													<span className="text-base">{cat.iconUrl}</span>
+												)}
+												{cat.name}
+											</button>
+										);
+									})}
+								</div>
+								{serviceCategories.length === 0 && (
+									<p className="text-xs text-muted-foreground italic">
+										Loading categories...
+									</p>
+								)}
 							</div>
 						</div>
 					)}
@@ -479,6 +530,23 @@ export default function VendorOnboardingPage() {
 										₦{form.minimumOrder.toLocaleString()}
 									</span>
 								</div>
+								{form.serviceCategoryIds.length > 0 && (
+									<div className="flex justify-between">
+										<span className="text-muted-foreground">Categories</span>
+										<div className="flex flex-wrap justify-end gap-1">
+											{form.serviceCategoryIds.map((id) => {
+												const cat = serviceCategories.find((c) => c.id === id);
+												return cat ? (
+													<span
+														key={id}
+														className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+														{cat.name}
+													</span>
+												) : null;
+											})}
+										</div>
+									</div>
+								)}
 							</div>
 							<label className="flex items-start gap-2 text-sm">
 								<input

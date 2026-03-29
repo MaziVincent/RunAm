@@ -35,6 +35,7 @@ import {
 	useWallet,
 	useVendorDetail,
 	usePlaceOrder,
+	useDeliveryEstimate,
 } from "@/lib/hooks";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -291,8 +292,18 @@ export default function CheckoutPage() {
 	const addresses = addressesData?.data ?? [];
 	const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
 
+	// Distance-based delivery fee estimate
+	const { data: estimateData, isLoading: isEstimatingDelivery } =
+		useDeliveryEstimate({
+			pickupLatitude: vendor?.latitude ?? 0,
+			pickupLongitude: vendor?.longitude ?? 0,
+			dropoffLatitude: selectedAddress?.latitude ?? 0,
+			dropoffLongitude: selectedAddress?.longitude ?? 0,
+			enabled: !!vendor && !!selectedAddress,
+		});
+
 	// Pricing
-	const deliveryFee = vendor?.deliveryFee ?? 500;
+	const deliveryFee = estimateData?.data?.estimatedPrice ?? 500;
 	const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
 	const total = subtotal + deliveryFee - discount;
 

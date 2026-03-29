@@ -88,6 +88,45 @@ public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, Ven
     }
 }
 
+// ─── Get Vendor by ID (Admin — all products) ────────────────
+
+public record GetVendorByIdAdminQuery(Guid Id) : IRequest<VendorDetailDto?>;
+
+public class GetVendorByIdAdminQueryHandler : IRequestHandler<GetVendorByIdAdminQuery, VendorDetailDto?>
+{
+    private readonly IVendorRepository _repo;
+
+    public GetVendorByIdAdminQueryHandler(IVendorRepository repo) => _repo = repo;
+
+    public async Task<VendorDetailDto?> Handle(GetVendorByIdAdminQuery query, CancellationToken ct)
+    {
+        var v = await _repo.GetByIdWithAllDetailsAsync(query.Id, ct);
+        if (v is null) return null;
+
+        return new VendorDetailDto(
+            v.Id, v.UserId, v.BusinessName, v.BusinessDescription,
+            v.LogoUrl, v.BannerUrl, v.Address, v.Latitude, v.Longitude,
+            v.OperatingHours, v.IsOpen, v.IsActive,
+            v.MinimumOrderAmount, v.DeliveryFee, v.EstimatedPrepTimeMinutes,
+            v.Rating, v.TotalReviews, v.TotalOrders,
+            v.Status.ToString(),
+            v.VendorServiceCategories.Select(vsc => new ServiceCategorySlimDto(
+                vsc.ServiceCategoryId, vsc.ServiceCategory.Name, vsc.ServiceCategory.Slug
+            )).ToList(),
+            v.ProductCategories.Select(pc => new ProductCategoryWithProductsDto(
+                pc.Id, pc.Name, pc.Description, pc.ImageUrl, pc.SortOrder,
+                pc.Products.Select(p => new ProductDto(
+                    p.Id, p.VendorId, p.ProductCategoryId, pc.Name,
+                    p.Name, p.Description, p.Price, p.CompareAtPrice,
+                    p.ImageUrl, p.IsAvailable, p.IsActive, p.SortOrder,
+                    p.VariantsJson, p.ExtrasJson
+                )).ToList()
+            )).ToList(),
+            v.CreatedAt
+        );
+    }
+}
+
 // ─── Get My Vendor Profile (Merchant) ───────────────────────
 
 public record GetMyVendorQuery(Guid UserId) : IRequest<VendorDto?>;

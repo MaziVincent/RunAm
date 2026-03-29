@@ -157,14 +157,62 @@ export default function ServiceCategoriesPage() {
 						</div>
 						<div>
 							<label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-								Icon URL
+								Icon
 							</label>
-							<input
-								value={iconUrl}
-								onChange={(e) => setIconUrl(e.target.value)}
-								placeholder="https://..."
-								className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-							/>
+							<div className="flex flex-wrap gap-1.5">
+								{[
+									"🍔",
+									"🍕",
+									"🛒",
+									"📦",
+									"🚚",
+									"🏪",
+									"💊",
+									"🧹",
+									"👕",
+									"💇",
+									"🔧",
+									"📚",
+									"🌸",
+									"🎁",
+									"🍞",
+									"☕",
+									"🥗",
+									"🍣",
+									"🧁",
+									"🛍️",
+									"💻",
+									"🏠",
+									"🐾",
+									"🚗",
+								].map((emoji) => (
+									<button
+										type="button"
+										key={emoji}
+										onClick={() => setIconUrl(emoji)}
+										className={cn(
+											"flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors",
+											iconUrl === emoji
+												? "border-blue-500 bg-blue-50 ring-2 ring-blue-200 dark:bg-blue-900/30 dark:ring-blue-800"
+												: "border-slate-200 hover:border-blue-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-blue-600 dark:hover:bg-slate-800",
+										)}>
+										{emoji}
+									</button>
+								))}
+								{iconUrl && (
+									<button
+										type="button"
+										onClick={() => setIconUrl("")}
+										className="flex h-9 items-center rounded-lg border border-slate-200 px-2 text-xs text-slate-500 hover:bg-red-50 hover:text-red-600 dark:border-slate-700">
+										Clear
+									</button>
+								)}
+							</div>
+							{iconUrl && (
+								<p className="mt-1.5 text-xs text-slate-500">
+									Selected: <span className="text-lg">{iconUrl}</span>
+								</p>
+							)}
 						</div>
 						<div className="sm:col-span-2">
 							<label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -288,13 +336,16 @@ export default function ServiceCategoriesPage() {
 											</td>
 											<td className="whitespace-nowrap px-6 py-3">
 												<div className="flex items-center gap-2">
-													{cat.iconUrl && (
-														<img
-															src={cat.iconUrl}
-															alt=""
-															className="h-6 w-6 rounded"
-														/>
-													)}
+													{cat.iconUrl &&
+														(cat.iconUrl.startsWith("http") ? (
+															<img
+																src={cat.iconUrl}
+																alt=""
+																className="h-6 w-6 rounded"
+															/>
+														) : (
+															<span className="text-xl">{cat.iconUrl}</span>
+														))}
 													<span className="font-medium text-slate-900 dark:text-white">
 														{cat.name}
 													</span>

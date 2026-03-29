@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -115,6 +116,11 @@ function AddressFormDialog({
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? "Edit" : "Add"} Address</DialogTitle>
+					<DialogDescription>
+						{isEdit
+							? "Update your saved address."
+							: "Add a new delivery address."}
+					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
 					<div className="grid grid-cols-2 gap-3">

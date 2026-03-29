@@ -60,6 +60,16 @@ public class VendorsController : BaseApiController
         return Ok(ApiResponse<VendorDto>.Ok(result));
     }
 
+    /// <summary>Get vendor analytics (Merchant)</summary>
+    [HttpGet("me/analytics")]
+    [Authorize(Roles = "Merchant")]
+    [ProducesResponseType(typeof(ApiResponse<VendorAnalyticsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAnalytics()
+    {
+        var result = await _mediator.Send(new GetVendorAnalyticsQuery(GetUserId()));
+        return Ok(ApiResponse<VendorAnalyticsDto>.Ok(result));
+    }
+
     /// <summary>Create vendor profile (Merchant)</summary>
     [HttpPost("me")]
     [Authorize(Roles = "Merchant")]
