@@ -107,6 +107,12 @@ export default function RootLayout() {
 							name="bank-accounts"
 							options={{ headerShown: false }}
 						/>
+						<Stack.Screen name="vehicle" options={{ headerShown: false }} />
+						<Stack.Screen name="documents" options={{ headerShown: false }} />
+						<Stack.Screen
+							name="change-password"
+							options={{ headerShown: false }}
+						/>
 					</Stack>
 					<StatusBar style="dark" />
 				</AuthGuard>

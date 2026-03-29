@@ -7,11 +7,12 @@ import {
 	TouchableOpacity,
 	Dimensions,
 	Animated,
+	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { cancelErrand, getErrandById } from "@runam/shared/api/errands";
 import { signalRService } from "@runam/shared/services/signalr";
 import type { Errand, TrackingUpdate } from "@runam/shared/types";
 
@@ -67,7 +68,7 @@ export default function TrackingScreen() {
 
 	const { data: errandData, isLoading } = useQuery<Errand>({
 		queryKey: ["errand", id],
-		queryFn: () => apiClient.get(`/errands/${id}`),
+		queryFn: () => getErrandById(id!),
 		refetchInterval: isConnected ? 30000 : 10000, // slower polling when SignalR is active
 	});
 
@@ -115,8 +116,8 @@ export default function TrackingScreen() {
 
 				signalRService.on<TrackingUpdate>("LocationUpdated", (update) => {
 					setRiderLocation(update);
-					if (update.estimatedArrivalSeconds) {
-						setEta(update.estimatedArrivalSeconds);
+					if (update.etaSeconds) {
+						setEta(update.etaSeconds);
 					}
 				});
 
@@ -290,19 +291,19 @@ export default function TrackingScreen() {
 							style={styles.cancelButton}
 							onPress={async () => {
 								try {
-									await apiClient.post(`/errands/${id}/cancel`, {});
+									await cancelErrand(id!, "Cancelled by user");
 									queryClient.invalidateQueries({ queryKey: ["errand", id] });
 									router.back();
-								} catch {}
+								} catch (err: any) {
+									Alert.alert(
+										"Error",
+										err?.message || "Failed to cancel errand.",
+									);
+								}
 							}}>
 							<Text style={styles.cancelButtonText}>Cancel Errand</Text>
 						</TouchableOpacity>
 					)}
-					{(errandData?.status === "Delivered" ||
-						errandData?.status === "Completed") &&
-					!errandData?.riderId
-						? null
-						: null}
 					{(errandData?.status === "Delivered" ||
 						errandData?.status === "Completed") &&
 						errandData?.riderId && (
@@ -310,7 +311,7 @@ export default function TrackingScreen() {
 								style={styles.rateButton}
 								onPress={() =>
 									router.push(
-										`/errand/review?id=${id}&riderId=${errandData.riderId}` as never,
+										`/errand/rate?id=${id}&riderId=${errandData.riderId}` as never,
 									)
 								}>
 								<Text style={styles.rateButtonText}>⭐ Rate Rider</Text>

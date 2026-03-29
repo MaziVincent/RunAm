@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { VendorCard } from "@/components/shop/vendor-card";
-import { useServiceCategories, useVendors } from "@/lib/hooks";
+import { useServiceCategories, useVendors, useGeolocation } from "@/lib/hooks";
 
 /* ------------------------------------------------------------------ */
 /*  Category Grid                                                     */
@@ -191,6 +191,9 @@ function QuickActions() {
 /*  Page                                                              */
 /* ------------------------------------------------------------------ */
 export default function ShopHomePage() {
+	const { lat, lng } = useGeolocation();
+	const locationParams = lat && lng ? { lat, lng, radius: 10 } : {};
+
 	return (
 		<div className="container mx-auto space-y-8 px-4 py-6">
 			{/* Quick Actions */}
@@ -203,7 +206,7 @@ export default function ShopHomePage() {
 			<VendorRow
 				title="Popular Near You"
 				icon={<Flame className="h-5 w-5 text-orange-500" />}
-				params={{ sort: "rating", pageSize: 8 }}
+				params={{ sort: "rating", pageSize: 8, ...locationParams }}
 				emptyText="No vendors available near you yet."
 			/>
 
@@ -211,7 +214,7 @@ export default function ShopHomePage() {
 			<VendorRow
 				title="New on RunAm"
 				icon={<Sparkles className="h-5 w-5 text-primary" />}
-				params={{ sort: "newest", pageSize: 8 }}
+				params={{ sort: "newest", pageSize: 8, ...locationParams }}
 				emptyText="No new vendors yet."
 			/>
 
@@ -219,7 +222,7 @@ export default function ShopHomePage() {
 			<VendorRow
 				title="Fast Delivery"
 				icon={<Clock className="h-5 w-5 text-blue-500" />}
-				params={{ sort: "deliveryTime", pageSize: 8 }}
+				params={{ sort: "deliveryTime", pageSize: 8, ...locationParams }}
 				emptyText="No vendors with fast delivery available."
 			/>
 		</div>

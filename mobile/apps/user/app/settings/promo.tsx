@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getPromoCodes, redeemPromoCode } from "@runam/shared/api/payments";
 import type { PromoCode, ApplyPromoResult } from "@runam/shared/types";
 
 export default function PromoScreen() {
@@ -20,14 +20,11 @@ export default function PromoScreen() {
 
 	const { data: promoCodes = [], isLoading } = useQuery<PromoCode[]>({
 		queryKey: ["promo-codes"],
-		queryFn: () => apiClient.get("/promo-codes"),
+		queryFn: getPromoCodes,
 	});
 
 	const redeemMutation = useMutation({
-		mutationFn: (promoCode: string) =>
-			apiClient.post<ApplyPromoResult>("/promo-codes/redeem", {
-				code: promoCode,
-			}),
+		mutationFn: (promoCode: string) => redeemPromoCode(promoCode),
 		onSuccess: (result) => {
 			queryClient.invalidateQueries({ queryKey: ["promo-codes"] });
 			setCode("");

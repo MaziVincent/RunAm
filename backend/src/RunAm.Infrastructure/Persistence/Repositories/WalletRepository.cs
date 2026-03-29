@@ -35,6 +35,9 @@ public class WalletRepository : IWalletRepository
             .Take(pageSize)
             .ToListAsync(ct);
 
+    public async Task<int> GetTransactionCountAsync(Guid walletId, CancellationToken ct = default)
+        => await _db.WalletTransactions.CountAsync(t => t.WalletId == walletId, ct);
+
     public Task UpdateAsync(Wallet wallet, CancellationToken ct = default)
     {
         _db.Wallets.Update(wallet);

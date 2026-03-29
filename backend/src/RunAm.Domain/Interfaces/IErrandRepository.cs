@@ -11,6 +11,7 @@ public interface IErrandRepository
     Task<IReadOnlyList<Errand>> GetByVendorIdAsync(Guid vendorId, int page, int pageSize, CancellationToken ct = default);
     Task<IReadOnlyList<Errand>> GetPendingErrandsAsync(CancellationToken ct = default);
     Task<int> GetCountByCustomerIdAsync(Guid customerId, CancellationToken ct = default);
+    Task<int> GetCountByVendorIdAsync(Guid vendorId, CancellationToken ct = default);
     Task AddAsync(Errand errand, CancellationToken ct = default);
     Task UpdateAsync(Errand errand, CancellationToken ct = default);
 }

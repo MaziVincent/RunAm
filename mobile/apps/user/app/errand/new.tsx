@@ -17,7 +17,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import apiClient from "@runam/shared/api/client";
+import { createErrand, getDeliveryEstimate } from "@runam/shared/api/errands";
+import {
+	validatePromoCode,
+	getPaymentMethods,
+} from "@runam/shared/api/payments";
 import type {
 	CreateErrandRequest,
 	ErrandCategory,
@@ -75,7 +79,7 @@ export default function NewErrandScreen() {
 
 	const { data: paymentMethods } = useQuery<PaymentMethod[]>({
 		queryKey: ["payment-methods"],
-		queryFn: () => apiClient.get("/payments/methods"),
+		queryFn: getPaymentMethods,
 	});
 
 	const pickImage = async () => {
@@ -111,12 +115,9 @@ export default function NewErrandScreen() {
 		if (!promoCode.trim()) return;
 		setIsApplyingPromo(true);
 		try {
-			const result = await apiClient.post<ApplyPromoResult>(
-				"/promo-codes/apply",
-				{
-					code: promoCode.trim(),
-					errandAmount: priceEstimate?.estimatedPrice ?? 0,
-				},
+			const result = await validatePromoCode(
+				promoCode.trim(),
+				priceEstimate?.estimatedPrice ?? 0,
 			);
 			setPromoResult(result);
 			if (!result.valid) Alert.alert("Invalid Code", result.message);
@@ -149,15 +150,15 @@ export default function NewErrandScreen() {
 			// Fetch price estimate
 			setIsLoading(true);
 			try {
-				const estimate = await apiClient.get<PriceEstimate>(
-					"/errands/estimate",
-					{
-						pickupAddress: pickupAddress.trim(),
-						dropoffAddress: dropoffAddress.trim(),
-						category: category || "PackageDelivery",
-						priority,
-					},
-				);
+				// TODO: replace 0s with geocoded coordinates from address inputs
+				const estimate = await getDeliveryEstimate({
+					category: category || "PackageDelivery",
+					pickupLatitude: 0,
+					pickupLongitude: 0,
+					dropoffLatitude: 0,
+					dropoffLongitude: 0,
+					priority,
+				});
 				setPriceEstimate(estimate);
 				setStep(4);
 			} catch (error: any) {
@@ -209,7 +210,7 @@ export default function NewErrandScreen() {
 				},
 			};
 
-			const errand = await apiClient.post<Errand>("/errands", {
+			const errand = await createErrand({
 				...body,
 				priority,
 				paymentMethod: paymentOption,
@@ -218,7 +219,7 @@ export default function NewErrandScreen() {
 					priority === "Scheduled"
 						? `${scheduledDate}T${scheduledTime}:00`
 						: undefined,
-			});
+			} as any);
 			Alert.alert("Success", "Your errand has been created!", [
 				{
 					text: "Track",

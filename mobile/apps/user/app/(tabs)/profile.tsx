@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getAddresses } from "@runam/shared/api/addresses";
 import type { Address } from "@runam/shared/types";
 
 interface SettingsItem {
@@ -27,7 +27,7 @@ export default function ProfileScreen() {
 
 	const { data: addresses } = useQuery<Address[]>({
 		queryKey: ["addresses"],
-		queryFn: () => apiClient.get("/users/me/addresses"),
+		queryFn: getAddresses,
 	});
 
 	const handleLogout = () => {
@@ -60,7 +60,16 @@ export default function ProfileScreen() {
 			label: "Promo Codes",
 			onPress: () => router.push("/settings/promo" as any),
 		},
-		{ icon: "🔒", label: "Change Password", onPress: () => {} },
+		{
+			icon: "⭐",
+			label: "My Reviews",
+			onPress: () => router.push("/settings/my-reviews" as any),
+		},
+		{
+			icon: "🔒",
+			label: "Change Password",
+			onPress: () => router.push("/settings/change-password" as any),
+		},
 		{
 			icon: "📞",
 			label: "Support",

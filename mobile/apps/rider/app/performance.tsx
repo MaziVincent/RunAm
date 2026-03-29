@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getRiderPerformance, getRiderBonuses } from "@runam/shared/api/rider";
 import type { RiderPerformance, RiderBonus } from "@runam/shared/types";
 
 function MetricCard({
@@ -68,12 +68,12 @@ export default function PerformanceScreen() {
 		isLoading,
 	} = useQuery<RiderPerformance>({
 		queryKey: ["rider", "performance"],
-		queryFn: () => apiClient.get("/riders/me/performance"),
+		queryFn: () => getRiderPerformance(),
 	});
 
 	const { data: bonuses } = useQuery<RiderBonus[]>({
 		queryKey: ["rider", "bonuses"],
-		queryFn: () => apiClient.get("/riders/me/bonuses"),
+		queryFn: () => getRiderBonuses(),
 	});
 
 	const onRefresh = useCallback(async () => {

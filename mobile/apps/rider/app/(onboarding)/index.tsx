@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import apiClient from "@runam/shared/api/client";
+import { onboardRider } from "@runam/shared/api/rider";
 import type { VehicleType, RiderOnboardingRequest } from "@runam/shared/types";
 
 const vehicleOptions: { type: VehicleType; icon: string; label: string }[] = [
@@ -46,7 +46,7 @@ export default function RiderOnboardingScreen() {
 				documentUrls: [], // TODO: Implement document upload
 			};
 
-			await apiClient.post("/riders/onboard", body);
+			await onboardRider(body);
 			Alert.alert(
 				"Application Submitted",
 				"Your rider application has been submitted for review. You will be notified once approved.",

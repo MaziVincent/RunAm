@@ -325,6 +325,7 @@ export interface TopUpResponse {
 export interface BankAccount {
 	id: string;
 	bankName: string;
+	bankCode: string;
 	accountNumber: string;
 	accountName: string;
 	isDefault: boolean;
@@ -333,6 +334,7 @@ export interface BankAccount {
 
 export interface AddBankAccountRequest {
 	bankName: string;
+	bankCode: string;
 	accountNumber: string;
 	accountName: string;
 }
@@ -566,9 +568,10 @@ export interface OrderItem {
 }
 
 export interface CartItem {
+	cartItemId: string; // composite key: productId + variant + extras
 	product: Product;
 	quantity: number;
-	selectedVariant?: { name: string; option: ProductVariantOption } | null;
+	selectedVariants?: { name: string; option: ProductVariantOption }[];
 	selectedExtras?: { extra: ProductExtra; quantity: number }[];
 	notes?: string;
 }
@@ -579,4 +582,17 @@ export interface CreateOrderItemRequest {
 	notes?: string;
 	selectedVariantJson?: string;
 	selectedExtrasJson?: string;
+}
+
+export interface CreateMarketplaceOrderRequest {
+	vendorId: string;
+	dropoffAddress: string;
+	dropoffLatitude: number;
+	dropoffLongitude: number;
+	recipientName?: string;
+	recipientPhone?: string;
+	specialInstructions?: string;
+	paymentMethod: number;
+	promoCode?: string;
+	items: CreateOrderItemRequest[];
 }

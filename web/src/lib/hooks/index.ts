@@ -24,6 +24,7 @@ export {
 	useDeliveryEstimate,
 } from "./use-user";
 export type { PlaceOrderPayload } from "./use-user";
+export { useGeolocation } from "./use-geolocation";
 export {
 	useInView,
 	useScrollPosition,

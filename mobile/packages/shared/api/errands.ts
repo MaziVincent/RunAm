@@ -1,9 +1,9 @@
-import apiClient from "./client";
+import apiClient, { type PaginatedResult } from "./client";
 import type {
 	Errand,
 	CreateErrandRequest,
+	CreateMarketplaceOrderRequest,
 	PriceEstimate,
-	PaginatedResponse,
 } from "../types";
 
 // ── List Errands ─────────────────────────────────────────────
@@ -15,8 +15,8 @@ interface GetErrandsParams {
 
 export function getErrands(
 	params?: GetErrandsParams,
-): Promise<PaginatedResponse<Errand>> {
-	return apiClient.get<PaginatedResponse<Errand>>(
+): Promise<PaginatedResult<Errand>> {
+	return apiClient.getPaginated<Errand>(
 		"/errands",
 		params as Record<string, string | number | boolean | undefined>,
 	);
@@ -58,6 +58,14 @@ export function getDeliveryEstimate(
 ): Promise<PriceEstimate> {
 	return apiClient.get<PriceEstimate>(
 		"/errands/estimate",
-		params as Record<string, string | number | boolean | undefined>,
+		params as unknown as Record<string, string | number | boolean | undefined>,
 	);
+}
+
+// ── Create Marketplace Order ─────────────────────────────────
+
+export function createMarketplaceOrder(
+	data: CreateMarketplaceOrderRequest,
+): Promise<Errand> {
+	return apiClient.post<Errand>("/errands/marketplace", data);
 }

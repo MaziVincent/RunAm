@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
-import apiClient from "@runam/shared/api/client";
+import { login as loginApi } from "@runam/shared/api/auth";
 import type { AuthResponse, LoginRequest } from "@runam/shared/types";
 
 export default function RiderLoginScreen() {
@@ -30,7 +30,7 @@ export default function RiderLoginScreen() {
 		setIsLoading(true);
 		try {
 			const body: LoginRequest = { email: email.trim(), password };
-			const response = await apiClient.post<AuthResponse>("/auth/login", body);
+			const response = await loginApi(body);
 			await login(response);
 		} catch (error: any) {
 			Alert.alert(

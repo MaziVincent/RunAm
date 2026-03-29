@@ -21,8 +21,13 @@ public class VendorOrdersController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<VendorOrderDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetVendorOrdersQuery(GetUserId(), page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<VendorOrderDto>>.Ok(result));
+        var (orders, totalCount) = await _mediator.Send(new GetVendorOrdersQuery(GetUserId(), page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<VendorOrderDto>>.Ok(orders, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Confirm an order</summary>

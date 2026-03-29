@@ -16,13 +16,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getRiderBankAccounts,
+	addRiderBankAccount,
+	deleteRiderBankAccount,
+	setDefaultBankAccount,
+} from "@runam/shared/api/rider";
 import type { BankAccount, AddBankAccountRequest } from "@runam/shared/types";
 
 export default function BankAccountsScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [bankName, setBankName] = useState("");
+	const [bankCode, setBankCode] = useState("");
 	const [accountNumber, setAccountNumber] = useState("");
 	const [accountName, setAccountName] = useState("");
 	const router = useRouter();
@@ -34,15 +40,15 @@ export default function BankAccountsScreen() {
 		isLoading,
 	} = useQuery<BankAccount[]>({
 		queryKey: ["rider", "bank-accounts"],
-		queryFn: () => apiClient.get("/riders/me/bank-accounts"),
+		queryFn: () => getRiderBankAccounts(),
 	});
 
 	const addMutation = useMutation({
-		mutationFn: (req: AddBankAccountRequest) =>
-			apiClient.post("/riders/me/bank-accounts", req),
+		mutationFn: (req: AddBankAccountRequest) => addRiderBankAccount(req),
 		onSuccess: () => {
 			setShowAddModal(false);
 			setBankName("");
+			setBankCode("");
 			setAccountNumber("");
 			setAccountName("");
 			queryClient.invalidateQueries({ queryKey: ["rider", "bank-accounts"] });
@@ -52,15 +58,13 @@ export default function BankAccountsScreen() {
 	});
 
 	const setDefaultMutation = useMutation({
-		mutationFn: (id: string) =>
-			apiClient.post(`/riders/me/bank-accounts/${id}/default`),
+		mutationFn: (id: string) => setDefaultBankAccount(id),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: ["rider", "bank-accounts"] }),
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: (id: string) =>
-			apiClient.delete(`/riders/me/bank-accounts/${id}`),
+		mutationFn: (id: string) => deleteRiderBankAccount(id),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: ["rider", "bank-accounts"] }),
 	});
@@ -72,7 +76,12 @@ export default function BankAccountsScreen() {
 	}, [refetch]);
 
 	const handleAdd = () => {
-		if (!bankName.trim() || !accountNumber.trim() || !accountName.trim()) {
+		if (
+			!bankName.trim() ||
+			!bankCode.trim() ||
+			!accountNumber.trim() ||
+			!accountName.trim()
+		) {
 			Alert.alert("Error", "Fill in all fields");
 			return;
 		}
@@ -82,6 +91,7 @@ export default function BankAccountsScreen() {
 		}
 		addMutation.mutate({
 			bankName: bankName.trim(),
+			bankCode: bankCode.trim(),
 			accountNumber: accountNumber.trim(),
 			accountName: accountName.trim(),
 		});
@@ -210,6 +220,16 @@ export default function BankAccountsScreen() {
 							onChangeText={setBankName}
 							placeholder="e.g. First Bank, GTBank"
 							placeholderTextColor="#94A3B8"
+						/>
+
+						<Text style={styles.inputLabel}>Bank Code</Text>
+						<TextInput
+							style={styles.input}
+							value={bankCode}
+							onChangeText={setBankCode}
+							placeholder="e.g. 011, 058"
+							placeholderTextColor="#94A3B8"
+							keyboardType="numeric"
 						/>
 
 						<Text style={styles.inputLabel}>Account Number</Text>

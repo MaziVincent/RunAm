@@ -1,11 +1,5 @@
-import apiClient from "./client";
-import type {
-	Wallet,
-	WalletTransaction,
-	TopUpRequest,
-	TopUpResponse,
-	PaginatedResponse,
-} from "../types";
+import apiClient, { type PaginatedResult } from "./client";
+import type { Wallet, WalletTransaction, TopUpRequest } from "../types";
 
 // ── Get Wallet ───────────────────────────────────────────────
 
@@ -22,8 +16,8 @@ interface GetTransactionsParams {
 
 export function getWalletTransactions(
 	params?: GetTransactionsParams,
-): Promise<PaginatedResponse<WalletTransaction>> {
-	return apiClient.get<PaginatedResponse<WalletTransaction>>(
+): Promise<PaginatedResult<WalletTransaction>> {
+	return apiClient.getPaginated<WalletTransaction>(
 		"/payments/wallet/transactions",
 		params as Record<string, string | number | boolean | undefined>,
 	);

@@ -6,6 +6,7 @@ public interface IReviewRepository
 {
     Task<Review?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyList<Review>> GetByRevieweeIdAsync(Guid revieweeId, int page, int pageSize, CancellationToken ct = default);
+    Task<int> GetCountByRevieweeIdAsync(Guid revieweeId, CancellationToken ct = default);
     Task<IReadOnlyList<Review>> GetByErrandIdAsync(Guid errandId, CancellationToken ct = default);
     Task<IReadOnlyList<Review>> GetFlaggedReviewsAsync(int page, int pageSize, CancellationToken ct = default);
     Task<(double AverageRating, int TotalReviews)> GetRatingSummaryAsync(Guid revieweeId, CancellationToken ct = default);

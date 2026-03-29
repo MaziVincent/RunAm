@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { createReview } from "@runam/shared/api/reviews";
 
 export default function RateErrandScreen() {
 	const { id: errandId } = useLocalSearchParams<{ id: string }>();
@@ -24,10 +24,10 @@ export default function RateErrandScreen() {
 
 	const submitMutation = useMutation({
 		mutationFn: () =>
-			apiClient.post("/reviews", {
-				errandId,
+			createReview({
+				errandId: errandId!,
 				rating,
-				comment: comment.trim() || null,
+				comment: comment.trim() || undefined,
 			}),
 		onSuccess: () => {
 			setSubmitted(true);

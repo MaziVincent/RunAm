@@ -11,7 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getActiveTasks,
+	updateTaskStatus as updateTaskStatusApi,
+} from "@runam/shared/api/rider";
 import type { Errand, ErrandStatus } from "@runam/shared/types";
 
 type RiderAction =
@@ -71,7 +74,7 @@ export default function ActiveTasksScreen() {
 		isLoading,
 	} = useQuery<Errand[]>({
 		queryKey: ["rider", "active-tasks"],
-		queryFn: () => apiClient.get("/riders/me/active-tasks"),
+		queryFn: () => getActiveTasks(),
 	});
 
 	const updateStatus = useMutation({
@@ -81,7 +84,7 @@ export default function ActiveTasksScreen() {
 		}: {
 			errandId: string;
 			status: RiderAction;
-		}) => apiClient.patch(`/riders/me/tasks/${errandId}/status`, { status }),
+		}) => updateTaskStatusApi(errandId, { status }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider"] });
 		},

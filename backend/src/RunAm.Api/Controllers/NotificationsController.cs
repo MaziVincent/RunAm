@@ -29,8 +29,13 @@ public class NotificationsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<NotificationDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetNotificationsQuery(GetUserId(), page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<NotificationDto>>.Ok(result));
+        var (notifications, totalCount) = await _mediator.Send(new GetNotificationsQuery(GetUserId(), page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<NotificationDto>>.Ok(notifications, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Get unread notification count</summary>

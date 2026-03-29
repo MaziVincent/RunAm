@@ -1,4 +1,4 @@
-export { apiClient, ApiError } from "./client";
+export { apiClient, ApiError, type PaginatedResult } from "./client";
 
 export * from "./auth";
 export * from "./user";

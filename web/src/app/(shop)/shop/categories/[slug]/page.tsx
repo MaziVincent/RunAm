@@ -26,6 +26,7 @@ import { VendorCard } from "@/components/shop/vendor-card";
 import {
 	useServiceCategoryBySlug,
 	useVendors,
+	useGeolocation,
 	type VendorQueryParams,
 } from "@/lib/hooks";
 
@@ -62,6 +63,8 @@ export default function CategoryPage() {
 		useServiceCategoryBySlug(slug);
 	const category = catData?.data;
 
+	const { lat, lng } = useGeolocation();
+
 	// Fetch vendors for this category
 	const vendorParams: VendorQueryParams = useMemo(
 		() => ({
@@ -69,8 +72,9 @@ export default function CategoryPage() {
 			sort,
 			page,
 			pageSize: 12,
+			...(lat && lng ? { lat, lng, radius: 10 } : {}),
 		}),
-		[category?.id, sort, page],
+		[category?.id, sort, page, lat, lng],
 	);
 
 	const {

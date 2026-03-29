@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getLeaderboard } from "@runam/shared/api/rider";
 import type { Leaderboard, LeaderboardEntry } from "@runam/shared/types";
 
 type Period = "daily" | "weekly" | "monthly";
@@ -40,7 +40,7 @@ export default function LeaderboardScreen() {
 		isLoading,
 	} = useQuery<Leaderboard>({
 		queryKey: ["rider", "leaderboard", period],
-		queryFn: () => apiClient.get(`/riders/leaderboard?period=${period}`),
+		queryFn: () => getLeaderboard(period),
 	});
 
 	const onRefresh = useCallback(async () => {

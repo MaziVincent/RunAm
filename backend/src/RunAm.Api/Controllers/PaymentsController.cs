@@ -38,8 +38,13 @@ public class PaymentsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WalletTransactionDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetTransactions([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetWalletTransactionsQuery(GetUserId(), page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<WalletTransactionDto>>.Ok(result));
+        var (transactions, totalCount) = await _mediator.Send(new GetWalletTransactionsQuery(GetUserId(), page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<WalletTransactionDto>>.Ok(transactions, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Top up wallet</summary>
@@ -129,8 +134,13 @@ public class PaymentsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RiderPayoutDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPayouts([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetRiderPayoutsQuery(GetUserId(), page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(result));
+        var (payouts, totalCount) = await _mediator.Send(new GetRiderPayoutsQuery(GetUserId(), page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(payouts, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Request a payout</summary>

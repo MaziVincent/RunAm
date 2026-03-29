@@ -38,8 +38,8 @@ export function useServiceCategoryBySlug(slug: string) {
 export interface VendorQueryParams {
 	categoryId?: string;
 	search?: string;
-	latitude?: number;
-	longitude?: number;
+	lat?: number;
+	lng?: number;
 	radius?: number;
 	sort?: string;
 	page?: number;
@@ -53,8 +53,8 @@ export function useVendors(params: VendorQueryParams = {}) {
 			api.get<VendorDto[]>("/vendors", {
 				categoryId: params.categoryId,
 				search: params.search,
-				latitude: params.latitude,
-				longitude: params.longitude,
+				lat: params.lat,
+				lng: params.lng,
 				radius: params.radius,
 				sort: params.sort,
 				page: params.page ?? 1,

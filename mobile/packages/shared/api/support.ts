@@ -1,3 +1,7 @@
+// NOTE: Backend SupportController does not exist yet.
+// These functions will 404 until the backend endpoint is implemented.
+// Types are already defined in ../types for forward-compatibility.
+
 import apiClient from "./client";
 import type { SupportTicket, CreateSupportTicketRequest } from "../types";
 

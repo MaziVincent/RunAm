@@ -25,6 +25,15 @@ public class ErrandsController : BaseApiController
         return Created($"/api/v1/errands/{result.Id}", ApiResponse<ErrandDto>.Ok(result));
     }
 
+    /// <summary>Create a marketplace (vendor) order</summary>
+    [HttpPost("marketplace")]
+    [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateMarketplaceOrder([FromBody] CreateMarketplaceOrderRequest request)
+    {
+        var result = await _mediator.Send(new CreateMarketplaceOrderCommand(GetUserId(), request));
+        return Created($"/api/v1/errands/{result.Id}", ApiResponse<ErrandDto>.Ok(result));
+    }
+
     /// <summary>Get current user's errands</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ErrandDto>>), StatusCodes.Status200OK)]

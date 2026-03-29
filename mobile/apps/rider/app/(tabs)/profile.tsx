@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
-import apiClient from "@runam/shared/api/client";
+import { getRiderProfile } from "@runam/shared/api/rider";
 import type { RiderProfile } from "@runam/shared/types";
 
 interface SettingsItem {
@@ -27,7 +27,7 @@ export default function RiderProfileScreen() {
 
 	const { data: riderProfile } = useQuery<RiderProfile>({
 		queryKey: ["rider", "profile"],
-		queryFn: () => apiClient.get("/riders/me"),
+		queryFn: () => getRiderProfile(),
 	});
 
 	const handleLogout = () => {
@@ -51,10 +51,18 @@ export default function RiderProfileScreen() {
 	};
 
 	const settingsItems: SettingsItem[] = [
-		{ icon: "🏍️", label: "Vehicle Information", onPress: () => {} },
-		{ icon: "📄", label: "Documents", onPress: () => {} },
 		{
-			icon: "�",
+			icon: "🏍️",
+			label: "Vehicle Information",
+			onPress: () => router.push("/vehicle" as never),
+		},
+		{
+			icon: "📄",
+			label: "Documents",
+			onPress: () => router.push("/documents" as never),
+		},
+		{
+			icon: "📊",
 			label: "Performance",
 			onPress: () => router.push("/performance" as never),
 		},
@@ -69,7 +77,7 @@ export default function RiderProfileScreen() {
 			onPress: () => router.push("/bank-accounts" as never),
 		},
 		{
-			icon: "�🔔",
+			icon: "🔔",
 			label: "Notifications",
 			onPress: () => router.push("/notifications" as never),
 		},
@@ -78,7 +86,11 @@ export default function RiderProfileScreen() {
 			label: "My Ratings",
 			onPress: () => router.push("/ratings" as never),
 		},
-		{ icon: "🔒", label: "Change Password", onPress: () => {} },
+		{
+			icon: "🔒",
+			label: "Change Password",
+			onPress: () => router.push("/change-password" as never),
+		},
 		{ icon: "📞", label: "Support", onPress: () => {} },
 		{ icon: "🚪", label: "Log Out", onPress: handleLogout, destructive: true },
 	];

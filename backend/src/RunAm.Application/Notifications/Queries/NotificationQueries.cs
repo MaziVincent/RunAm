@@ -6,19 +6,20 @@ namespace RunAm.Application.Notifications.Queries;
 
 // ── Get Notifications ───────────────────────────
 
-public record GetNotificationsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<IReadOnlyList<NotificationDto>>;
+public record GetNotificationsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<(IReadOnlyList<NotificationDto> Notifications, int TotalCount)>;
 
-public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuery, IReadOnlyList<NotificationDto>>
+public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuery, (IReadOnlyList<NotificationDto> Notifications, int TotalCount)>
 {
     private readonly INotificationRepository _notifRepo;
 
     public GetNotificationsQueryHandler(INotificationRepository notifRepo) => _notifRepo = notifRepo;
 
-    public async Task<IReadOnlyList<NotificationDto>> Handle(GetNotificationsQuery query, CancellationToken ct)
+    public async Task<(IReadOnlyList<NotificationDto> Notifications, int TotalCount)> Handle(GetNotificationsQuery query, CancellationToken ct)
     {
         var notifications = await _notifRepo.GetByUserIdAsync(query.UserId, query.Page, query.PageSize, ct);
+        var totalCount = await _notifRepo.GetCountByUserIdAsync(query.UserId, ct);
 
-        return notifications.Select(n => new NotificationDto(
+        var dtos = notifications.Select(n => new NotificationDto(
             n.Id,
             n.Title,
             n.Body,
@@ -27,6 +28,8 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
             n.IsRead,
             n.CreatedAt
         )).ToList();
+
+        return (dtos, totalCount);
     }
 }
 

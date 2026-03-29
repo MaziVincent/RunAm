@@ -9,6 +9,26 @@ import type {
 
 const CART_KEY = "cart_state";
 
+function generateCartItemId(
+	productId: string,
+	selectedVariants?: { name: string; option: ProductVariantOption }[],
+	selectedExtras?: { extra: ProductExtra; quantity: number }[],
+): string {
+	const variantKey = selectedVariants
+		? selectedVariants
+				.map((v) => `${v.name}:${v.option.label}`)
+				.sort()
+				.join(";")
+		: "";
+	const extrasKey = selectedExtras
+		? selectedExtras
+				.map((e) => `${e.extra.name}:${e.quantity}`)
+				.sort()
+				.join(",")
+		: "";
+	return `${productId}|${variantKey}|${extrasKey}`;
+}
+
 interface CartState {
 	vendorId: string | null;
 	vendorName: string | null;
@@ -21,12 +41,12 @@ interface CartState {
 		vendorName: string,
 		product: Product,
 		quantity: number,
-		selectedVariant?: { name: string; option: ProductVariantOption } | null,
+		selectedVariants?: { name: string; option: ProductVariantOption }[],
 		selectedExtras?: { extra: ProductExtra; quantity: number }[],
 		notes?: string,
 	) => void;
-	updateQuantity: (productId: string, quantity: number) => void;
-	removeItem: (productId: string) => void;
+	updateQuantity: (cartItemId: string, quantity: number) => void;
+	removeItem: (cartItemId: string) => void;
 	clearCart: () => void;
 	getItemCount: () => number;
 	getSubtotal: () => number;
@@ -34,8 +54,10 @@ interface CartState {
 
 function calculateItemPrice(item: CartItem): number {
 	let unitPrice = item.product.price;
-	if (item.selectedVariant?.option) {
-		unitPrice += item.selectedVariant.option.priceAdjustment;
+	if (item.selectedVariants) {
+		for (const v of item.selectedVariants) {
+			unitPrice += v.option.priceAdjustment;
+		}
 	}
 	if (item.selectedExtras) {
 		for (const e of item.selectedExtras) {
@@ -83,7 +105,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 		vendorName,
 		product,
 		quantity,
-		selectedVariant,
+		selectedVariants,
 		selectedExtras,
 		notes,
 	) => {
@@ -95,8 +117,13 @@ export const useCartStore = create<CartState>((set, get) => ({
 			items = [];
 		}
 
-		// Check if same product already in cart (by productId)
-		const existingIdx = items.findIndex((i) => i.product.id === product.id);
+		// Check if same product with same variant+extras already in cart
+		const cartItemId = generateCartItemId(
+			product.id,
+			selectedVariants,
+			selectedExtras,
+		);
+		const existingIdx = items.findIndex((i) => i.cartItemId === cartItemId);
 		let newItems: CartItem[];
 
 		if (existingIdx >= 0) {
@@ -104,15 +131,19 @@ export const useCartStore = create<CartState>((set, get) => ({
 			newItems[existingIdx] = {
 				...newItems[existingIdx],
 				quantity: newItems[existingIdx].quantity + quantity,
-				selectedVariant:
-					selectedVariant ?? newItems[existingIdx].selectedVariant,
-				selectedExtras: selectedExtras ?? newItems[existingIdx].selectedExtras,
 				notes: notes ?? newItems[existingIdx].notes,
 			};
 		} else {
 			newItems = [
 				...items,
-				{ product, quantity, selectedVariant, selectedExtras, notes },
+				{
+					cartItemId,
+					product,
+					quantity,
+					selectedVariants,
+					selectedExtras,
+					notes,
+				},
 			];
 		}
 
@@ -121,14 +152,14 @@ export const useCartStore = create<CartState>((set, get) => ({
 		persistCart(next);
 	},
 
-	updateQuantity: (productId, quantity) => {
+	updateQuantity: (cartItemId, quantity) => {
 		const state = get();
 		if (quantity <= 0) {
-			get().removeItem(productId);
+			get().removeItem(cartItemId);
 			return;
 		}
 		const newItems = state.items.map((i) =>
-			i.product.id === productId ? { ...i, quantity } : i,
+			i.cartItemId === cartItemId ? { ...i, quantity } : i,
 		);
 		const next = {
 			vendorId: state.vendorId,
@@ -139,9 +170,9 @@ export const useCartStore = create<CartState>((set, get) => ({
 		persistCart(next);
 	},
 
-	removeItem: (productId) => {
+	removeItem: (cartItemId) => {
 		const state = get();
-		const newItems = state.items.filter((i) => i.product.id !== productId);
+		const newItems = state.items.filter((i) => i.cartItemId !== cartItemId);
 		if (newItems.length === 0) {
 			const next = { vendorId: null, vendorName: null, items: [] };
 			set(next);

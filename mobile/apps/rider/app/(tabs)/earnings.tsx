@@ -15,20 +15,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import apiClient from "@runam/shared/api/client";
+import {
+	getRiderEarnings,
+	getRiderWeeklyEarnings,
+	getRiderBankAccounts,
+} from "@runam/shared/api/rider";
+import { getWallet, withdrawFromWallet } from "@runam/shared/api/wallet";
 import type {
 	RiderEarnings,
 	EarningTransaction,
 	WeeklyEarningsChart,
 	DailyEarning,
 	BankAccount,
+	Wallet,
 } from "@runam/shared/types";
-
-interface Wallet {
-	id: string;
-	balance: number;
-	currency: string;
-}
 
 export default function EarningsScreen() {
 	const [refreshing, setRefreshing] = useState(false);
@@ -44,27 +44,31 @@ export default function EarningsScreen() {
 		isLoading,
 	} = useQuery<RiderEarnings>({
 		queryKey: ["rider", "earnings"],
-		queryFn: () => apiClient.get("/riders/me/earnings"),
+		queryFn: () => getRiderEarnings(),
 	});
 
 	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet>({
 		queryKey: ["rider", "wallet"],
-		queryFn: () => apiClient.get("/payments/wallet"),
+		queryFn: () => getWallet(),
 	});
 
 	const { data: weeklyChart } = useQuery<WeeklyEarningsChart>({
 		queryKey: ["rider", "earnings", "weekly-chart"],
-		queryFn: () => apiClient.get("/riders/me/earnings/weekly"),
+		queryFn: () => getRiderWeeklyEarnings(),
 	});
 
 	const { data: bankAccounts } = useQuery<BankAccount[]>({
 		queryKey: ["rider", "bank-accounts"],
-		queryFn: () => apiClient.get("/riders/me/bank-accounts"),
+		queryFn: () => getRiderBankAccounts(),
 	});
 
 	const withdrawMutation = useMutation({
-		mutationFn: (params: { amount: number; bankAccountId?: string }) =>
-			apiClient.post("/payments/wallet/withdraw", params),
+		mutationFn: (params: {
+			amount: number;
+			bankCode: string;
+			accountNumber: string;
+			accountName: string;
+		}) => withdrawFromWallet(params),
 		onSuccess: () => {
 			setShowWithdrawModal(false);
 			setWithdrawAmount("");
@@ -87,13 +91,20 @@ export default function EarningsScreen() {
 			Alert.alert("Error", "Insufficient balance");
 			return;
 		}
-		if (bankAccounts && bankAccounts.length > 0 && !selectedBankId) {
+		if (!bankAccounts || bankAccounts.length === 0) {
+			Alert.alert("Error", "Add a bank account first");
+			return;
+		}
+		const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
+		if (!selectedBank) {
 			Alert.alert("Error", "Select a bank account");
 			return;
 		}
 		withdrawMutation.mutate({
 			amount,
-			bankAccountId: selectedBankId || undefined,
+			bankCode: selectedBank.bankCode,
+			accountNumber: selectedBank.accountNumber,
+			accountName: selectedBank.accountName,
 		});
 	};
 

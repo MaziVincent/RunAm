@@ -26,6 +26,9 @@ public class ReviewRepository : IReviewRepository
             .Take(pageSize)
             .ToListAsync(ct);
 
+    public async Task<int> GetCountByRevieweeIdAsync(Guid revieweeId, CancellationToken ct = default) =>
+        await _db.Reviews.CountAsync(r => r.RevieweeId == revieweeId && r.IsApproved, ct);
+
     public async Task<IReadOnlyList<Review>> GetByErrandIdAsync(Guid errandId, CancellationToken ct = default) =>
         await _db.Reviews
             .Include(r => r.Reviewer)

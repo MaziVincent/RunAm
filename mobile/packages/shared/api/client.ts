@@ -8,6 +8,14 @@ const BASE_URL = __DEV__
 	? "http://localhost:5001/api/v1"
 	: "https://api.runam.com/api/v1";
 
+export interface PaginatedResult<T> {
+	items: T[];
+	page: number;
+	pageSize: number;
+	totalCount: number;
+	totalPages: number;
+}
+
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface RequestOptions {
@@ -122,11 +130,85 @@ class ApiClient {
 		return json as T;
 	}
 
+	/**
+	 * Returns the raw envelope (success, data, meta) without unwrapping.
+	 * Used by getPaginated to access both data and meta.
+	 */
+	private async requestRaw(
+		path: string,
+		options: RequestOptions = {},
+	): Promise<{
+		data: unknown;
+		meta: {
+			page: number;
+			pageSize: number;
+			totalCount: number;
+			totalPages: number;
+		} | null;
+	}> {
+		const { method = "GET", body, headers = {}, params } = options;
+		const token = await this.getToken();
+		const isFormData = body instanceof FormData;
+
+		const requestHeaders: Record<string, string> = {
+			...(isFormData ? {} : { "Content-Type": "application/json" }),
+			Accept: "application/json",
+			...headers,
+		};
+
+		if (token) {
+			requestHeaders["Authorization"] = `Bearer ${token}`;
+		}
+
+		const url = this.buildUrl(path, params);
+
+		const response = await fetch(url, {
+			method,
+			headers: requestHeaders,
+			body: body
+				? isFormData
+					? (body as FormData)
+					: JSON.stringify(body)
+				: undefined,
+		});
+
+		if (response.status === 401) {
+			await this.clearTokens();
+			throw new ApiError("Unauthorized", 401);
+		}
+
+		if (!response.ok) {
+			const errorBody = await response.json().catch(() => ({}));
+			throw new ApiError(
+				errorBody.message || `Request failed with status ${response.status}`,
+				response.status,
+				errorBody.errors,
+			);
+		}
+
+		const json = await response.json();
+		return { data: json.data ?? json, meta: json.meta ?? null };
+	}
+
 	get<T>(
 		path: string,
 		params?: Record<string, string | number | boolean | undefined>,
 	): Promise<T> {
 		return this.request<T>(path, { method: "GET", params });
+	}
+
+	async getPaginated<T>(
+		path: string,
+		params?: Record<string, string | number | boolean | undefined>,
+	): Promise<PaginatedResult<T>> {
+		const json = await this.requestRaw(path, { method: "GET", params });
+		return {
+			items: (json.data ?? []) as T[],
+			page: json.meta?.page ?? 1,
+			pageSize: json.meta?.pageSize ?? 20,
+			totalCount: json.meta?.totalCount ?? (json.data as T[])?.length ?? 0,
+			totalPages: json.meta?.totalPages ?? 1,
+		};
 	}
 
 	post<T>(path: string, body?: unknown): Promise<T> {

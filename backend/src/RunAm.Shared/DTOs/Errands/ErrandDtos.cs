@@ -125,3 +125,26 @@ public record PriceEstimateResponse(
     double EstimatedDistanceKm,
     int EstimatedDurationMinutes
 );
+
+// ── Marketplace (Vendor) Order ──────────────────────────────────
+
+public record CreateMarketplaceOrderRequest(
+    Guid VendorId,
+    string DropoffAddress,
+    double DropoffLatitude,
+    double DropoffLongitude,
+    string? RecipientName,
+    string? RecipientPhone,
+    string? SpecialInstructions,
+    PaymentMethod PaymentMethod,
+    string? PromoCode,
+    List<CreateOrderItemRequest> Items
+);
+
+public record CreateOrderItemRequest(
+    Guid ProductId,
+    int Quantity,
+    string? Notes,
+    string? SelectedVariantJson,
+    string? SelectedExtrasJson
+);

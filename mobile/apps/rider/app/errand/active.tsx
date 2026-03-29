@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getErrandById } from "@runam/shared/api/errands";
+import { updateTaskStatus } from "@runam/shared/api/rider";
 
 interface ActiveErrand {
 	id: string;
@@ -62,7 +63,7 @@ export default function RiderActiveErrandScreen() {
 
 	const { data: errandData, isLoading } = useQuery<ActiveErrand>({
 		queryKey: ["rider-errand", id],
-		queryFn: () => apiClient.get(`/errands/${id}`),
+		queryFn: () => getErrandById(id!) as unknown as Promise<ActiveErrand>,
 		refetchInterval: 15000,
 	});
 
@@ -70,7 +71,7 @@ export default function RiderActiveErrandScreen() {
 
 	const updateStatusMutation = useMutation({
 		mutationFn: (newStatus: string) =>
-			apiClient.patch(`/errands/${id}/status`, { status: newStatus }),
+			updateTaskStatus(id!, { status: newStatus }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider-errand", id] });
 		},

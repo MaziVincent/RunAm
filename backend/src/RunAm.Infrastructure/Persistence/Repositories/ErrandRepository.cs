@@ -59,6 +59,9 @@ public class ErrandRepository : IErrandRepository
     public async Task<int> GetCountByCustomerIdAsync(Guid customerId, CancellationToken ct = default)
         => await _db.Errands.CountAsync(e => e.CustomerId == customerId, ct);
 
+    public async Task<int> GetCountByVendorIdAsync(Guid vendorId, CancellationToken ct = default)
+        => await _db.Errands.CountAsync(e => e.VendorId == vendorId, ct);
+
     public async Task AddAsync(Errand errand, CancellationToken ct = default)
         => await _db.Errands.AddAsync(errand, ct);
 

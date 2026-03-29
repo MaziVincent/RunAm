@@ -24,25 +24,28 @@ public class GetWalletQueryHandler : IRequestHandler<GetWalletQuery, WalletDto>
 
 // ── Get Wallet Transactions ─────────────────────
 
-public record GetWalletTransactionsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<IReadOnlyList<WalletTransactionDto>>;
+public record GetWalletTransactionsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<(IReadOnlyList<WalletTransactionDto> Transactions, int TotalCount)>;
 
-public class GetWalletTransactionsQueryHandler : IRequestHandler<GetWalletTransactionsQuery, IReadOnlyList<WalletTransactionDto>>
+public class GetWalletTransactionsQueryHandler : IRequestHandler<GetWalletTransactionsQuery, (IReadOnlyList<WalletTransactionDto> Transactions, int TotalCount)>
 {
     private readonly IWalletRepository _walletRepo;
 
     public GetWalletTransactionsQueryHandler(IWalletRepository walletRepo) => _walletRepo = walletRepo;
 
-    public async Task<IReadOnlyList<WalletTransactionDto>> Handle(GetWalletTransactionsQuery query, CancellationToken ct)
+    public async Task<(IReadOnlyList<WalletTransactionDto> Transactions, int TotalCount)> Handle(GetWalletTransactionsQuery query, CancellationToken ct)
     {
         var wallet = await _walletRepo.GetByUserIdAsync(query.UserId, ct)
             ?? throw new NotFoundException("Wallet", query.UserId);
 
         var transactions = await _walletRepo.GetTransactionsAsync(wallet.Id, query.Page, query.PageSize, ct);
+        var totalCount = await _walletRepo.GetTransactionCountAsync(wallet.Id, ct);
 
-        return transactions.Select(t => new WalletTransactionDto(
+        var dtos = transactions.Select(t => new WalletTransactionDto(
             t.Id, t.Type, t.Amount, t.BalanceAfter, t.Source,
             t.ReferenceId, t.Description, t.CreatedAt
         )).ToList();
+
+        return (dtos, totalCount);
     }
 }
 

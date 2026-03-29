@@ -1,5 +1,5 @@
-import apiClient from "./client";
-import type { Review, ReviewSummary, PaginatedResponse } from "../types";
+import apiClient, { type PaginatedResult } from "./client";
+import type { Review, ReviewSummary } from "../types";
 
 // ── Submit Review ────────────────────────────────────────────
 
@@ -22,8 +22,8 @@ interface GetReviewsParams {
 
 export function getMyReviews(
 	params?: GetReviewsParams,
-): Promise<PaginatedResponse<Review>> {
-	return apiClient.get<PaginatedResponse<Review>>(
+): Promise<PaginatedResult<Review>> {
+	return apiClient.getPaginated<Review>(
 		"/reviews/me",
 		params as Record<string, string | number | boolean | undefined>,
 	);
@@ -38,8 +38,8 @@ export function getMyReviewSummary(): Promise<ReviewSummary> {
 export function getUserReviews(
 	userId: string,
 	params?: GetReviewsParams,
-): Promise<PaginatedResponse<Review>> {
-	return apiClient.get<PaginatedResponse<Review>>(
+): Promise<PaginatedResult<Review>> {
+	return apiClient.getPaginated<Review>(
 		`/reviews/user/${userId}`,
 		params as Record<string, string | number | boolean | undefined>,
 	);

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getErrands } from "@runam/shared/api/errands";
 import type { Errand } from "@runam/shared/types";
 
 const statusColors: Record<string, string> = {
@@ -69,11 +69,16 @@ export default function ActivityScreen() {
 	const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const { data, refetch, isLoading } = useQuery<Errand[]>({
+	const {
+		data: errandsData,
+		refetch,
+		isLoading,
+	} = useQuery({
 		queryKey: ["errands", "all"],
-		queryFn: () =>
-			apiClient.get("/errands?pageSize=50&sortBy=createdAt&sortDesc=true"),
+		queryFn: () => getErrands({ pageSize: 50 }),
 	});
+
+	const data = errandsData?.items;
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);

@@ -12,7 +12,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getMessages,
+	sendMessage,
+	markMessagesAsRead,
+} from "@runam/shared/api/chat";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { signalRService } from "@runam/shared/services/signalr";
 import type { ChatMessage } from "@runam/shared/types";
@@ -34,12 +38,14 @@ export default function ChatScreen() {
 	const flatListRef = useRef<FlatList>(null);
 	const currentUserId = user?.id ?? "";
 
-	const { data: messages = [] } = useQuery<ChatMessage[]>({
+	const { data: messagesData } = useQuery({
 		queryKey: ["chat", errandId],
-		queryFn: () =>
-			apiClient.get(`/errands/${errandId}/messages`, { page: 1, pageSize: 50 }),
+		queryFn: () => getMessages(errandId!, { page: 1, pageSize: 50 }),
 		refetchInterval: isConnected ? 30000 : 5000,
+		enabled: !!errandId,
 	});
+
+	const messages = messagesData?.items ?? [];
 
 	// SignalR real-time messages
 	useEffect(() => {
@@ -50,6 +56,9 @@ export default function ChatScreen() {
 				await signalRService.connect("/hubs/chat");
 				await signalRService.invoke("JoinChat", errandId);
 				setIsConnected(true);
+
+				// Mark existing messages as read
+				markMessagesAsRead(errandId!).catch(() => {});
 
 				signalRService.on<ChatMessage>("NewMessage", (msg) => {
 					queryClient.setQueryData<ChatMessage[]>(["chat", errandId], (old) => {
@@ -79,7 +88,7 @@ export default function ChatScreen() {
 
 	const sendMutation = useMutation({
 		mutationFn: (text: string) =>
-			apiClient.post(`/errands/${errandId}/messages`, {
+			sendMessage(errandId!, {
 				message: text,
 				messageType: 0,
 			}),

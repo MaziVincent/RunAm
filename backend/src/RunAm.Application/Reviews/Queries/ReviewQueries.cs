@@ -6,22 +6,26 @@ namespace RunAm.Application.Reviews.Queries;
 
 // ── Get Reviews for a User ─────────────────────
 
-public record GetUserReviewsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<IReadOnlyList<ReviewDto>>;
+public record GetUserReviewsQuery(Guid UserId, int Page = 1, int PageSize = 20) : IRequest<(IReadOnlyList<ReviewDto> Reviews, int TotalCount)>;
 
-public class GetUserReviewsQueryHandler : IRequestHandler<GetUserReviewsQuery, IReadOnlyList<ReviewDto>>
+public class GetUserReviewsQueryHandler : IRequestHandler<GetUserReviewsQuery, (IReadOnlyList<ReviewDto> Reviews, int TotalCount)>
 {
     private readonly IReviewRepository _reviewRepo;
 
     public GetUserReviewsQueryHandler(IReviewRepository reviewRepo) => _reviewRepo = reviewRepo;
 
-    public async Task<IReadOnlyList<ReviewDto>> Handle(GetUserReviewsQuery query, CancellationToken ct)
+    public async Task<(IReadOnlyList<ReviewDto> Reviews, int TotalCount)> Handle(GetUserReviewsQuery query, CancellationToken ct)
     {
         var reviews = await _reviewRepo.GetByRevieweeIdAsync(query.UserId, query.Page, query.PageSize, ct);
-        return reviews.Select(r => new ReviewDto(
+        var totalCount = await _reviewRepo.GetCountByRevieweeIdAsync(query.UserId, ct);
+
+        var dtos = reviews.Select(r => new ReviewDto(
             r.Id, r.ErrandId, r.ReviewerId, r.Reviewer?.FullName ?? "",
             r.RevieweeId, r.Reviewee?.FullName ?? "",
             r.Rating, r.Comment, r.IsApproved, r.IsFlagged, r.FlagReason, r.CreatedAt
         )).ToList();
+
+        return (dtos, totalCount);
     }
 }
 

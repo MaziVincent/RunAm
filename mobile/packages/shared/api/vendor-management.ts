@@ -1,11 +1,5 @@
-import apiClient from "./client";
-import type {
-	Vendor,
-	VendorDetail,
-	Product,
-	ProductCategory,
-	PaginatedResponse,
-} from "../types";
+import apiClient, { type PaginatedResult } from "./client";
+import type { Vendor, Product, ProductCategory } from "../types";
 
 // ── Vendor Profile (Merchant) ────────────────────────────────
 
@@ -188,8 +182,8 @@ interface GetOrdersParams {
 
 export function getVendorOrders(
 	params?: GetOrdersParams,
-): Promise<PaginatedResponse<VendorOrder>> {
-	return apiClient.get<PaginatedResponse<VendorOrder>>(
+): Promise<PaginatedResult<VendorOrder>> {
+	return apiClient.getPaginated<VendorOrder>(
 		"/vendors/me/orders",
 		params as Record<string, string | number | boolean | undefined>,
 	);

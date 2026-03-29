@@ -102,8 +102,13 @@ public class AdminController : BaseApiController
     public async Task<IActionResult> GetPendingPayouts()
     {
         // Workaround: get payouts for all riders via pending list
-        var result = await _mediator.Send(new GetRiderPayoutsQuery(Guid.Empty, 1, 100));
-        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(result));
+        var (payouts, totalCount) = await _mediator.Send(new GetRiderPayoutsQuery(Guid.Empty, 1, 100));
+        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(payouts, new PaginationMeta
+        {
+            Page = 1,
+            PageSize = 100,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Process a payout</summary>

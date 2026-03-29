@@ -8,5 +8,6 @@ public interface IWalletRepository
     Task<Wallet> GetOrCreateAsync(Guid userId, CancellationToken ct = default);
     Task AddTransactionAsync(WalletTransaction transaction, CancellationToken ct = default);
     Task<IReadOnlyList<WalletTransaction>> GetTransactionsAsync(Guid walletId, int page, int pageSize, CancellationToken ct = default);
+    Task<int> GetTransactionCountAsync(Guid walletId, CancellationToken ct = default);
     Task UpdateAsync(Wallet wallet, CancellationToken ct = default);
 }

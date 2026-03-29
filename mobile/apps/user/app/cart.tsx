@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
 	View,
 	Text,
@@ -11,13 +10,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useCartStore } from "@runam/shared/stores/cart-store";
-import apiClient from "@runam/shared/api/client";
-import type { CartItem, CreateOrderItemRequest } from "@runam/shared/types";
+import type { CartItem } from "@runam/shared/types";
 
 function getItemUnitPrice(item: CartItem): number {
 	let price = item.product.price;
-	if (item.selectedVariant?.option) {
-		price += item.selectedVariant.option.priceAdjustment;
+	if (item.selectedVariants) {
+		for (const v of item.selectedVariants) {
+			price += v.option.priceAdjustment;
+		}
 	}
 	if (item.selectedExtras) {
 		for (const e of item.selectedExtras) {
@@ -38,63 +38,13 @@ export default function CartScreen() {
 		clearCart,
 		getSubtotal,
 	} = useCartStore();
-	const [submitting, setSubmitting] = useState(false);
 
 	const subtotal = getSubtotal();
-	const deliveryFee = 0; // will be fetched/estimated later
+	const deliveryFee = 0; // calculated at checkout
 
-	const handleCheckout = async () => {
+	const handleCheckout = () => {
 		if (!vendorId || items.length === 0) return;
-
-		Alert.alert(
-			"Confirm Order",
-			`Place order from ${vendorName} for ₦${subtotal.toLocaleString()}?`,
-			[
-				{ text: "Cancel", style: "cancel" },
-				{
-					text: "Place Order",
-					onPress: async () => {
-						setSubmitting(true);
-						try {
-							const orderItems: CreateOrderItemRequest[] = items.map(
-								(item) => ({
-									productId: item.product.id,
-									quantity: item.quantity,
-									notes: item.notes,
-									selectedVariantJson: item.selectedVariant
-										? JSON.stringify(item.selectedVariant)
-										: undefined,
-									selectedExtrasJson: item.selectedExtras
-										? JSON.stringify(item.selectedExtras)
-										: undefined,
-								}),
-							);
-
-							await apiClient.post("/errands/marketplace", {
-								vendorId,
-								items: orderItems,
-							});
-
-							clearCart();
-							Alert.alert(
-								"Order Placed!",
-								"Your order has been sent to the vendor.",
-								[
-									{
-										text: "OK",
-										onPress: () => router.replace("/(tabs)/activity"),
-									},
-								],
-							);
-						} catch (err: any) {
-							Alert.alert("Error", err.message || "Failed to place order");
-						} finally {
-							setSubmitting(false);
-						}
-					},
-				},
-			],
-		);
+		router.push("/checkout" as any);
 	};
 
 	if (items.length === 0) {
@@ -157,7 +107,7 @@ export default function CartScreen() {
 				{items.map((item) => {
 					const unitPrice = getItemUnitPrice(item);
 					return (
-						<View key={item.product.id} style={styles.itemCard}>
+						<View key={item.cartItemId} style={styles.itemCard}>
 							{item.product.imageUrl ? (
 								<Image
 									source={{ uri: item.product.imageUrl }}
@@ -170,10 +120,11 @@ export default function CartScreen() {
 							)}
 							<View style={styles.itemContent}>
 								<Text style={styles.itemName}>{item.product.name}</Text>
-								{item.selectedVariant && (
+								{item.selectedVariants && item.selectedVariants.length > 0 && (
 									<Text style={styles.itemMeta}>
-										{item.selectedVariant.name}:{" "}
-										{item.selectedVariant.option.label}
+										{item.selectedVariants
+											.map((v) => `${v.name}: ${v.option.label}`)
+											.join(", ")}
 									</Text>
 								)}
 								{item.selectedExtras && item.selectedExtras.length > 0 && (
@@ -191,14 +142,14 @@ export default function CartScreen() {
 							<View style={styles.itemActions}>
 								<TouchableOpacity
 									style={styles.removeBtn}
-									onPress={() => removeItem(item.product.id)}>
+									onPress={() => removeItem(item.cartItemId)}>
 									<Text style={styles.removeBtnText}>✕</Text>
 								</TouchableOpacity>
 								<View style={styles.qtyControl}>
 									<TouchableOpacity
 										style={styles.qtyBtn}
 										onPress={() =>
-											updateQuantity(item.product.id, item.quantity - 1)
+											updateQuantity(item.cartItemId, item.quantity - 1)
 										}>
 										<Text style={styles.qtyBtnText}>−</Text>
 									</TouchableOpacity>
@@ -206,7 +157,7 @@ export default function CartScreen() {
 									<TouchableOpacity
 										style={styles.qtyBtn}
 										onPress={() =>
-											updateQuantity(item.product.id, item.quantity + 1)
+											updateQuantity(item.cartItemId, item.quantity + 1)
 										}>
 										<Text style={styles.qtyBtnText}>+</Text>
 									</TouchableOpacity>
@@ -246,14 +197,11 @@ export default function CartScreen() {
 			{/* Checkout */}
 			<View style={styles.bottomBar}>
 				<TouchableOpacity
-					style={[styles.checkoutBtn, submitting && { opacity: 0.6 }]}
+					style={styles.checkoutBtn}
 					activeOpacity={0.8}
-					disabled={submitting}
 					onPress={handleCheckout}>
 					<Text style={styles.checkoutBtnText}>
-						{submitting
-							? "Placing Order…"
-							: `Place Order · ₦${subtotal.toLocaleString()}`}
+						Checkout · ₦{subtotal.toLocaleString()}
 					</Text>
 				</TouchableOpacity>
 			</View>

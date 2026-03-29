@@ -50,3 +50,8 @@ public record RegisterResponse(
     string PhoneNumber,
     bool RequiresVerification
 );
+
+public record ChangePasswordRequest(
+    string CurrentPassword,
+    string NewPassword
+);

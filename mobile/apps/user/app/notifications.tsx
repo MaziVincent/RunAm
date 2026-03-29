@@ -10,7 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getNotifications,
+	getUnreadCount,
+	markAsRead,
+	markAllAsRead,
+} from "@runam/shared/api/notifications";
 import type { AppNotification } from "@runam/shared/types";
 
 const typeIcons: Record<number, string> = {
@@ -42,17 +47,19 @@ export default function NotificationsScreen() {
 		isLoading,
 	} = useQuery<AppNotification[]>({
 		queryKey: ["notifications"],
-		queryFn: () => apiClient.get("/notifications"),
+		queryFn: async () => {
+			const result = await getNotifications({ pageSize: 50 });
+			return result.items;
+		},
 	});
 
 	const { data: unreadRes } = useQuery<{ unreadCount: number }>({
 		queryKey: ["notifications", "unread-count"],
-		queryFn: () => apiClient.get("/notifications/unread-count"),
+		queryFn: getUnreadCount,
 	});
 
 	const markReadMutation = useMutation({
-		mutationFn: (id: string) =>
-			apiClient.patch(`/notifications/${id}/read`, {}),
+		mutationFn: (id: string) => markAsRead(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			queryClient.invalidateQueries({
@@ -62,7 +69,7 @@ export default function NotificationsScreen() {
 	});
 
 	const markAllReadMutation = useMutation({
-		mutationFn: () => apiClient.patch("/notifications/read-all", {}),
+		mutationFn: () => markAllAsRead(),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["notifications"] });
 			queryClient.invalidateQueries({

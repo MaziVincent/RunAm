@@ -1,5 +1,5 @@
-import apiClient from "./client";
-import type { ChatMessage, PaginatedResponse } from "../types";
+import apiClient, { type PaginatedResult } from "./client";
+import type { ChatMessage } from "../types";
 
 // ── Get Messages ─────────────────────────────────────────────
 
@@ -11,8 +11,8 @@ interface GetMessagesParams {
 export function getMessages(
 	errandId: string,
 	params?: GetMessagesParams,
-): Promise<PaginatedResponse<ChatMessage>> {
-	return apiClient.get<PaginatedResponse<ChatMessage>>(
+): Promise<PaginatedResult<ChatMessage>> {
+	return apiClient.getPaginated<ChatMessage>(
 		`/errands/${errandId}/messages`,
 		params as Record<string, string | number | boolean | undefined>,
 	);

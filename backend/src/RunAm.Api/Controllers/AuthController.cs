@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using RunAm.Application.Auth.Commands;
@@ -63,5 +64,16 @@ public class AuthController : BaseApiController
     {
         var result = await _mediator.Send(new RefreshTokenCommand(request));
         return Ok(ApiResponse<AuthResponse>.Ok(result));
+    }
+
+    /// <summary>Change password for authenticated user</summary>
+    [Authorize]
+    [HttpPost("change-password")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        await _mediator.Send(new ChangePasswordCommand(GetUserId(), request));
+        return Ok(ApiResponse<string>.Ok("Password changed successfully."));
     }
 }

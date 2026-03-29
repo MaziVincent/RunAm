@@ -12,7 +12,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getPaymentMethods,
+	addPaymentMethod,
+	deletePaymentMethod,
+	setDefaultPaymentMethod,
+} from "@runam/shared/api/payments";
 import type { PaymentMethod } from "@runam/shared/types";
 
 export default function PaymentMethodsScreen() {
@@ -25,7 +30,7 @@ export default function PaymentMethodsScreen() {
 
 	const { data: methods = [], isLoading } = useQuery<PaymentMethod[]>({
 		queryKey: ["payment-methods"],
-		queryFn: () => apiClient.get("/payments/methods"),
+		queryFn: getPaymentMethods,
 	});
 
 	const addMutation = useMutation({
@@ -34,7 +39,7 @@ export default function PaymentMethodsScreen() {
 			expiry: string;
 			cvv: string;
 			name: string;
-		}) => apiClient.post<PaymentMethod>("/payments/methods", data),
+		}) => addPaymentMethod(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
 			setShowAdd(false);
@@ -46,15 +51,14 @@ export default function PaymentMethodsScreen() {
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: (id: string) => apiClient.delete(`/payments/methods/${id}`),
+		mutationFn: (id: string) => deletePaymentMethod(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
 		},
 	});
 
 	const setDefaultMutation = useMutation({
-		mutationFn: (id: string) =>
-			apiClient.post(`/payments/methods/${id}/default`, {}),
+		mutationFn: (id: string) => setDefaultPaymentMethod(id),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
 		},

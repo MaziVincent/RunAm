@@ -113,10 +113,7 @@ export default function ProductDetailScreen() {
 	};
 
 	const doAdd = () => {
-		// Build selected variant (first one if any)
 		const variantEntries = Object.values(selectedVariants);
-		const selectedVariant =
-			variantEntries.length > 0 ? variantEntries[0] : null;
 
 		const extrasArr = Object.entries(selectedExtras)
 			.filter(([, qty]) => qty > 0)
@@ -131,7 +128,7 @@ export default function ProductDetailScreen() {
 			params.vendorName!,
 			product,
 			quantity,
-			selectedVariant,
+			variantEntries.length > 0 ? variantEntries : undefined,
 			extrasArr.length > 0 ? extrasArr : undefined,
 		);
 		router.back();

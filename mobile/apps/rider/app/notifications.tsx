@@ -11,7 +11,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getNotifications,
+	markAsRead,
+	markAllAsRead,
+} from "@runam/shared/api/notifications";
 import type { AppNotification } from "@runam/shared/types";
 
 const typeIcons: Record<number, string> = {
@@ -41,20 +45,21 @@ export default function RiderNotificationsScreen() {
 	const queryClient = useQueryClient();
 	const [refreshing, setRefreshing] = useState(false);
 
-	const { data: notifications = [], isLoading } = useQuery<AppNotification[]>({
+	const { data: notificationsData, isLoading } = useQuery({
 		queryKey: ["riderNotifications"],
-		queryFn: () => apiClient.get("/notifications?pageSize=50"),
+		queryFn: () => getNotifications({ pageSize: 50 }),
 	});
 
+	const notifications = notificationsData?.items ?? [];
+
 	const markReadMutation = useMutation({
-		mutationFn: (id: string) =>
-			apiClient.patch(`/notifications/${id}/read`, {}),
+		mutationFn: (id: string) => markAsRead(id),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: ["riderNotifications"] }),
 	});
 
 	const markAllReadMutation = useMutation({
-		mutationFn: () => apiClient.patch("/notifications/read-all", {}),
+		mutationFn: () => markAllAsRead(),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: ["riderNotifications"] }),
 	});

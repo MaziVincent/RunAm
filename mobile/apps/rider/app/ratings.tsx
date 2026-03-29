@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getMyReviewSummary, getMyReviews } from "@runam/shared/api/reviews";
 import type { Review, ReviewSummary } from "@runam/shared/types";
 import { TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
@@ -18,13 +18,15 @@ export default function RiderRatingsScreen() {
 
 	const { data: summary, isLoading: loadingSummary } = useQuery<ReviewSummary>({
 		queryKey: ["myRatingSummary"],
-		queryFn: () => apiClient.get("/reviews/me/summary"),
+		queryFn: () => getMyReviewSummary(),
 	});
 
-	const { data: reviews = [], isLoading: loadingReviews } = useQuery<Review[]>({
+	const { data: reviewsData, isLoading: loadingReviews } = useQuery({
 		queryKey: ["myReviews"],
-		queryFn: () => apiClient.get("/reviews/me?pageSize=50"),
+		queryFn: () => getMyReviews({ pageSize: 50 }),
 	});
+
+	const reviews = reviewsData?.items ?? [];
 
 	const avgRating = summary?.averageRating ?? 0;
 	const totalReviews = summary?.totalReviews ?? 0;

@@ -53,3 +53,14 @@ export interface RefreshTokenRequest {
 export function refreshToken(data: RefreshTokenRequest): Promise<AuthResponse> {
 	return apiClient.post<AuthResponse>("/auth/refresh-token", data);
 }
+
+// ── Change Password ──────────────────────────────────────────
+
+export interface ChangePasswordRequest {
+	currentPassword: string;
+	newPassword: string;
+}
+
+export function changePassword(data: ChangePasswordRequest): Promise<void> {
+	return apiClient.post<void>("/auth/change-password", data);
+}

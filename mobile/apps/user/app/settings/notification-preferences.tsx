@@ -12,7 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getNotificationPreferences,
+	updateNotificationPreferences,
+} from "@runam/shared/api/notifications";
 import type { NotificationPreferences } from "@runam/shared/types";
 
 export default function NotificationPreferencesScreen() {
@@ -21,7 +24,7 @@ export default function NotificationPreferencesScreen() {
 
 	const { data: prefs, isLoading } = useQuery<NotificationPreferences>({
 		queryKey: ["notificationPreferences"],
-		queryFn: () => apiClient.get("/notifications/preferences"),
+		queryFn: getNotificationPreferences,
 	});
 
 	const [local, setLocal] = useState<NotificationPreferences>({
@@ -33,6 +36,7 @@ export default function NotificationPreferencesScreen() {
 		paymentAlerts: true,
 		promotions: true,
 		systemAlerts: true,
+		fcmToken: null,
 	});
 
 	useEffect(() => {
@@ -41,7 +45,7 @@ export default function NotificationPreferencesScreen() {
 
 	const updateMutation = useMutation({
 		mutationFn: (payload: Partial<NotificationPreferences>) =>
-			apiClient.patch("/notifications/preferences", payload),
+			updateNotificationPreferences(payload),
 		onSuccess: () => {
 			queryClient.invalidateQueries({
 				queryKey: ["notificationPreferences"],

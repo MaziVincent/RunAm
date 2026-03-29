@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { type PaginatedResult } from "./client";
 import type {
 	ServiceCategory,
 	Vendor,
@@ -23,15 +23,17 @@ export function getServiceCategoryBySlug(
 interface GetVendorsParams {
 	categoryId?: string;
 	search?: string;
-	latitude?: number;
-	longitude?: number;
-	radiusKm?: number;
+	lat?: number;
+	lng?: number;
+	radius?: number;
 	page?: number;
 	pageSize?: number;
 }
 
-export function getVendors(params?: GetVendorsParams): Promise<Vendor[]> {
-	return apiClient.get<Vendor[]>(
+export function getVendors(
+	params?: GetVendorsParams,
+): Promise<PaginatedResult<Vendor>> {
+	return apiClient.getPaginated<Vendor>(
 		"/vendors",
 		params as Record<string, string | number | boolean | undefined>,
 	);

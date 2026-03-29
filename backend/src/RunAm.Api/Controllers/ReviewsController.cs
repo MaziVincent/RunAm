@@ -33,8 +33,13 @@ public class ReviewsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReviewDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetUserReviews(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetUserReviewsQuery(userId, page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<ReviewDto>>.Ok(result));
+        var (reviews, totalCount) = await _mediator.Send(new GetUserReviewsQuery(userId, page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<ReviewDto>>.Ok(reviews, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Get my reviews</summary>
@@ -42,8 +47,13 @@ public class ReviewsController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReviewDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyReviews([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var result = await _mediator.Send(new GetUserReviewsQuery(GetUserId(), page, pageSize));
-        return Ok(ApiResponse<IReadOnlyList<ReviewDto>>.Ok(result));
+        var (reviews, totalCount) = await _mediator.Send(new GetUserReviewsQuery(GetUserId(), page, pageSize));
+        return Ok(ApiResponse<IReadOnlyList<ReviewDto>>.Ok(reviews, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     /// <summary>Get rating summary for a user</summary>

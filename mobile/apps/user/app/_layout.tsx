@@ -129,6 +129,14 @@ export default function RootLayout() {
 								presentation: "modal",
 							}}
 						/>
+						<Stack.Screen name="checkout" options={{ headerShown: false }} />
+						<Stack.Screen
+							name="order-confirmation"
+							options={{
+								headerShown: false,
+								gestureEnabled: false,
+							}}
+						/>
 						<Stack.Screen
 							name="notifications"
 							options={{ headerShown: false }}
@@ -144,6 +152,14 @@ export default function RootLayout() {
 						/>
 						<Stack.Screen
 							name="settings/promo"
+							options={{ headerShown: false }}
+						/>
+						<Stack.Screen
+							name="settings/my-reviews"
+							options={{ headerShown: false }}
+						/>
+						<Stack.Screen
+							name="settings/change-password"
 							options={{ headerShown: false }}
 						/>
 					</Stack>

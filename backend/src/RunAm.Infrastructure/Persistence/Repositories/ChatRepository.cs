@@ -19,6 +19,9 @@ public class ChatRepository : IChatRepository
             .Take(pageSize)
             .ToListAsync(ct);
 
+    public async Task<int> GetCountByErrandIdAsync(Guid errandId, CancellationToken ct = default)
+        => await _db.ChatMessages.CountAsync(m => m.ErrandId == errandId, ct);
+
     public async Task AddAsync(ChatMessage message, CancellationToken ct = default)
         => await _db.ChatMessages.AddAsync(message, ct);
 

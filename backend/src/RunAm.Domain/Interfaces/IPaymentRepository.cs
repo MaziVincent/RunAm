@@ -23,6 +23,7 @@ public interface IPromoCodeRepository
 public interface IRiderPayoutRepository
 {
     Task<IReadOnlyList<RiderPayout>> GetByRiderIdAsync(Guid riderId, int page, int pageSize, CancellationToken ct = default);
+    Task<int> GetCountByRiderIdAsync(Guid riderId, CancellationToken ct = default);
     Task<IReadOnlyList<RiderPayout>> GetPendingAsync(CancellationToken ct = default);
     Task AddAsync(RiderPayout payout, CancellationToken ct = default);
     Task UpdateAsync(RiderPayout payout, CancellationToken ct = default);

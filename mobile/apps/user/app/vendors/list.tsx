@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
 	View,
 	Text,
@@ -14,7 +14,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getVendors } from "@runam/shared/api/vendors";
+import type { PaginatedResult } from "@runam/shared/api/client";
 import type { Vendor } from "@runam/shared/types";
+import { useLocationStore } from "@runam/shared/stores/location-store";
 
 export default function VendorListScreen() {
 	const router = useRouter();
@@ -26,18 +28,27 @@ export default function VendorListScreen() {
 	const [search, setSearch] = useState("");
 	const [refreshing, setRefreshing] = useState(false);
 
+	const { lat, lng, request: requestLocation } = useLocationStore();
+
+	useEffect(() => {
+		requestLocation();
+	}, [requestLocation]);
+
 	const {
-		data: vendors,
+		data: vendorResult,
 		isLoading,
 		refetch,
-	} = useQuery<Vendor[]>({
-		queryKey: ["vendors", params.categoryId, search],
+	} = useQuery<PaginatedResult<Vendor>>({
+		queryKey: ["vendors", params.categoryId, search, lat, lng],
 		queryFn: () =>
 			getVendors({
 				categoryId: params.categoryId,
 				search: search || undefined,
+				...(lat && lng ? { lat, lng, radius: 10 } : {}),
 			}),
 	});
+
+	const vendors = vendorResult?.items;
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);

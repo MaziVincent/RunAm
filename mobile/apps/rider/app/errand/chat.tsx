@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import { getMessages, sendMessage } from "@runam/shared/api/chat";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import type { ChatMessage } from "@runam/shared/types";
 
@@ -24,19 +24,17 @@ export default function RiderChatScreen() {
 	const flatListRef = useRef<FlatList>(null);
 	const currentUserId = user?.id ?? "";
 
-	const { data: messages = [] } = useQuery<ChatMessage[]>({
+	const { data: messagesData } = useQuery({
 		queryKey: ["rider-chat", errandId],
-		queryFn: () =>
-			apiClient.get(`/errands/${errandId}/messages`, {
-				page: 1,
-				pageSize: 50,
-			}),
+		queryFn: () => getMessages(errandId!, { page: 1, pageSize: 50 }),
 		refetchInterval: 5000,
 	});
 
+	const messages = messagesData?.items ?? [];
+
 	const sendMutation = useMutation({
 		mutationFn: (text: string) =>
-			apiClient.post(`/errands/${errandId}/messages`, {
+			sendMessage(errandId!, {
 				message: text,
 				messageType: 0,
 			}),

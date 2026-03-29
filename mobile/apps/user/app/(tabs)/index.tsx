@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
-import apiClient from "@runam/shared/api/client";
+import { getErrands } from "@runam/shared/api/errands";
 import { getServiceCategories } from "@runam/shared/api/vendors";
 import type {
 	Errand,
@@ -65,11 +65,12 @@ export default function HomeScreen() {
 	const { user } = useAuthStore();
 	const [refreshing, setRefreshing] = useState(false);
 
-	const { data: recentErrands, refetch } = useQuery<Errand[]>({
+	const { data: recentErrandsData, refetch } = useQuery({
 		queryKey: ["errands", "recent"],
-		queryFn: () =>
-			apiClient.get("/errands?pageSize=5&sortBy=createdAt&sortDesc=true"),
+		queryFn: () => getErrands({ pageSize: 5 }),
 	});
+
+	const recentErrands = recentErrandsData?.items;
 
 	const { data: serviceCategories } = useQuery<ServiceCategory[]>({
 		queryKey: ["service-categories"],

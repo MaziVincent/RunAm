@@ -13,7 +13,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getSupportTickets,
+	createSupportTicket,
+	replyToTicket,
+} from "@runam/shared/api/support";
 import type {
 	SupportTicket,
 	CreateSupportTicketRequest,
@@ -43,12 +47,11 @@ export default function SupportScreen() {
 
 	const { data: tickets = [], isLoading } = useQuery<SupportTicket[]>({
 		queryKey: ["support-tickets"],
-		queryFn: () => apiClient.get("/support/tickets"),
+		queryFn: getSupportTickets,
 	});
 
 	const createMutation = useMutation({
-		mutationFn: (data: CreateSupportTicketRequest) =>
-			apiClient.post<SupportTicket>("/support/tickets", data),
+		mutationFn: (data: CreateSupportTicketRequest) => createSupportTicket(data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
 			setMode("list");
@@ -62,10 +65,7 @@ export default function SupportScreen() {
 	});
 
 	const replyMutation = useMutation({
-		mutationFn: (text: string) =>
-			apiClient.post(`/support/tickets/${selectedTicket?.id}/reply`, {
-				message: text,
-			}),
+		mutationFn: (text: string) => replyToTicket(selectedTicket!.id, text),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
 			setReplyText("");

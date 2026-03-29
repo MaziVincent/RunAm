@@ -118,22 +118,25 @@ public class ProcessPayoutCommandHandler : IRequestHandler<ProcessPayoutCommand,
 
 // ── Get Rider Payouts ───────────────────────────
 
-public record GetRiderPayoutsQuery(Guid RiderId, int Page = 1, int PageSize = 20) : IRequest<IReadOnlyList<RiderPayoutDto>>;
+public record GetRiderPayoutsQuery(Guid RiderId, int Page = 1, int PageSize = 20) : IRequest<(IReadOnlyList<RiderPayoutDto> Payouts, int TotalCount)>;
 
-public class GetRiderPayoutsQueryHandler : IRequestHandler<GetRiderPayoutsQuery, IReadOnlyList<RiderPayoutDto>>
+public class GetRiderPayoutsQueryHandler : IRequestHandler<GetRiderPayoutsQuery, (IReadOnlyList<RiderPayoutDto> Payouts, int TotalCount)>
 {
     private readonly IRiderPayoutRepository _payoutRepo;
 
     public GetRiderPayoutsQueryHandler(IRiderPayoutRepository payoutRepo) => _payoutRepo = payoutRepo;
 
-    public async Task<IReadOnlyList<RiderPayoutDto>> Handle(GetRiderPayoutsQuery query, CancellationToken ct)
+    public async Task<(IReadOnlyList<RiderPayoutDto> Payouts, int TotalCount)> Handle(GetRiderPayoutsQuery query, CancellationToken ct)
     {
         var payouts = await _payoutRepo.GetByRiderIdAsync(query.RiderId, query.Page, query.PageSize, ct);
+        var totalCount = await _payoutRepo.GetCountByRiderIdAsync(query.RiderId, ct);
 
-        return payouts.Select(p => new RiderPayoutDto(
+        var dtos = payouts.Select(p => new RiderPayoutDto(
             p.Id, p.Amount, p.Currency, p.Status, p.PaymentReference,
             p.FailureReason, p.ProcessedAt, p.PeriodStart, p.PeriodEnd,
             p.ErrandCount, p.CreatedAt
         )).ToList();
+
+        return (dtos, totalCount);
     }
 }

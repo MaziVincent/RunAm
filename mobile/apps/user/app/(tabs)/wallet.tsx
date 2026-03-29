@@ -14,7 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@runam/shared/api/client";
+import {
+	getWallet,
+	getWalletTransactions,
+	topUpWallet,
+} from "@runam/shared/api/wallet";
 import type {
 	Wallet,
 	WalletTransaction,
@@ -35,28 +39,27 @@ export default function WalletScreen() {
 
 	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet>({
 		queryKey: ["wallet"],
-		queryFn: () => apiClient.get("/wallet"),
+		queryFn: getWallet,
 	});
 
-	const { data: transactions, refetch: refetchTransactions } = useQuery<
-		WalletTransaction[]
-	>({
+	const { data: transactionsData, refetch: refetchTransactions } = useQuery({
 		queryKey: ["wallet", "transactions"],
-		queryFn: () => apiClient.get("/wallet/transactions"),
+		queryFn: () => getWalletTransactions({ pageSize: 50 }),
 	});
+
+	const transactions = transactionsData?.items;
 
 	const topUpMutation = useMutation({
 		mutationFn: (amount: number) =>
-			apiClient.post<TopUpResponse>("/wallet/topup", {
+			topUpWallet({
 				amount,
 				paymentMethod: topUpMethod,
-				currency: wallet?.currency || "NGN",
 			}),
 		onSuccess: (data) => {
 			queryClient.invalidateQueries({ queryKey: ["wallet"] });
 			setShowTopUp(false);
 			setTopUpAmount("");
-			if (data.paymentUrl) {
+			if ((data as any).authorizationUrl) {
 				Alert.alert("Redirecting", "Complete payment in your browser.", [
 					{ text: "OK" },
 				]);

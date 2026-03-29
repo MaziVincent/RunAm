@@ -79,6 +79,9 @@ public class RiderPayoutRepository : IRiderPayoutRepository
             .Take(pageSize)
             .ToListAsync(ct);
 
+    public async Task<int> GetCountByRiderIdAsync(Guid riderId, CancellationToken ct = default)
+        => await _db.RiderPayouts.CountAsync(p => p.RiderId == riderId, ct);
+
     public async Task<IReadOnlyList<RiderPayout>> GetPendingAsync(CancellationToken ct = default)
         => await _db.RiderPayouts
             .Include(p => p.Rider)

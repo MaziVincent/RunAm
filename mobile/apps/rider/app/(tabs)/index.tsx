@@ -17,15 +17,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
-import apiClient from "@runam/shared/api/client";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import signalRService from "@runam/shared/services/signalr";
+import {
+	updateRiderStatus,
+	getAvailableTasks,
+	acceptTask as acceptTaskApi,
+	rejectTask as rejectTaskApi,
+	registerPushToken,
+} from "@runam/shared/api/rider";
 import type { Errand } from "@runam/shared/types";
 
 // ── Push notification config ──
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
-		shouldShowAlert: true,
+		shouldShowBanner: true,
+		shouldShowList: true,
 		shouldPlaySound: true,
 		shouldSetBadge: true,
 	}),
@@ -189,15 +196,13 @@ export default function RiderHomeScreen() {
 	useEffect(() => {
 		registerForPushNotifications().then((token) => {
 			if (token) {
-				apiClient
-					.post("/notifications/register", { token, platform: Platform.OS })
-					.catch(() => {});
+				registerPushToken(token, Platform.OS).catch(() => {});
 			}
 		});
 
 		// Handle notification taps
 		const sub = Notifications.addNotificationResponseReceivedListener(
-			(response) => {
+			(response: Notifications.NotificationResponse) => {
 				const data = response.notification.request.content.data;
 				if (data?.errandId) {
 					router.push(`/errand/active?id=${data.errandId}` as never);
@@ -207,6 +212,26 @@ export default function RiderHomeScreen() {
 
 		return () => sub.remove();
 	}, []);
+
+	// ── SignalR status tracking ──
+	useEffect(() => {
+		const unsub = signalRService.onStatusChange((status) => {
+			setSignalRConnected(status === "connected");
+		});
+		return unsub;
+	}, []);
+
+	const toggleOnline = useMutation({
+		mutationFn: (online: boolean) => updateRiderStatus(online),
+		onSuccess: (_, online) => setIsOnline(online),
+	});
+
+	const { data: availableTasks, refetch } = useQuery<AvailableTask[]>({
+		queryKey: ["rider", "available-tasks"],
+		queryFn: () => getAvailableTasks() as Promise<AvailableTask[]>,
+		enabled: isOnline,
+		refetchInterval: isOnline ? (signalRConnected ? 30000 : 10000) : false,
+	});
 
 	// ── Vibrate + pulse when new tasks arrive ──
 	useEffect(() => {
@@ -232,39 +257,16 @@ export default function RiderHomeScreen() {
 		prevTaskCountRef.current = tasks.length;
 	}, [availableTasks]);
 
-	// ── SignalR status tracking ──
-	useEffect(() => {
-		const unsub = signalRService.onStatusChange((status) => {
-			setSignalRConnected(status === "connected");
-		});
-		return unsub;
-	}, []);
-
-	const toggleOnline = useMutation({
-		mutationFn: (online: boolean) =>
-			apiClient.patch("/riders/me/status", { isOnline: online }),
-		onSuccess: (_, online) => setIsOnline(online),
-	});
-
-	const { data: availableTasks, refetch } = useQuery<AvailableTask[]>({
-		queryKey: ["rider", "available-tasks"],
-		queryFn: () => apiClient.get("/riders/me/available-tasks"),
-		enabled: isOnline,
-		refetchInterval: isOnline ? (signalRConnected ? 30000 : 10000) : false,
-	});
-
-	const acceptTask = useMutation({
-		mutationFn: (errandId: string) =>
-			apiClient.post(`/riders/me/tasks/${errandId}/accept`),
+	const acceptTaskMutation = useMutation({
+		mutationFn: (errandId: string) => acceptTaskApi(errandId),
 		onSuccess: (_, errandId) => {
 			queryClient.invalidateQueries({ queryKey: ["rider"] });
 			router.push(`/errand/active?id=${errandId}` as never);
 		},
 	});
 
-	const rejectTask = useMutation({
-		mutationFn: (errandId: string) =>
-			apiClient.post(`/riders/me/tasks/${errandId}/reject`),
+	const rejectTaskMutation = useMutation({
+		mutationFn: (errandId: string) => rejectTaskApi(errandId),
 		onSuccess: () => refetch(),
 	});
 
@@ -329,17 +331,17 @@ export default function RiderHomeScreen() {
 				<View style={styles.taskActions}>
 					<TouchableOpacity
 						style={styles.rejectButton}
-						onPress={() => rejectTask.mutate(item.id)}
+						onPress={() => rejectTaskMutation.mutate(item.id)}
 						activeOpacity={0.7}>
 						<Text style={styles.rejectButtonText}>Decline</Text>
 					</TouchableOpacity>
 					<TouchableOpacity
 						style={styles.acceptButton}
-						onPress={() => acceptTask.mutate(item.id)}
-						disabled={acceptTask.isPending}
+						onPress={() => acceptTaskMutation.mutate(item.id)}
+						disabled={acceptTaskMutation.isPending}
 						activeOpacity={0.8}>
 						<Text style={styles.acceptButtonText}>
-							{acceptTask.isPending ? "..." : "Accept"}
+							{acceptTaskMutation.isPending ? "..." : "Accept"}
 						</Text>
 					</TouchableOpacity>
 				</View>

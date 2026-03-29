@@ -1,9 +1,5 @@
-import apiClient from "./client";
-import type {
-	AppNotification,
-	NotificationPreferences,
-	PaginatedResponse,
-} from "../types";
+import apiClient, { type PaginatedResult } from "./client";
+import type { AppNotification, NotificationPreferences } from "../types";
 
 // ── List Notifications ───────────────────────────────────────
 
@@ -14,8 +10,8 @@ interface GetNotificationsParams {
 
 export function getNotifications(
 	params?: GetNotificationsParams,
-): Promise<PaginatedResponse<AppNotification>> {
-	return apiClient.get<PaginatedResponse<AppNotification>>(
+): Promise<PaginatedResult<AppNotification>> {
+	return apiClient.getPaginated<AppNotification>(
 		"/notifications",
 		params as Record<string, string | number | boolean | undefined>,
 	);
