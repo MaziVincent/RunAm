@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, ShoppingBag, User, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,20 +42,17 @@ export function Navbar() {
 			<nav className="container mx-auto flex h-16 items-center justify-between px-4 lg:h-18">
 				{/* Logo */}
 				<Link href="/" className="flex items-center gap-2">
-					<div
+					<Image
+						src="/logo.svg"
+						alt="RunAm"
+						width={120}
+						height={36}
 						className={cn(
-							"flex h-9 w-9 items-center justify-center rounded-lg font-bold text-white",
-							isTransparent ? "bg-white/20" : "bg-primary",
-						)}>
-						R
-					</div>
-					<span
-						className={cn(
-							"text-xl font-bold tracking-tight",
-							isTransparent ? "text-white" : "text-foreground",
-						)}>
-						RunAm
-					</span>
+							"h-9 w-auto",
+							isTransparent && "brightness-0 invert",
+						)}
+						priority
+					/>
 				</Link>
 
 				{/* Desktop nav links */}
@@ -136,10 +134,13 @@ export function Navbar() {
 								href="/"
 								className="flex items-center gap-2"
 								onClick={() => setMobileOpen(false)}>
-								<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-white">
-									R
-								</div>
-								<span className="text-xl font-bold">RunAm</span>
+								<Image
+									src="/logo.svg"
+									alt="RunAm"
+									width={120}
+									height={36}
+									className="h-9 w-auto"
+								/>
 							</Link>
 
 							<div className="flex flex-col gap-1">

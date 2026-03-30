@@ -94,7 +94,7 @@ export default function SupportScreen() {
 			case "Open":
 				return "#F59E0B";
 			case "InProgress":
-				return "#3B82F6";
+				return "#2F8F4E";
 			case "Resolved":
 				return "#10B981";
 			case "Closed":
@@ -119,7 +119,7 @@ export default function SupportScreen() {
 
 				{isLoading ? (
 					<View style={styles.centered}>
-						<ActivityIndicator size="large" color="#3B82F6" />
+						<ActivityIndicator size="large" color="#2F8F4E" />
 					</View>
 				) : tickets.length === 0 ? (
 					<View style={styles.centered}>
@@ -348,9 +348,9 @@ const styles = StyleSheet.create({
 		borderBottomColor: "#F3F4F6",
 	},
 	headerTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
-	backText: { fontSize: 15, fontWeight: "600", color: "#3B82F6" },
+	backText: { fontSize: 15, fontWeight: "600", color: "#2F8F4E" },
 	newBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 10,
 		paddingHorizontal: 14,
 		paddingVertical: 8,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: "#E5E7EB",
 	},
-	categoryCardActive: { borderColor: "#3B82F6", backgroundColor: "#EFF6FF" },
+	categoryCardActive: { borderColor: "#2F8F4E", backgroundColor: "#F0FDF4" },
 	categoryIcon: { fontSize: 24, marginBottom: 6 },
 	categoryLabel: {
 		fontSize: 11,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
 		color: "#374151",
 		textAlign: "center",
 	},
-	categoryLabelActive: { color: "#3B82F6" },
+	categoryLabelActive: { color: "#2F8F4E" },
 	input: {
 		backgroundColor: "#FFFFFF",
 		borderWidth: 1,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
 	},
 	textArea: { minHeight: 120, textAlignVertical: "top" },
 	submitBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	staffReply: {
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderWidth: 1,
 		borderColor: "#BFDBFE",
 	},
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
 		maxHeight: 100,
 	},
 	replySendBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingHorizontal: 18,
 		paddingVertical: 14,

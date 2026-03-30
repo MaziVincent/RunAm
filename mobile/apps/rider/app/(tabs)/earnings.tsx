@@ -139,7 +139,7 @@ export default function EarningsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -156,7 +156,7 @@ export default function EarningsScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListHeaderComponent={
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
 	chartTotal: {
 		fontSize: 14,
 		fontWeight: "700",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	chartBars: {
 		flexDirection: "row",
@@ -499,12 +499,12 @@ const styles = StyleSheet.create({
 	},
 	bar: {
 		width: 24,
-		backgroundColor: "#DBEAFE",
+		backgroundColor: "#DCFCE7",
 		borderRadius: 6,
 		marginBottom: 8,
 	},
 	barToday: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	barLabel: {
 		fontSize: 11,
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	barLabelToday: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "700",
 	},
 	barDeliveries: {
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 	},
 	withdrawBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingHorizontal: 20,
 		paddingVertical: 12,
@@ -695,8 +695,8 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	bankOptionSelected: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	bankRadio: {
 		width: 20,
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
 		width: 10,
 		height: 10,
 		borderRadius: 5,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	bankInfo: {
 		flex: 1,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
 		marginTop: 2,
 	},
 	defaultBadge: {
-		backgroundColor: "#DBEAFE",
+		backgroundColor: "#DCFCE7",
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 8,
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
 	defaultBadgeText: {
 		fontSize: 10,
 		fontWeight: "600",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	addBankBtn: {
 		backgroundColor: "#F1F5F9",
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
 	addBankBtnText: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	modalActions: {
 		flexDirection: "row",
@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
 	},
 	modalConfirm: {
 		flex: 1,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 14,
 		alignItems: "center",

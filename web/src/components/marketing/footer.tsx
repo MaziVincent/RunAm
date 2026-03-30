@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
 	Facebook,
 	Twitter,
@@ -52,10 +53,13 @@ export function Footer() {
 					{/* Brand column */}
 					<div className="lg:col-span-2">
 						<Link href="/" className="flex items-center gap-2">
-							<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-bold text-white">
-								R
-							</div>
-							<span className="text-xl font-bold text-white">RunAm</span>
+							<Image
+								src="/logo.svg"
+								alt="RunAm"
+								width={120}
+								height={36}
+								className="h-9 w-auto brightness-0 invert"
+							/>
 						</Link>
 						<p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
 							Nigeria&apos;s on-demand delivery and marketplace platform. Get

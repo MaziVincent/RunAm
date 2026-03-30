@@ -71,7 +71,7 @@ export default function VehicleInfoScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 18, fontWeight: "700", color: "#111827" },
 	content: { padding: 20, paddingBottom: 40 },
 	sectionLabel: {
@@ -213,12 +213,12 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	vehicleCardSelected: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	vehicleIcon: { fontSize: 36, marginBottom: 8 },
 	vehicleLabel: { fontSize: 14, fontWeight: "600", color: "#6B7280" },
-	vehicleLabelSelected: { color: "#3B82F6" },
+	vehicleLabelSelected: { color: "#2F8F4E" },
 	input: {
 		backgroundColor: "#FFFFFF",
 		borderWidth: 1,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
 		borderTopColor: "#F3F4F6",
 	},
 	saveButton: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingVertical: 16,
 		alignItems: "center",

@@ -85,7 +85,7 @@ export default function PerformanceScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -102,7 +102,7 @@ export default function PerformanceScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}>
 				{/* Header */}
@@ -143,7 +143,7 @@ export default function PerformanceScreen() {
 					<ProgressRing
 						value={perf?.acceptanceRate ?? 0}
 						label="Acceptance"
-						color="#3B82F6"
+						color="#2F8F4E"
 					/>
 					<ProgressRing
 						value={perf?.onTimeRate ?? 0}
@@ -159,12 +159,12 @@ export default function PerformanceScreen() {
 						<MetricCard
 							label="Today"
 							value={perf?.todayDeliveries ?? 0}
-							color="#3B82F6"
+							color="#2F8F4E"
 						/>
 						<MetricCard
 							label="This Week"
 							value={perf?.weekDeliveries ?? 0}
-							color="#8B5CF6"
+							color="#F7931A"
 						/>
 						<MetricCard
 							label="This Month"
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
 		marginBottom: 20,
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 20, fontWeight: "700", color: "#111827" },
 
 	heroCard: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
 		marginBottom: 6,
 	},
 	bonusTitle: { fontSize: 15, fontWeight: "600", color: "#111827", flex: 1 },
-	bonusReward: { fontSize: 14, fontWeight: "700", color: "#3B82F6" },
+	bonusReward: { fontSize: 14, fontWeight: "700", color: "#2F8F4E" },
 	bonusDesc: { fontSize: 13, color: "#6B7280", marginBottom: 10 },
 	bonusProgressBg: {
 		height: 6,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
 	},
 	bonusProgressFill: {
 		height: 6,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 3,
 	},
 	bonusProgressText: { fontSize: 12, color: "#9CA3AF" },

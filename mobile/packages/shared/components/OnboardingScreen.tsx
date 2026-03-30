@@ -202,7 +202,7 @@ const dotStyles = StyleSheet.create({
 export default function OnboardingScreen({
 	slides,
 	onComplete,
-	accentColor = "#3B82F6",
+	accentColor = "#2F8F4E",
 }: OnboardingScreenProps) {
 	const insets = useSafeAreaInsets();
 	const [activeIndex, setActiveIndex] = useState(0);
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 16,
 		borderRadius: 16,
 		alignItems: "center",
-		shadowColor: "#3B82F6",
+		shadowColor: "#2F8F4E",
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 8,

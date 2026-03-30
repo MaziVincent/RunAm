@@ -41,7 +41,7 @@ const floatingBadges = [
 
 export function Hero() {
 	return (
-		<section className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-br from-primary via-green-600 to-emerald-700">
+		<section className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-br from-[#2F8F4E] via-[#1F6B3A] to-[#14532d]">
 			{/* Background pattern */}
 			<div className="absolute inset-0 opacity-10">
 				<div
@@ -85,7 +85,7 @@ export function Hero() {
 							<span className="absolute -bottom-2 left-0 z-0 h-3 w-full bg-white/20 rounded" />
 						</span>
 						.<br />
-						Your City, <span className="text-green-200">Connected</span>.
+						Your City, <span className="text-[#F7931A]">Connected</span>.
 					</motion.h1>
 
 					{/* Subtitle */}

@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "#F8FAFC" },
 	content: { padding: 20, paddingBottom: 40 },
 	header: { marginBottom: 28 },
-	backBtn: { fontSize: 15, color: "#3B82F6", fontWeight: "600" },
+	backBtn: { fontSize: 15, color: "#2F8F4E", fontWeight: "600" },
 	title: {
 		fontSize: 24,
 		fontWeight: "800",
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
 	hint: { fontSize: 12, color: "#F59E0B", marginTop: 4, marginLeft: 4 },
 	errorHint: { fontSize: 12, color: "#EF4444", marginTop: 4, marginLeft: 4 },
 	submitBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",

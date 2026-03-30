@@ -157,7 +157,7 @@ export default function LeaderboardScreen() {
 
 			{isLoading ? (
 				<View style={styles.centered}>
-					<ActivityIndicator size="large" color="#3B82F6" />
+					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
 			) : (
 				<FlatList
@@ -170,7 +170,7 @@ export default function LeaderboardScreen() {
 						<RefreshControl
 							refreshing={refreshing}
 							onRefresh={onRefresh}
-							tintColor="#3B82F6"
+							tintColor="#2F8F4E"
 						/>
 					}
 					ListEmptyComponent={
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 20, fontWeight: "700", color: "#111827" },
 
 	tabs: {
@@ -225,20 +225,20 @@ const styles = StyleSheet.create({
 		elevation: 2,
 	},
 	tabText: { fontSize: 14, fontWeight: "500", color: "#6B7280" },
-	tabTextActive: { color: "#3B82F6", fontWeight: "700" },
+	tabTextActive: { color: "#2F8F4E", fontWeight: "700" },
 
 	yourRank: {
 		marginHorizontal: 20,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderRadius: 12,
 		padding: 14,
 		marginBottom: 12,
 		alignItems: "center",
 		borderWidth: 1,
-		borderColor: "#DBEAFE",
+		borderColor: "#DCFCE7",
 	},
 	yourRankText: { fontSize: 15, fontWeight: "500", color: "#374151" },
-	yourRankValue: { fontSize: 18, fontWeight: "800", color: "#3B82F6" },
+	yourRankValue: { fontSize: 18, fontWeight: "800", color: "#2F8F4E" },
 
 	listContent: { paddingHorizontal: 20, paddingBottom: 40 },
 
@@ -253,8 +253,8 @@ const styles = StyleSheet.create({
 		borderColor: "#F3F4F6",
 	},
 	entryRowCurrent: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	entryRowTop: {
 		borderColor: "#FDE68A",
@@ -273,13 +273,13 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		marginRight: 12,
 	},
-	avatarCurrent: { backgroundColor: "#3B82F6" },
+	avatarCurrent: { backgroundColor: "#2F8F4E" },
 	avatarImage: { width: 42, height: 42, borderRadius: 21 },
 	avatarText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 
 	entryInfo: { flex: 1 },
 	entryName: { fontSize: 15, fontWeight: "600", color: "#111827" },
-	entryNameCurrent: { color: "#3B82F6" },
+	entryNameCurrent: { color: "#2F8F4E" },
 	entryMeta: {
 		flexDirection: "row",
 		alignItems: "center",

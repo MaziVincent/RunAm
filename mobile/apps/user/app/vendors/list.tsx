@@ -158,7 +158,7 @@ export default function VendorListScreen() {
 
 			{isLoading && !refreshing ? (
 				<View style={styles.center}>
-					<ActivityIndicator size="large" color="#3B82F6" />
+					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
 			) : !vendors || vendors.length === 0 ? (
 				<View style={styles.center}>
@@ -179,7 +179,7 @@ export default function VendorListScreen() {
 						<RefreshControl
 							refreshing={refreshing}
 							onRefresh={onRefresh}
-							tintColor="#3B82F6"
+							tintColor="#2F8F4E"
 						/>
 					}
 				/>
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
 	vendorBannerPlaceholder: {
 		width: "100%",
 		height: 120,
-		backgroundColor: "#EEF2FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
 		gap: 6,
 	},
 	tag: {
-		backgroundColor: "#EEF2FF",
+		backgroundColor: "#F0FDF4",
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 8,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
 	tagText: {
 		fontSize: 11,
 		fontWeight: "600",
-		color: "#4F46E5",
+		color: "#1F6B3A",
 	},
 	center: {
 		flex: 1,

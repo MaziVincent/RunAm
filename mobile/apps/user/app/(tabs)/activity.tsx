@@ -20,13 +20,13 @@ const statusColors: Record<string, string> = {
 	Draft: "#9CA3AF",
 	Pending: "#F59E0B",
 	PendingPayment: "#F59E0B",
-	Matched: "#3B82F6",
-	AcceptedByRider: "#3B82F6",
-	EnRouteToPickup: "#8B5CF6",
-	ArrivedAtPickup: "#8B5CF6",
-	Collected: "#8B5CF6",
-	InTransit: "#8B5CF6",
-	ArrivedAtDropoff: "#8B5CF6",
+	Matched: "#2F8F4E",
+	AcceptedByRider: "#2F8F4E",
+	EnRouteToPickup: "#F7931A",
+	ArrivedAtPickup: "#F7931A",
+	Collected: "#F7931A",
+	InTransit: "#F7931A",
+	ArrivedAtDropoff: "#F7931A",
 	Delivered: "#10B981",
 	Completed: "#10B981",
 	Cancelled: "#EF4444",
@@ -146,7 +146,7 @@ export default function ActivityScreen() {
 				<View style={styles.routeContainer}>
 					{pickupStop && (
 						<View style={styles.routeRow}>
-							<View style={[styles.routeDot, { backgroundColor: "#3B82F6" }]} />
+							<View style={[styles.routeDot, { backgroundColor: "#2F8F4E" }]} />
 							<Text style={styles.routeText} numberOfLines={1}>
 								{pickupStop.address}
 							</Text>
@@ -178,7 +178,7 @@ export default function ActivityScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -239,7 +239,7 @@ export default function ActivityScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListEmptyComponent={
@@ -293,8 +293,8 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	filterTabActive: {
-		backgroundColor: "#3B82F6",
-		borderColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
+		borderColor: "#2F8F4E",
 	},
 	filterIcon: { fontSize: 14 },
 	filterLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },

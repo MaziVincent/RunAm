@@ -36,15 +36,15 @@ const statusMap: Record<
 	{ label: string; color: string; icon: string }
 > = {
 	Pending: { label: "Looking for rider...", color: "#F59E0B", icon: "🔍" },
-	Matched: { label: "Rider assigned", color: "#3B82F6", icon: "🙋" },
-	AcceptedByRider: { label: "Rider accepted", color: "#3B82F6", icon: "✅" },
+	Matched: { label: "Rider assigned", color: "#2F8F4E", icon: "🙋" },
+	AcceptedByRider: { label: "Rider accepted", color: "#2F8F4E", icon: "✅" },
 	EnRouteToPickup: {
 		label: "Rider heading to pickup",
 		color: "#6366F1",
 		icon: "🏍️",
 	},
-	ArrivedAtPickup: { label: "Rider at pickup", color: "#8B5CF6", icon: "📍" },
-	Collected: { label: "Package collected", color: "#8B5CF6", icon: "📦" },
+	ArrivedAtPickup: { label: "Rider at pickup", color: "#F7931A", icon: "📍" },
+	Collected: { label: "Package collected", color: "#F7931A", icon: "📦" },
 	InTransit: { label: "Package in transit", color: "#6366F1", icon: "🚀" },
 	ArrivedAtDropoff: {
 		label: "Arriving at dropoff",
@@ -159,7 +159,7 @@ export default function TrackingScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
 	},
 	mapIcon: { fontSize: 48 },
 	mapText: { fontSize: 16, color: "#64748B", marginTop: 8 },
-	mapCoords: { fontSize: 12, color: "#3B82F6", marginTop: 8 },
+	mapCoords: { fontSize: 12, color: "#2F8F4E", marginTop: 8 },
 	riderMarker: {
 		width: 64,
 		height: 64,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	etaLabel: { fontSize: 14, color: "#64748B" },
-	etaValue: { fontSize: 16, fontWeight: "700", color: "#3B82F6" },
+	etaValue: { fontSize: 16, fontWeight: "700", color: "#2F8F4E" },
 	detailsContainer: {
 		backgroundColor: "#F8FAFC",
 		borderRadius: 12,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
 	},
 	actions: { gap: 12 },
 	chatButton: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 14,
 		alignItems: "center",

@@ -64,7 +64,7 @@ export default function NotificationPreferencesScreen() {
 		return (
 			<SafeAreaView style={styles.container} edges={["top"]}>
 				<View style={styles.center}>
-					<ActivityIndicator size="large" color="#3B82F6" />
+					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
 			</SafeAreaView>
 		);
@@ -170,7 +170,7 @@ function ToggleRow({
 				value={value}
 				onValueChange={onToggle}
 				trackColor={{ false: "#CBD5E1", true: "#93C5FD" }}
-				thumbColor={value ? "#3B82F6" : "#F1F5F9"}
+				thumbColor={value ? "#2F8F4E" : "#F1F5F9"}
 			/>
 		</View>
 	);
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
 	center: { flex: 1, justifyContent: "center", alignItems: "center" },
 	content: { padding: 20, paddingBottom: 40 },
 	header: { marginBottom: 24 },
-	backBtn: { fontSize: 15, color: "#3B82F6", fontWeight: "600" },
+	backBtn: { fontSize: 15, color: "#2F8F4E", fontWeight: "600" },
 	title: {
 		fontSize: 24,
 		fontWeight: "800",

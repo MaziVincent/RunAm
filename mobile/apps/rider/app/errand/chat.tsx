@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	myBubble: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		alignSelf: "flex-end",
 		borderBottomRightRadius: 4,
 	},
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
 	senderName: {
 		fontSize: 11,
 		fontWeight: "600",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		marginBottom: 3,
 	},
 	messageText: { fontSize: 15, lineHeight: 20 },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
 		width: 42,
 		height: 42,
 		borderRadius: 21,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		justifyContent: "center",
 		alignItems: "center",
 	},

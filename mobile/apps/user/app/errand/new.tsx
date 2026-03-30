@@ -400,7 +400,7 @@ export default function NewErrandScreen() {
 									value={isFragile}
 									onValueChange={setIsFragile}
 									trackColor={{ false: "#E5E7EB", true: "#93C5FD" }}
-									thumbColor={isFragile ? "#3B82F6" : "#F9FAFB"}
+									thumbColor={isFragile ? "#2F8F4E" : "#F9FAFB"}
 								/>
 							</View>
 
@@ -410,7 +410,7 @@ export default function NewErrandScreen() {
 									value={requiresSignature}
 									onValueChange={setRequiresSignature}
 									trackColor={{ false: "#E5E7EB", true: "#93C5FD" }}
-									thumbColor={requiresSignature ? "#3B82F6" : "#F9FAFB"}
+									thumbColor={requiresSignature ? "#2F8F4E" : "#F9FAFB"}
 								/>
 							</View>
 
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	stepDotActive: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	stepNumber: {
 		fontSize: 14,
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
 		marginHorizontal: 4,
 	},
 	stepLineActive: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	stepContent: {},
 	stepTitle: {
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
 	priceValue: {
 		fontSize: 20,
 		fontWeight: "800",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	bottomBar: {
 		flexDirection: "row",
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 16,
 		borderRadius: 12,
 		alignItems: "center",
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	buttonDisabled: {
 		opacity: 0.6,
@@ -936,8 +936,8 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	priorityCardActive: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	priorityIcon: {
 		fontSize: 24,
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
 		marginBottom: 2,
 	},
 	priorityLabelActive: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	priorityDesc: {
 		fontSize: 11,
@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	promoApplyBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		paddingVertical: 14,
 		paddingHorizontal: 20,
 		borderRadius: 12,
@@ -991,8 +991,8 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	paymentOptionActive: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	paymentIcon: {
 		fontSize: 24,
@@ -1017,12 +1017,12 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	radioOuterActive: {
-		borderColor: "#3B82F6",
+		borderColor: "#2F8F4E",
 	},
 	radioInner: {
 		width: 12,
 		height: 12,
 		borderRadius: 6,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 });

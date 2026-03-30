@@ -32,7 +32,7 @@ const categories: CategoryItem[] = [
 		id: "PackageDelivery",
 		label: "Package\nDelivery",
 		icon: "📦",
-		color: "#EFF6FF",
+		color: "#F0FDF4",
 	},
 	{ id: "FoodDelivery", label: "Food\nDelivery", icon: "🍔", color: "#FEF3C7" },
 	{
@@ -48,13 +48,13 @@ const categories: CategoryItem[] = [
 		color: "#EDE9FE",
 	},
 	{ id: "Pharmacy", label: "Pharmacy\nPickup", icon: "💊", color: "#FCE7F3" },
-	{ id: "Laundry", label: "Laundry\nPickup", icon: "👔", color: "#DBEAFE" },
+	{ id: "Laundry", label: "Laundry\nPickup", icon: "👔", color: "#DCFCE7" },
 ];
 
 const statusColors: Record<string, string> = {
 	Pending: "#F59E0B",
-	Matched: "#3B82F6",
-	InTransit: "#8B5CF6",
+	Matched: "#2F8F4E",
+	InTransit: "#F7931A",
 	Delivered: "#10B981",
 	Completed: "#10B981",
 	Cancelled: "#EF4444",
@@ -130,7 +130,7 @@ export default function HomeScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}>
 				{/* Greeting */}
@@ -194,7 +194,7 @@ export default function HomeScreen() {
 												<View
 													style={[
 														styles.serviceIconWrap,
-														{ backgroundColor: "#EEF2FF" },
+														{ backgroundColor: "#F0FDF4" },
 													]}>
 													<Text style={{ fontSize: 28 }}>🏪</Text>
 												</View>
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
 	},
 	seeAll: {
 		fontSize: 14,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 	},
 	errandCard: {

@@ -11,7 +11,7 @@ const slides: OnboardingSlide[] = [
 		headline: "Deliver & Earn",
 		description:
 			"Accept errands near you, navigate to pickups, and earn on every completed delivery.",
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	{
 		id: "2",
@@ -31,7 +31,7 @@ export default function RiderOnboarding() {
 		<OnboardingScreen
 			slides={slides}
 			onComplete={completeOnboarding}
-			accentColor="#3B82F6"
+			accentColor="#2F8F4E"
 		/>
 	);
 }

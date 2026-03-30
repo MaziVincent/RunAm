@@ -97,7 +97,7 @@ export default function WalletScreen() {
 	const transactionColors: Record<string, string> = {
 		TopUp: "#10B981",
 		Payment: "#EF4444",
-		Refund: "#3B82F6",
+		Refund: "#2F8F4E",
 		Withdrawal: "#F59E0B",
 	};
 
@@ -147,7 +147,7 @@ export default function WalletScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListHeaderComponent={
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "#F9FAFB" },
 	listContent: { padding: 20, paddingBottom: 40 },
 	balanceCard: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 20,
 		padding: 28,
 		alignItems: "center",
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 		paddingVertical: 12,
 	},
-	topUpText: { fontSize: 15, fontWeight: "700", color: "#3B82F6" },
+	topUpText: { fontSize: 15, fontWeight: "700", color: "#2F8F4E" },
 	methodsButton: {
 		backgroundColor: "rgba(255,255,255,0.2)",
 		borderRadius: 12,
@@ -393,9 +393,9 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: "transparent",
 	},
-	quickAmountBtnActive: { borderColor: "#3B82F6", backgroundColor: "#EFF6FF" },
+	quickAmountBtnActive: { borderColor: "#2F8F4E", backgroundColor: "#F0FDF4" },
 	quickAmountText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-	quickAmountTextActive: { color: "#3B82F6" },
+	quickAmountTextActive: { color: "#2F8F4E" },
 	inputLabel: {
 		fontSize: 14,
 		fontWeight: "600",
@@ -424,11 +424,11 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: "transparent",
 	},
-	methodChipActive: { borderColor: "#3B82F6", backgroundColor: "#EFF6FF" },
+	methodChipActive: { borderColor: "#2F8F4E", backgroundColor: "#F0FDF4" },
 	methodChipText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-	methodChipTextActive: { color: "#3B82F6" },
+	methodChipTextActive: { color: "#2F8F4E" },
 	confirmBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",

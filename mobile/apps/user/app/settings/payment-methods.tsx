@@ -169,7 +169,7 @@ export default function PaymentMethodsScreen() {
 						</View>
 					) : (
 						<View style={styles.centered}>
-							<ActivityIndicator size="large" color="#3B82F6" />
+							<ActivityIndicator size="large" color="#2F8F4E" />
 						</View>
 					)
 				}
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: "#F3F4F6",
 	},
-	cardRowDefault: { borderColor: "#3B82F6", borderWidth: 2 },
+	cardRowDefault: { borderColor: "#2F8F4E", borderWidth: 2 },
 	cardIcon: {
 		width: 48,
 		height: 48,
@@ -304,12 +304,12 @@ const styles = StyleSheet.create({
 	cardExpiry: { fontSize: 11, color: "#9CA3AF", marginTop: 2 },
 	cardActions: { alignItems: "flex-end", gap: 8 },
 	defaultBadge: {
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderRadius: 8,
 		paddingHorizontal: 10,
 		paddingVertical: 4,
 	},
-	defaultBadgeText: { fontSize: 11, fontWeight: "700", color: "#3B82F6" },
+	defaultBadgeText: { fontSize: 11, fontWeight: "700", color: "#2F8F4E" },
 	setDefaultBtn: {
 		backgroundColor: "#F3F4F6",
 		borderRadius: 8,
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
 	emptyTitle: { fontSize: 18, fontWeight: "600", color: "#374151" },
 	emptySubtitle: { fontSize: 14, color: "#9CA3AF", marginTop: 4 },
 	addCardBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
 	row: { flexDirection: "row", gap: 12 },
 	half: { flex: 1 },
 	confirmBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",

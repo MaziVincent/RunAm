@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
 	ratingLabel: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		marginTop: 12,
 		textAlign: "center",
 	},
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
 	},
 	submitBtn: {
 		width: "100%",
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 16,
 		alignItems: "center",
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	doneBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 14,
 		paddingHorizontal: 48,

@@ -26,7 +26,7 @@ export default function SplashScreen({
 	onFinish,
 	appName = "RunAm",
 	tagline = "Errands delivered, fast.",
-	accentColor = "#3B82F6",
+	accentColor = "#2F8F4E",
 }: SplashScreenProps) {
 	// Animation values
 	const roadProgress = useSharedValue(0);

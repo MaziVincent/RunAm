@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
 		width: 80,
 		height: 80,
 		borderRadius: 40,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		alignItems: "center",
 		justifyContent: "center",
 		marginBottom: 16,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 40,
 		borderRadius: 20,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 12,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
 		color: "#374151",
 	},
 	defaultBadge: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 	},
 	addressText: {

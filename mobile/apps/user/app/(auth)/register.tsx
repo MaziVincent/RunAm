@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
 	logo: {
 		fontSize: 40,
 		fontWeight: "800",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		letterSpacing: -1,
 	},
 	subtitle: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	button: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingVertical: 16,
 		alignItems: "center",
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 14,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 	},
 });

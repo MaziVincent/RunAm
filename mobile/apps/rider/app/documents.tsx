@@ -154,7 +154,7 @@ export default function DocumentsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -176,7 +176,7 @@ export default function DocumentsScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}>
 				<Text style={styles.subtitle}>
@@ -222,7 +222,7 @@ export default function DocumentsScreen() {
 									onPress={() => handleUpload(doc)}
 									disabled={isUploading}>
 									{isUploading ? (
-										<ActivityIndicator color="#3B82F6" size="small" />
+										<ActivityIndicator color="#2F8F4E" size="small" />
 									) : (
 										<Text style={styles.uploadBtnText}>
 											{uploaded ? "Replace" : "Upload"}
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 18, fontWeight: "700", color: "#111827" },
 	content: { padding: 20, paddingBottom: 40 },
 	subtitle: {
@@ -323,13 +323,13 @@ const styles = StyleSheet.create({
 	docActions: { flexDirection: "row", gap: 10 },
 	uploadBtn: {
 		flex: 1,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderRadius: 10,
 		paddingVertical: 10,
 		alignItems: "center",
 	},
 	buttonDisabled: { opacity: 0.6 },
-	uploadBtnText: { fontSize: 14, fontWeight: "600", color: "#3B82F6" },
+	uploadBtnText: { fontSize: 14, fontWeight: "600", color: "#2F8F4E" },
 	removeBtn: {
 		paddingHorizontal: 16,
 		paddingVertical: 10,

@@ -123,7 +123,7 @@ export default function MyReviewsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -148,7 +148,7 @@ export default function MyReviewsScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListEmptyComponent={
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "#F8FAFC" },
 	centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 	header: { paddingHorizontal: 20, paddingVertical: 12 },
-	backBtn: { fontSize: 15, color: "#3B82F6", fontWeight: "600" },
+	backBtn: { fontSize: 15, color: "#2F8F4E", fontWeight: "600" },
 	headerTitle: {
 		fontSize: 24,
 		fontWeight: "800",

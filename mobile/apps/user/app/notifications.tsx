@@ -116,7 +116,7 @@ export default function NotificationsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -144,7 +144,7 @@ export default function NotificationsScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListEmptyComponent={
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 	},
 	headerTitle: { fontSize: 24, fontWeight: "800", color: "#1E293B" },
-	markAllRead: { fontSize: 14, fontWeight: "600", color: "#3B82F6" },
+	markAllRead: { fontSize: 14, fontWeight: "600", color: "#2F8F4E" },
 	listContent: { padding: 16, paddingBottom: 40 },
 	notifCard: {
 		flexDirection: "row",
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
 		borderColor: "#F1F5F9",
 	},
 	notifCardUnread: {
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderColor: "#BFDBFE",
 	},
 	notifIcon: {
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
 		width: 8,
 		height: 8,
 		borderRadius: 4,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		marginLeft: 8,
 	},
 	notifBody: { fontSize: 13, color: "#64748B", marginTop: 2, lineHeight: 18 },

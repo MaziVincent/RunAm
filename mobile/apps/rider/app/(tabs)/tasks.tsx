@@ -121,7 +121,7 @@ export default function ActiveTasksScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -137,7 +137,7 @@ export default function ActiveTasksScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}>
 				{activeTask ? (
@@ -159,7 +159,7 @@ export default function ActiveTasksScreen() {
 											styles.stopDot,
 											{
 												backgroundColor:
-													stop.stopType === "Pickup" ? "#3B82F6" : "#10B981",
+													stop.stopType === "Pickup" ? "#2F8F4E" : "#10B981",
 											},
 										]}
 									/>
@@ -376,9 +376,9 @@ const styles = StyleSheet.create({
 		backgroundColor: "#D1FAE5",
 	},
 	progressDotCurrent: {
-		backgroundColor: "#DBEAFE",
+		backgroundColor: "#DCFCE7",
 		borderWidth: 2,
-		borderColor: "#3B82F6",
+		borderColor: "#2F8F4E",
 	},
 	progressDotIcon: {
 		fontSize: 12,
@@ -401,11 +401,11 @@ const styles = StyleSheet.create({
 		color: "#10B981",
 	},
 	progressLabelCurrent: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "700",
 	},
 	actionButton: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 18,
 		alignItems: "center",

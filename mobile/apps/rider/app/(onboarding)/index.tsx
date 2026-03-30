@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	vehicleCardSelected: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	vehicleIcon: {
 		fontSize: 36,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
 		color: "#374151",
 	},
 	vehicleLabelSelected: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	input: {
 		backgroundColor: "#F9FAFB",
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 40,
 		borderRadius: 20,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 14,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
 	},
 	uploadArrow: {
 		fontSize: 18,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "700",
 	},
 	disclaimer: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	submitButton: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 18,
 		alignItems: "center",

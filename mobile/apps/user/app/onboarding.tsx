@@ -11,7 +11,7 @@ const slides: OnboardingSlide[] = [
 		headline: "Send Anything, Anywhere",
 		description:
 			"From packages to groceries — place an errand and a nearby rider picks it up in minutes.",
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	{
 		id: "2",
@@ -31,7 +31,7 @@ export default function UserOnboarding() {
 		<OnboardingScreen
 			slides={slides}
 			onComplete={completeOnboarding}
-			accentColor="#3B82F6"
+			accentColor="#2F8F4E"
 		/>
 	);
 }

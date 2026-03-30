@@ -82,10 +82,10 @@ function CountdownTimer({ expiresAt }: { expiresAt?: string }) {
 
 const timerStyles = StyleSheet.create({
 	container: { alignItems: "center", minWidth: 50 },
-	text: { fontSize: 16, fontWeight: "800", color: "#3B82F6", marginBottom: 4 },
+	text: { fontSize: 16, fontWeight: "800", color: "#2F8F4E", marginBottom: 4 },
 	textUrgent: { color: "#EF4444" },
 	barBg: { width: 50, height: 4, backgroundColor: "#E5E7EB", borderRadius: 2 },
-	barFill: { height: 4, backgroundColor: "#3B82F6", borderRadius: 2 },
+	barFill: { height: 4, backgroundColor: "#2F8F4E", borderRadius: 2 },
 	barFillUrgent: { backgroundColor: "#EF4444" },
 });
 
@@ -308,7 +308,7 @@ export default function RiderHomeScreen() {
 				<View style={styles.routeContainer}>
 					{pickup && (
 						<View style={styles.routeRow}>
-							<View style={[styles.routeDot, { backgroundColor: "#3B82F6" }]} />
+							<View style={[styles.routeDot, { backgroundColor: "#2F8F4E" }]} />
 							<Text style={styles.routeText} numberOfLines={1}>
 								{pickup.address}
 							</Text>
@@ -410,7 +410,7 @@ export default function RiderHomeScreen() {
 						<RefreshControl
 							refreshing={refreshing}
 							onRefresh={onRefresh}
-							tintColor="#3B82F6"
+							tintColor="#2F8F4E"
 						/>
 					}
 					ListEmptyComponent={
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 	},
 	distanceBadge: {
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		alignSelf: "flex-start",
 		paddingHorizontal: 10,
 		paddingVertical: 4,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
 	distanceText: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	toggle: {
 		transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		borderRadius: 10,
 		alignItems: "center",
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	acceptButtonText: {
 		fontSize: 15,

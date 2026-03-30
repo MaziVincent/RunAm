@@ -11,7 +11,7 @@
 		"splash": {
 			"image": "./assets/splash-icon.png",
 			"resizeMode": "contain",
-			"backgroundColor": "#3B82F6"
+			"backgroundColor": "#2F8F4E"
 		},
 		"ios": {
 			"supportsTablet": false,
@@ -25,7 +25,7 @@
 		"android": {
 			"adaptiveIcon": {
 				"foregroundImage": "./assets/adaptive-icon.png",
-				"backgroundColor": "#3B82F6"
+				"backgroundColor": "#2F8F4E"
 			},
 			"package": "com.runam.rider",
 			"permissions": [

@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
 	},
 	browseBtn: {
 		marginTop: 20,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		paddingHorizontal: 24,
 		paddingVertical: 12,
 		borderRadius: 12,
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
 		borderTopColor: "#F3F4F6",
 	},
 	checkoutBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		paddingVertical: 16,
 		borderRadius: 14,
 		alignItems: "center",

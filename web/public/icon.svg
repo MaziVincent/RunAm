@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Green chevron (back) -->
+  <path d="M8 32L22 8H38L24 32L38 56H22L8 32Z" fill="#2F8F4E"/>
+  <!-- Orange chevron (front) -->
+  <path d="M22 32L36 8H52L38 32L52 56H36L22 32Z" fill="#F7931A"/>
+</svg>

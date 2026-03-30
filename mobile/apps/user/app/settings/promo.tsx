@@ -125,7 +125,7 @@ export default function PromoScreen() {
 						</View>
 					) : (
 						<View style={{ paddingTop: 40, alignItems: "center" }}>
-							<ActivityIndicator size="large" color="#3B82F6" />
+							<ActivityIndicator size="large" color="#2F8F4E" />
 						</View>
 					)
 				}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
 		letterSpacing: 2,
 	},
 	redeemBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingHorizontal: 24,
 		justifyContent: "center",
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: "#F3F4F6",
 		borderLeftWidth: 4,
-		borderLeftColor: "#3B82F6",
+		borderLeftColor: "#2F8F4E",
 	},
 	promoExpired: { opacity: 0.5, borderLeftColor: "#9CA3AF" },
 	promoTop: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	promoCodeBadge: {
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 4,
@@ -204,14 +204,14 @@ const styles = StyleSheet.create({
 	promoCodeText: {
 		fontSize: 14,
 		fontWeight: "800",
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		letterSpacing: 1,
 	},
 	expiredTag: { fontSize: 12, fontWeight: "600", color: "#9CA3AF" },
 	activeTag: { fontSize: 12, fontWeight: "600", color: "#10B981" },
 	promoDescription: { fontSize: 14, color: "#374151", marginBottom: 10 },
 	promoMeta: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
-	promoDiscount: { fontSize: 13, fontWeight: "700", color: "#3B82F6" },
+	promoDiscount: { fontSize: 13, fontWeight: "700", color: "#2F8F4E" },
 	promoMax: { fontSize: 12, color: "#6B7280" },
 	promoExpiry: { fontSize: 12, color: "#9CA3AF" },
 	emptyState: { alignItems: "center", paddingTop: 60 },

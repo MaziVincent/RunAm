@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
 		gap: 12,
 	},
 	primaryBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 16,
 		paddingVertical: 16,
 		alignItems: "center",

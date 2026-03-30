@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 15,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 		marginTop: 8,
 	},
@@ -398,8 +398,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	optionChipActive: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	optionChipText: {
 		fontSize: 14,
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 	},
 	optionChipTextActive: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	extraRow: {
 		flexDirection: "row",
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
 		borderTopColor: "#F3F4F6",
 	},
 	addBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		paddingVertical: 16,
 		borderRadius: 14,
 		alignItems: "center",

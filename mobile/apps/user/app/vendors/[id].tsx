@@ -38,7 +38,7 @@ export default function VendorDetailScreen() {
 		return (
 			<SafeAreaView style={styles.container}>
 				<View style={styles.center}>
-					<ActivityIndicator size="large" color="#3B82F6" />
+					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
 			</SafeAreaView>
 		);
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
 	bannerPlaceholder: {
 		width: "100%",
 		height: 180,
-		backgroundColor: "#EEF2FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
 		marginRight: 8,
 	},
 	categoryTabActive: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	categoryTabText: {
 		fontSize: 14,
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 15,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 		marginTop: 8,
 	},
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
 		bottom: 24,
 		left: 20,
 		right: 20,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 16,
 		paddingVertical: 16,
 		alignItems: "center",

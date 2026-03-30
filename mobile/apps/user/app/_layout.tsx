@@ -70,7 +70,7 @@ export default function RootLayout() {
 					onFinish={() => setShowSplash(false)}
 					appName="RunAm"
 					tagline="Errands delivered, fast."
-					accentColor="#3B82F6"
+					accentColor="#2F8F4E"
 				/>
 			)}
 			{!showSplash && (

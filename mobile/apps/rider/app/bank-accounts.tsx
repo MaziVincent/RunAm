@@ -152,7 +152,7 @@ export default function BankAccountsScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -182,7 +182,7 @@ export default function BankAccountsScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#3B82F6"
+						tintColor="#2F8F4E"
 					/>
 				}
 				ListEmptyComponent={
@@ -297,10 +297,10 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 18, fontWeight: "700", color: "#111827" },
 	addBtn: { width: 60, alignItems: "flex-end" },
-	addBtnText: { fontSize: 15, color: "#3B82F6", fontWeight: "700" },
+	addBtnText: { fontSize: 15, color: "#2F8F4E", fontWeight: "700" },
 	listContent: { padding: 20, paddingBottom: 40 },
 
 	card: {
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
 		borderColor: "#E5E7EB",
 	},
 	cardDefault: {
-		borderColor: "#3B82F6",
+		borderColor: "#2F8F4E",
 	},
 	cardHeader: {
 		flexDirection: "row",
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
 		width: 44,
 		height: 44,
 		borderRadius: 12,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 14,
@@ -334,12 +334,12 @@ const styles = StyleSheet.create({
 	cardAcctName: { fontSize: 13, color: "#6B7280", marginTop: 2 },
 	cardAcctNo: { fontSize: 13, color: "#9CA3AF", marginTop: 1 },
 	defaultBadge: {
-		backgroundColor: "#DBEAFE",
+		backgroundColor: "#DCFCE7",
 		paddingHorizontal: 10,
 		paddingVertical: 4,
 		borderRadius: 10,
 	},
-	defaultBadgeText: { fontSize: 11, fontWeight: "700", color: "#3B82F6" },
+	defaultBadgeText: { fontSize: 11, fontWeight: "700", color: "#2F8F4E" },
 
 	cardActions: {
 		flexDirection: "row",
@@ -350,12 +350,12 @@ const styles = StyleSheet.create({
 	},
 	setDefaultBtn: {
 		flex: 1,
-		backgroundColor: "#EFF6FF",
+		backgroundColor: "#F0FDF4",
 		borderRadius: 10,
 		paddingVertical: 10,
 		alignItems: "center",
 	},
-	setDefaultText: { fontSize: 13, fontWeight: "600", color: "#3B82F6" },
+	setDefaultText: { fontSize: 13, fontWeight: "600", color: "#2F8F4E" },
 	deleteBtn: {
 		paddingHorizontal: 16,
 		paddingVertical: 10,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
 	},
 	emptyAddBtn: {
 		marginTop: 24,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingHorizontal: 28,
 		paddingVertical: 14,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
 	cancelText: { fontSize: 15, fontWeight: "600", color: "#374151" },
 	confirmBtn: {
 		flex: 1,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 14,
 		alignItems: "center",

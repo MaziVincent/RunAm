@@ -96,7 +96,7 @@ export default function RiderActiveErrandScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#3B82F6" />
+				<ActivityIndicator size="large" color="#2F8F4E" />
 			</View>
 		);
 	}
@@ -274,10 +274,10 @@ const styles = StyleSheet.create({
 	},
 	statusStep: { flexDirection: "row", alignItems: "center" },
 	stepDot: { width: 10, height: 10, borderRadius: 5 },
-	stepDotActive: { backgroundColor: "#3B82F6" },
+	stepDotActive: { backgroundColor: "#2F8F4E" },
 	stepDotInactive: { backgroundColor: "#CBD5E1" },
 	stepLine: { width: 28, height: 2, marginHorizontal: 2 },
-	stepLineActive: { backgroundColor: "#3B82F6" },
+	stepLineActive: { backgroundColor: "#2F8F4E" },
 	stepLineInactive: { backgroundColor: "#CBD5E1" },
 	currentStatus: {
 		fontSize: 20,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
 	chatBtnText: { fontSize: 15, fontWeight: "600", color: "#1E293B" },
 	nextBtn: {
 		flex: 2,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 14,
 		paddingVertical: 14,
 		alignItems: "center",

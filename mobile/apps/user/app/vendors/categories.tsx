@@ -61,7 +61,7 @@ export default function VendorCategoriesScreen() {
 
 			{isLoading ? (
 				<View style={styles.center}>
-					<ActivityIndicator size="large" color="#3B82F6" />
+					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
 			) : vendorCategories.length === 0 ? (
 				<View style={styles.center}>
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
 		width: 52,
 		height: 52,
 		borderRadius: 12,
-		backgroundColor: "#EEF2FF",
+		backgroundColor: "#F0FDF4",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 12,

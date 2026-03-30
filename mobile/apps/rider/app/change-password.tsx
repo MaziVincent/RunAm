@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	backBtn: { width: 60 },
-	backText: { fontSize: 17, color: "#3B82F6", fontWeight: "600" },
+	backText: { fontSize: 17, color: "#2F8F4E", fontWeight: "600" },
 	title: { fontSize: 18, fontWeight: "700", color: "#111827" },
 	content: { padding: 20, paddingBottom: 40 },
 	label: {
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	submitBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
 		paddingVertical: 16,
 		alignItems: "center",

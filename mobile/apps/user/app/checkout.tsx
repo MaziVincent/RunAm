@@ -256,7 +256,7 @@ export default function CheckoutScreen() {
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Delivery Address</Text>
 					{loadingAddresses ? (
-						<ActivityIndicator size="small" color="#3B82F6" />
+						<ActivityIndicator size="small" color="#2F8F4E" />
 					) : !addresses || addresses.length === 0 ? (
 						<View style={styles.noAddress}>
 							<Text style={styles.noAddressText}>No saved addresses</Text>
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 14,
-		color: "#3B82F6",
+		color: "#2F8F4E",
 		fontWeight: "600",
 		marginTop: 6,
 	},
@@ -584,8 +584,8 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	addressCardActive: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	radioOuter: {
 		width: 22,
@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
 		width: 12,
 		height: 12,
 		borderRadius: 6,
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 	},
 	addressLabel: {
 		fontSize: 15,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
 		marginTop: 2,
 	},
 	defaultBadge: {
-		backgroundColor: "#EEF2FF",
+		backgroundColor: "#F0FDF4",
 		paddingHorizontal: 8,
 		paddingVertical: 3,
 		borderRadius: 6,
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
 	defaultBadgeText: {
 		fontSize: 11,
 		fontWeight: "600",
-		color: "#4F46E5",
+		color: "#1F6B3A",
 	},
 	input: {
 		backgroundColor: "#F9FAFB",
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
 		borderTopColor: "#F3F4F6",
 	},
 	placeOrderBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		borderRadius: 16,
 		paddingVertical: 16,
 		alignItems: "center",
@@ -740,8 +740,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F9FAFB",
 	},
 	paymentOptionActive: {
-		borderColor: "#3B82F6",
-		backgroundColor: "#EFF6FF",
+		borderColor: "#2F8F4E",
+		backgroundColor: "#F0FDF4",
 	},
 	paymentIcon: {
 		fontSize: 18,
@@ -753,10 +753,10 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 	},
 	paymentLabelActive: {
-		color: "#3B82F6",
+		color: "#2F8F4E",
 	},
 	primaryBtn: {
-		backgroundColor: "#3B82F6",
+		backgroundColor: "#2F8F4E",
 		paddingHorizontal: 24,
 		paddingVertical: 12,
 		borderRadius: 12,

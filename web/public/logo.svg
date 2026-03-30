@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" fill="none">
+  <!-- Green chevron (back) -->
+  <path d="M10 40L30 10H55L35 40L55 70H30L10 40Z" fill="#2F8F4E"/>
+  <!-- Orange chevron (front) -->
+  <path d="M30 40L50 10H75L55 40L75 70H50L30 40Z" fill="#F7931A"/>
+  <!-- "Run" in green -->
+  <text x="90" y="56" font-family="Inter, system-ui, sans-serif" font-size="42" font-weight="700" fill="#2F8F4E">Run</text>
+  <!-- "Am" in orange -->
+  <text x="177" y="56" font-family="Inter, system-ui, sans-serif" font-size="42" font-weight="700" fill="#F7931A">Am</text>
+</svg>
