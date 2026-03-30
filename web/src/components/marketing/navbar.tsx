@@ -47,10 +47,7 @@ export function Navbar() {
 						alt="RunAm"
 						width={120}
 						height={36}
-						className={cn(
-							"h-9 w-auto",
-							isTransparent && "brightness-0 invert",
-						)}
+						className={cn("h-9 w-auto", isTransparent && "brightness-0 invert")}
 						priority
 					/>
 				</Link>
