@@ -316,7 +316,9 @@ function TopProducts() {
 
 export default function VendorDashboardPage() {
 	const { data: vendorData, isLoading } = useMyVendor();
-	const vendor = vendorData?.data;
+	const vendor = vendorData?.success ? vendorData.data : undefined;
+	const vendorProfileMissing =
+		vendorData?.success === false && vendorData.error?.code === "NOT_FOUND";
 
 	// If vendor not approved, show status
 	if (!isLoading && vendor && vendor.status !== VendorStatus.Active) {
@@ -344,7 +346,7 @@ export default function VendorDashboardPage() {
 	}
 
 	// If no vendor profile, prompt onboarding
-	if (!isLoading && !vendor) {
+	if (!isLoading && vendorProfileMissing) {
 		return (
 			<div className="space-y-6">
 				<h1 className="text-2xl font-bold">Vendor Dashboard</h1>
@@ -362,6 +364,26 @@ export default function VendorDashboardPage() {
 								Get Started
 							</Button>
 						</Link>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
+	if (!isLoading && vendorData?.success === false && !vendorProfileMissing) {
+		return (
+			<div className="space-y-6">
+				<h1 className="text-2xl font-bold">Vendor Dashboard</h1>
+				<Card>
+					<CardContent className="flex flex-col items-center py-12 text-center">
+						<AlertCircle className="h-12 w-12 text-destructive" />
+						<h2 className="mt-4 text-xl font-bold">
+							Unable to load vendor profile
+						</h2>
+						<p className="mt-2 max-w-md text-sm text-muted-foreground">
+							{vendorData.error?.message ??
+								"There was a problem loading your vendor account."}
+						</p>
 					</CardContent>
 				</Card>
 			</div>

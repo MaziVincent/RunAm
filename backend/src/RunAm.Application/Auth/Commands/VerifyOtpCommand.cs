@@ -32,8 +32,9 @@ public class VerifyOtpCommandHandler : IRequestHandler<VerifyOtpCommand, AuthRes
     public async Task<AuthResponse> Handle(VerifyOtpCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
+        var normalizedPhoneNumber = PhoneNumberNormalizer.Normalize(request.PhoneNumber);
 
-        var user = _userManager.Users.FirstOrDefault(u => u.PhoneNumber == request.PhoneNumber)
+        var user = _userManager.Users.FirstOrDefault(u => u.PhoneNumber == normalizedPhoneNumber)
             ?? throw new InvalidOperationException("User not found.");
 
         var isValid = await _otpService.ValidateAsync(
@@ -90,7 +91,9 @@ public class ResendOtpCommandHandler : IRequestHandler<ResendOtpCommand, Registe
 
     public async Task<RegisterResponse> Handle(ResendOtpCommand command, CancellationToken cancellationToken)
     {
-        var user = _userManager.Users.FirstOrDefault(u => u.PhoneNumber == command.Request.PhoneNumber)
+        var normalizedPhoneNumber = PhoneNumberNormalizer.Normalize(command.Request.PhoneNumber);
+
+        var user = _userManager.Users.FirstOrDefault(u => u.PhoneNumber == normalizedPhoneNumber)
             ?? throw new InvalidOperationException("User not found.");
 
         if (user.IsPhoneVerified)

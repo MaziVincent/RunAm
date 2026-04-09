@@ -1,4 +1,6 @@
 using MediatR;
+using RunAm.Application.Common.Interfaces;
+using RunAm.Application.Vendors;
 using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs.Vendors;
 
@@ -10,23 +12,30 @@ public record GetVendorProductsQuery(Guid VendorId) : IRequest<IReadOnlyList<Pro
 
 public class GetVendorProductsQueryHandler : IRequestHandler<GetVendorProductsQuery, IReadOnlyList<ProductCategoryWithProductsDto>>
 {
+    private static readonly TimeSpan ProductCatalogCacheDuration = TimeSpan.FromMinutes(10);
+
+    private readonly IAppCache _cache;
     private readonly IProductCategoryRepository _catRepo;
 
-    public GetVendorProductsQueryHandler(IProductCategoryRepository catRepo) => _catRepo = catRepo;
+    public GetVendorProductsQueryHandler(IProductCategoryRepository catRepo, IAppCache cache)
+    {
+        _catRepo = catRepo;
+        _cache = cache;
+    }
 
     public async Task<IReadOnlyList<ProductCategoryWithProductsDto>> Handle(GetVendorProductsQuery query, CancellationToken ct)
     {
-        var categories = await _catRepo.GetByVendorIdAsync(query.VendorId, ct);
+        var version = await VendorCache.GetCatalogVersionAsync(_cache, ct);
+        var cacheKey = VendorCache.ProductCatalogKey(query.VendorId, version);
+        var cached = await _cache.GetAsync<List<ProductCategoryWithProductsDto>>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
 
-        return categories.Select(pc => new ProductCategoryWithProductsDto(
-            pc.Id, pc.Name, pc.Description, pc.ImageUrl, pc.SortOrder,
-            pc.Products.Select(p => new ProductDto(
-                p.Id, p.VendorId, p.ProductCategoryId, pc.Name,
-                p.Name, p.Description, p.Price, p.CompareAtPrice,
-                p.ImageUrl, p.IsAvailable, p.IsActive, p.SortOrder,
-                p.VariantsJson, p.ExtrasJson
-            )).ToList()
-        )).ToList();
+        var categories = await _catRepo.GetByVendorIdAsync(query.VendorId, ct);
+        var catalog = ProductCatalogMapping.MapCategories(categories);
+
+        await _cache.SetAsync(cacheKey, catalog, ProductCatalogCacheDuration, ct);
+        return catalog;
     }
 }
 

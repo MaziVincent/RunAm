@@ -21,7 +21,7 @@ A full-stack errand and logistics platform connecting users who need tasks done 
 ## Quick Start
 
 ```bash
-# 1. Start infrastructure (PostgreSQL, Redis, RabbitMQ)
+# 1. Start infrastructure (PostgreSQL, Redis, RabbitMQ, Seq)
 make infra-up
 
 # 2. Run backend
@@ -50,8 +50,10 @@ make db-migrate
 make db-seed
 
 # View API docs
-# Navigate to http://localhost:5000/scalar
+# Navigate to http://localhost:5001/scalar
 ```
+
+For local Redis and Seq setup, see [docs/REDIS_SEQ_DEV_SETUP.md](docs/REDIS_SEQ_DEV_SETUP.md).
 
 ## Project Structure
 

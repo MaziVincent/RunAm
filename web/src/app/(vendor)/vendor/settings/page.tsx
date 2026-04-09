@@ -1,95 +1,227 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-	Store,
-	Clock,
-	Truck,
 	Bell,
+	Clock,
+	ImageIcon,
+	Loader2,
 	Save,
-	Camera,
-	X,
-	Plus,
-	Trash2,
+	Store,
+	Truck,
+	Upload,
 } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api/client";
+import { useMyVendor, useUpdateVendorProfile } from "@/lib/hooks";
+import {
+	buildUniformOperatingHours,
+	parseOperatingHours,
+} from "@/lib/vendor-hours";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { useMyVendor, useUpdateVendorProfile } from "@/lib/hooks";
-
-const DAYS = [
-	"Monday",
-	"Tuesday",
-	"Wednesday",
-	"Thursday",
-	"Friday",
-	"Saturday",
-	"Sunday",
-];
+import { Switch } from "@/components/ui/switch";
 
 export default function VendorSettingsPage() {
 	const { data: vendorRes } = useMyVendor();
 	const vendor = vendorRes?.data;
 	const updateProfile = useUpdateVendorProfile();
+	const logoInputRef = useRef<HTMLInputElement>(null);
+	const bannerInputRef = useRef<HTMLInputElement>(null);
 
-	// Store Profile
-	const [name, setName] = useState(vendor?.businessName ?? "");
-	const [description, setDescription] = useState(vendor?.description ?? "");
-	const [phone, setPhone] = useState(vendor?.phoneNumber ?? "");
-
-	// Delivery settings
-	const [deliveryFee, setDeliveryFee] = useState(
-		vendor?.deliveryFee?.toString() ?? "500",
-	);
-	const [minOrder, setMinOrder] = useState(
-		vendor?.minimumOrderAmount?.toString() ?? "1000",
-	);
-	const [deliveryRadius, setDeliveryRadius] = useState("5");
-	const [prepTime, setPrepTime] = useState(
-		vendor?.estimatedPrepTimeMinutes?.toString() ?? "30",
-	);
-
-	// Hours — parse from operatingHours string "HH:MM-HH:MM"
-	const opHours = vendor?.operatingHours?.split("-") ?? [];
-	const [openingTime, setOpeningTime] = useState(opHours[0] ?? "08:00");
-	const [closingTime, setClosingTime] = useState(opHours[1] ?? "22:00");
-
-	// Notification prefs
+	const [name, setName] = useState("");
+	const [description, setDescription] = useState("");
+	const [phone, setPhone] = useState("");
+	const [logoUrl, setLogoUrl] = useState("");
+	const [bannerUrl, setBannerUrl] = useState("");
+	const [logoPreview, setLogoPreview] = useState<string | null>(null);
+	const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+	const [logoUploading, setLogoUploading] = useState(false);
+	const [bannerUploading, setBannerUploading] = useState(false);
+	const [minOrder, setMinOrder] = useState("1000");
+	const [prepTime, setPrepTime] = useState("30");
+	const [openingTime, setOpeningTime] = useState("08:00");
+	const [closingTime, setClosingTime] = useState("22:00");
 	const [newOrders, setNewOrders] = useState(true);
 	const [orderUpdates, setOrderUpdates] = useState(true);
 	const [lowStock, setLowStock] = useState(false);
 	const [reviews, setReviews] = useState(true);
 
-	const handleSaveProfile = () => {
-		updateProfile.mutate({
-			businessName: name,
-			description,
-			phoneNumber: phone,
-		});
-	};
+	async function persistImageUpdate(
+		payload: {
+			logoUrl?: string;
+			bannerUrl?: string;
+		},
+		successMessage: string,
+	) {
+		await updateProfile.mutateAsync(payload);
+		toast.success(successMessage);
+	}
 
-	const handleSaveDelivery = () => {
-		updateProfile.mutate({
-			deliveryFee: Number(deliveryFee),
-			minimumOrderAmount: Number(minOrder),
-			estimatedPrepTimeMinutes: Number(prepTime),
-		});
-	};
+	useEffect(() => {
+		if (!vendor) {
+			return;
+		}
 
-	const handleSaveHours = () => {
-		updateProfile.mutate({
-			operatingHours: `${openingTime}-${closingTime}`,
-		});
-	};
+		setName(vendor.businessName ?? "");
+		setDescription(vendor.description ?? "");
+		setPhone(vendor.phoneNumber ?? "");
+		setLogoUrl(vendor.logoUrl ?? "");
+		setBannerUrl(vendor.bannerUrl ?? "");
+		setLogoPreview(null);
+		setBannerPreview(null);
+		setMinOrder(vendor.minimumOrderAmount?.toString() ?? "1000");
+		setPrepTime(vendor.estimatedPrepTimeMinutes?.toString() ?? "30");
+
+		const parsedHours = parseOperatingHours(vendor.operatingHours);
+		setOpeningTime(parsedHours?.openingTime ?? "08:00");
+		setClosingTime(parsedHours?.closingTime ?? "22:00");
+	}, [vendor]);
+
+	async function uploadVendorImage(
+		file: File,
+		setUploading: (value: boolean) => void,
+		onComplete: (uploadedUrl: string, previewUrl: string) => Promise<void>,
+		label: string,
+	) {
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error(`${label} must be under 5MB`);
+			return;
+		}
+
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please select an image file");
+			return;
+		}
+
+		setUploading(true);
+		try {
+			const res = await api.upload<{ url: string }>(
+				"/files/vendor-image",
+				file,
+			);
+			if (!res.success || !res.data?.url) {
+				throw new Error(
+					res.error?.message ?? `Failed to upload ${label.toLowerCase()}`,
+				);
+			}
+
+			await onComplete(res.data.url, URL.createObjectURL(file));
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: `Failed to upload ${label.toLowerCase()}`,
+			);
+		} finally {
+			setUploading(false);
+		}
+	}
+
+	async function handleLogoSelect(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (!file) {
+			return;
+		}
+
+		await uploadVendorImage(
+			file,
+			setLogoUploading,
+			async (uploadedUrl, previewUrl) => {
+				setLogoUrl(uploadedUrl);
+				setLogoPreview(previewUrl);
+				await persistImageUpdate({ logoUrl: uploadedUrl }, "Logo saved");
+			},
+			"Logo",
+		);
+
+		if (logoInputRef.current) {
+			logoInputRef.current.value = "";
+		}
+	}
+
+	async function handleBannerSelect(
+		event: React.ChangeEvent<HTMLInputElement>,
+	) {
+		const file = event.target.files?.[0];
+		if (!file) {
+			return;
+		}
+
+		await uploadVendorImage(
+			file,
+			setBannerUploading,
+			async (uploadedUrl, previewUrl) => {
+				setBannerUrl(uploadedUrl);
+				setBannerPreview(previewUrl);
+				await persistImageUpdate(
+					{ bannerUrl: uploadedUrl },
+					"Banner image saved",
+				);
+			},
+			"Banner image",
+		);
+
+		if (bannerInputRef.current) {
+			bannerInputRef.current.value = "";
+		}
+	}
+
+	async function handleSaveProfile() {
+		try {
+			await updateProfile.mutateAsync({
+				businessName: name,
+				description,
+				phoneNumber: phone,
+				logoUrl,
+				bannerUrl,
+			});
+			toast.success("Profile updated");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update profile",
+			);
+		}
+	}
+
+	async function handleSaveDelivery() {
+		try {
+			await updateProfile.mutateAsync({
+				minimumOrderAmount: Number(minOrder),
+				estimatedPrepTimeMinutes: Number(prepTime),
+			});
+			toast.success("Delivery settings updated");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to update delivery settings",
+			);
+		}
+	}
+
+	async function handleSaveHours() {
+		try {
+			await updateProfile.mutateAsync({
+				operatingHours: buildUniformOperatingHours(openingTime, closingTime),
+			});
+			toast.success("Operating hours updated");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to update operating hours",
+			);
+		}
+	}
 
 	return (
 		<div className="space-y-6">
 			<h1 className="text-2xl font-bold">Settings</h1>
 
-			{/* Store Profile */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base">
@@ -98,38 +230,102 @@ export default function VendorSettingsPage() {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					{/* Logo */}
-					<div className="flex items-center gap-4">
-						<div className="relative h-16 w-16 rounded-xl bg-muted">
-							{vendor?.logoUrl ? (
-								<img
-									src={vendor.logoUrl}
-									alt=""
-									className="h-full w-full rounded-xl object-cover"
-								/>
-							) : (
-								<div className="flex h-full w-full items-center justify-center text-2xl font-bold text-muted-foreground/40">
-									{name.charAt(0) || "S"}
-								</div>
-							)}
-							<button className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-								<Camera className="h-3 w-3" />
-							</button>
+					<div>
+						<Label>Store Logo</Label>
+						<input
+							ref={logoInputRef}
+							type="file"
+							accept="image/*"
+							onChange={handleLogoSelect}
+							className="hidden"
+						/>
+						<div className="mt-1.5 flex items-center gap-4">
+							<div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border bg-muted">
+								{logoUrl ? (
+									<img
+										src={logoPreview ?? logoUrl}
+										alt="Logo"
+										className="h-full w-full object-cover"
+									/>
+								) : (
+									<div className="flex h-full w-full items-center justify-center">
+										<Store className="h-6 w-6 text-muted-foreground/40" />
+									</div>
+								)}
+							</div>
+							<div className="flex-1 space-y-3">
+								<p className="text-xs text-muted-foreground">
+									Square image, at least 200×200px
+								</p>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => logoInputRef.current?.click()}
+									disabled={logoUploading}
+									className="gap-2">
+									{logoUploading ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<Upload className="h-4 w-4" />
+									)}
+									{logoUrl ? "Upload new logo" : "Upload logo"}
+								</Button>
+							</div>
 						</div>
-						<div>
-							<p className="text-sm font-medium">Store Logo</p>
-							<p className="text-xs text-muted-foreground">
-								Square image, at least 200x200px
+					</div>
+
+					<div>
+						<Label>Banner Image</Label>
+						<input
+							ref={bannerInputRef}
+							type="file"
+							accept="image/*"
+							onChange={handleBannerSelect}
+							className="hidden"
+						/>
+						<div className="mt-1.5">
+							<div className="relative h-28 w-full overflow-hidden rounded-lg border bg-muted">
+								{bannerUrl ? (
+									<img
+										src={bannerPreview ?? bannerUrl}
+										alt="Banner"
+										className="h-full w-full object-cover"
+									/>
+								) : (
+									<div className="flex h-full w-full items-center justify-center">
+										<ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+									</div>
+								)}
+							</div>
+							<div className="mt-3">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => bannerInputRef.current?.click()}
+									disabled={bannerUploading}
+									className="gap-2">
+									{bannerUploading ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										<Upload className="h-4 w-4" />
+									)}
+									{bannerUrl ? "Upload new banner" : "Upload banner"}
+								</Button>
+							</div>
+							<p className="mt-1 text-xs text-muted-foreground">
+								Recommended: 1200×400px
 							</p>
 						</div>
 					</div>
+
+					<Separator />
 
 					<div className="space-y-2">
 						<Label htmlFor="store-name">Business Name</Label>
 						<Input
 							id="store-name"
 							value={name}
-							onChange={(e) => setName(e.target.value)}
+							onChange={(event) => setName(event.target.value)}
 						/>
 					</div>
 
@@ -138,7 +334,7 @@ export default function VendorSettingsPage() {
 						<textarea
 							id="store-desc"
 							value={description}
-							onChange={(e) => setDescription(e.target.value)}
+							onChange={(event) => setDescription(event.target.value)}
 							className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							placeholder="Tell customers about your store..."
 						/>
@@ -149,7 +345,7 @@ export default function VendorSettingsPage() {
 						<Input
 							id="store-phone"
 							value={phone}
-							onChange={(e) => setPhone(e.target.value)}
+							onChange={(event) => setPhone(event.target.value)}
 							type="tel"
 						/>
 					</div>
@@ -164,7 +360,6 @@ export default function VendorSettingsPage() {
 				</CardContent>
 			</Card>
 
-			{/* Operating Hours */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base">
@@ -180,7 +375,7 @@ export default function VendorSettingsPage() {
 								id="open-time"
 								type="time"
 								value={openingTime}
-								onChange={(e) => setOpeningTime(e.target.value)}
+								onChange={(event) => setOpeningTime(event.target.value)}
 							/>
 						</div>
 						<div className="space-y-2">
@@ -189,7 +384,7 @@ export default function VendorSettingsPage() {
 								id="close-time"
 								type="time"
 								value={closingTime}
-								onChange={(e) => setClosingTime(e.target.value)}
+								onChange={(event) => setClosingTime(event.target.value)}
 							/>
 						</div>
 					</div>
@@ -208,7 +403,6 @@ export default function VendorSettingsPage() {
 				</CardContent>
 			</Card>
 
-			{/* Delivery Settings */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base">
@@ -219,32 +413,12 @@ export default function VendorSettingsPage() {
 				<CardContent className="space-y-4">
 					<div className="grid gap-3 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="delivery-fee">Delivery Fee (₦)</Label>
-							<Input
-								id="delivery-fee"
-								type="number"
-								value={deliveryFee}
-								onChange={(e) => setDeliveryFee(e.target.value)}
-							/>
-						</div>
-						<div className="space-y-2">
 							<Label htmlFor="min-order">Minimum Order (₦)</Label>
 							<Input
 								id="min-order"
 								type="number"
 								value={minOrder}
-								onChange={(e) => setMinOrder(e.target.value)}
-							/>
-						</div>
-						<div className="space-y-2">
-							<Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
-							<Input
-								id="delivery-radius"
-								type="number"
-								value={deliveryRadius}
-								onChange={(e) => setDeliveryRadius(e.target.value)}
-								min={1}
-								max={50}
+								onChange={(event) => setMinOrder(event.target.value)}
 							/>
 						</div>
 						<div className="space-y-2">
@@ -253,7 +427,7 @@ export default function VendorSettingsPage() {
 								id="prep-time"
 								type="number"
 								value={prepTime}
-								onChange={(e) => setPrepTime(e.target.value)}
+								onChange={(event) => setPrepTime(event.target.value)}
 							/>
 						</div>
 					</div>
@@ -268,7 +442,6 @@ export default function VendorSettingsPage() {
 				</CardContent>
 			</Card>
 
-			{/* Notification Preferences */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2 text-base">

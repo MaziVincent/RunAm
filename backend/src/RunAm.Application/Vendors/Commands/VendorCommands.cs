@@ -1,7 +1,10 @@
 using MediatR;
+using Microsoft.AspNetCore.Identity;
+using RunAm.Application.Common.Interfaces;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Enums;
 using RunAm.Domain.Interfaces;
+using RunAm.Application.Auth;
 using RunAm.Shared.DTOs.Vendors;
 
 namespace RunAm.Application.Vendors.Commands;
@@ -12,15 +15,17 @@ public record CreateVendorCommand(Guid UserId, CreateVendorRequest Request) : IR
 
 public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, VendorDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IServiceCategoryRepository _categoryRepo;
     private readonly IUnitOfWork _uow;
 
-    public CreateVendorCommandHandler(IVendorRepository vendorRepo, IServiceCategoryRepository categoryRepo, IUnitOfWork uow)
+    public CreateVendorCommandHandler(IVendorRepository vendorRepo, IServiceCategoryRepository categoryRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _categoryRepo = categoryRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<VendorDto> Handle(CreateVendorCommand command, CancellationToken ct)
@@ -49,6 +54,12 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
         // Link service categories
         foreach (var catId in req.ServiceCategoryIds)
         {
+            var category = await _categoryRepo.GetByIdAsync(catId, ct)
+                ?? throw new InvalidOperationException("One or more selected service categories do not exist.");
+
+            if (!category.IsActive || !category.RequiresVendor)
+                throw new InvalidOperationException("One or more selected service categories are not valid for vendors.");
+
             vendor.VendorServiceCategories.Add(new VendorServiceCategory
             {
                 VendorId = vendor.Id,
@@ -58,6 +69,7 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
 
         await _vendorRepo.AddAsync(vendor, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         // Reload to include navigation properties
         var created = await _vendorRepo.GetByUserIdAsync(command.UserId, ct);
@@ -71,13 +83,24 @@ public record UpdateVendorCommand(Guid UserId, UpdateVendorRequest Request) : IR
 
 public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, VendorDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
+    private readonly IServiceCategoryRepository _categoryRepo;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUnitOfWork _uow;
 
-    public UpdateVendorCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow)
+    public UpdateVendorCommandHandler(
+        IVendorRepository vendorRepo,
+        IServiceCategoryRepository categoryRepo,
+        UserManager<ApplicationUser> userManager,
+        IUnitOfWork uow,
+        IAppCache cache)
     {
         _vendorRepo = vendorRepo;
+        _categoryRepo = categoryRepo;
+        _userManager = userManager;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<VendorDto> Handle(UpdateVendorCommand command, CancellationToken ct)
@@ -86,29 +109,58 @@ public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, V
             ?? throw new KeyNotFoundException("Vendor profile not found.");
 
         var req = command.Request;
-        vendor.BusinessName = req.BusinessName;
-        vendor.BusinessDescription = req.BusinessDescription;
-        vendor.Address = req.Address;
-        vendor.Latitude = req.Latitude;
-        vendor.Longitude = req.Longitude;
-        vendor.OperatingHours = req.OperatingHours;
-        vendor.MinimumOrderAmount = req.MinimumOrderAmount;
-        vendor.DeliveryFee = req.DeliveryFee;
-        vendor.EstimatedPrepTimeMinutes = req.EstimatedPrepTimeMinutes;
+        vendor.BusinessName = req.BusinessName ?? vendor.BusinessName;
+        vendor.BusinessDescription = req.Description ?? vendor.BusinessDescription;
+        vendor.Address = req.Address ?? vendor.Address;
+        vendor.Latitude = req.Latitude ?? vendor.Latitude;
+        vendor.Longitude = req.Longitude ?? vendor.Longitude;
+        vendor.OperatingHours = req.OperatingHours ?? vendor.OperatingHours;
+        vendor.MinimumOrderAmount = req.MinimumOrderAmount ?? vendor.MinimumOrderAmount;
+        vendor.DeliveryFee = req.DeliveryFee ?? vendor.DeliveryFee;
+        vendor.EstimatedPrepTimeMinutes = req.EstimatedPrepTimeMinutes ?? vendor.EstimatedPrepTimeMinutes;
 
-        // Update service categories
-        vendor.VendorServiceCategories.Clear();
-        foreach (var catId in req.ServiceCategoryIds)
+        if (req.LogoUrl is not null)
+            vendor.LogoUrl = string.IsNullOrWhiteSpace(req.LogoUrl) ? null : req.LogoUrl;
+
+        if (req.BannerUrl is not null)
+            vendor.BannerUrl = string.IsNullOrWhiteSpace(req.BannerUrl) ? null : req.BannerUrl;
+
+        if (req.PhoneNumber is not null)
         {
-            vendor.VendorServiceCategories.Add(new VendorServiceCategory
+            var normalizedPhoneNumber = PhoneNumberNormalizer.Normalize(req.PhoneNumber);
+            var existingPhoneUser = _userManager.Users.FirstOrDefault(u =>
+                u.PhoneNumber == normalizedPhoneNumber && u.Id != vendor.UserId);
+
+            if (existingPhoneUser is not null)
+                throw new InvalidOperationException("A user with this phone number already exists.");
+
+            vendor.User.PhoneNumber = string.IsNullOrWhiteSpace(normalizedPhoneNumber)
+                ? null
+                : normalizedPhoneNumber;
+        }
+
+        if (req.ServiceCategoryIds is not null)
+        {
+            vendor.VendorServiceCategories.Clear();
+            foreach (var catId in req.ServiceCategoryIds)
             {
-                VendorId = vendor.Id,
-                ServiceCategoryId = catId
-            });
+                var category = await _categoryRepo.GetByIdAsync(catId, ct)
+                    ?? throw new InvalidOperationException("One or more selected service categories do not exist.");
+
+                if (!category.IsActive || !category.RequiresVendor)
+                    throw new InvalidOperationException("One or more selected service categories are not valid for vendors.");
+
+                vendor.VendorServiceCategories.Add(new VendorServiceCategory
+                {
+                    VendorId = vendor.Id,
+                    ServiceCategoryId = catId
+                });
+            }
         }
 
         await _vendorRepo.UpdateAsync(vendor, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         var updated = await _vendorRepo.GetByUserIdAsync(command.UserId, ct);
         return Queries.GetVendorsQueryHandler.MapToDto(updated!);
@@ -121,13 +173,15 @@ public record ToggleVendorStatusCommand(Guid UserId, bool IsOpen) : IRequest<Ven
 
 public class ToggleVendorStatusCommandHandler : IRequestHandler<ToggleVendorStatusCommand, VendorDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IUnitOfWork _uow;
 
-    public ToggleVendorStatusCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow)
+    public ToggleVendorStatusCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<VendorDto> Handle(ToggleVendorStatusCommand command, CancellationToken ct)
@@ -138,6 +192,7 @@ public class ToggleVendorStatusCommandHandler : IRequestHandler<ToggleVendorStat
         vendor.IsOpen = command.IsOpen;
         await _vendorRepo.UpdateAsync(vendor, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return Queries.GetVendorsQueryHandler.MapToDto(vendor);
     }
@@ -149,13 +204,15 @@ public record ApproveVendorCommand(Guid VendorId, bool Approve) : IRequest<Vendo
 
 public class ApproveVendorCommandHandler : IRequestHandler<ApproveVendorCommand, VendorDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IUnitOfWork _uow;
 
-    public ApproveVendorCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow)
+    public ApproveVendorCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<VendorDto> Handle(ApproveVendorCommand command, CancellationToken ct)
@@ -166,6 +223,7 @@ public class ApproveVendorCommandHandler : IRequestHandler<ApproveVendorCommand,
         vendor.Status = command.Approve ? VendorStatus.Active : VendorStatus.Suspended;
         await _vendorRepo.UpdateAsync(vendor, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         var updated = await _vendorRepo.GetByIdWithDetailsAsync(command.VendorId, ct);
         return Queries.GetVendorsQueryHandler.MapToDto(updated!);
@@ -178,13 +236,15 @@ public record UpdateVendorCategoriesCommand(Guid VendorId, List<Guid> ServiceCat
 
 public class UpdateVendorCategoriesCommandHandler : IRequestHandler<UpdateVendorCategoriesCommand, VendorDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IUnitOfWork _uow;
 
-    public UpdateVendorCategoriesCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow)
+    public UpdateVendorCategoriesCommandHandler(IVendorRepository vendorRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<VendorDto> Handle(UpdateVendorCategoriesCommand command, CancellationToken ct)
@@ -204,6 +264,7 @@ public class UpdateVendorCategoriesCommandHandler : IRequestHandler<UpdateVendor
 
         await _vendorRepo.UpdateAsync(vendor, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         var updated = await _vendorRepo.GetByIdWithDetailsAsync(command.VendorId, ct);
         return Queries.GetVendorsQueryHandler.MapToDto(updated!);

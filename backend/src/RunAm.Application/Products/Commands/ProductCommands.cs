@@ -1,4 +1,6 @@
 using MediatR;
+using RunAm.Application.Common.Interfaces;
+using RunAm.Application.Vendors;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs.Vendors;
@@ -11,15 +13,17 @@ public record CreateProductCategoryCommand(Guid UserId, CreateProductCategoryReq
 
 public class CreateProductCategoryCommandHandler : IRequestHandler<CreateProductCategoryCommand, ProductCategoryDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductCategoryRepository _catRepo;
     private readonly IUnitOfWork _uow;
 
-    public CreateProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow)
+    public CreateProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _catRepo = catRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductCategoryDto> Handle(CreateProductCategoryCommand command, CancellationToken ct)
@@ -39,6 +43,7 @@ public class CreateProductCategoryCommandHandler : IRequestHandler<CreateProduct
 
         await _catRepo.AddAsync(category, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductCategoryDto(category.Id, category.VendorId, category.Name, category.Description, category.ImageUrl, category.SortOrder, category.IsActive);
     }
@@ -50,15 +55,17 @@ public record UpdateProductCategoryCommand(Guid UserId, Guid CategoryId, UpdateP
 
 public class UpdateProductCategoryCommandHandler : IRequestHandler<UpdateProductCategoryCommand, ProductCategoryDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductCategoryRepository _catRepo;
     private readonly IUnitOfWork _uow;
 
-    public UpdateProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow)
+    public UpdateProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _catRepo = catRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductCategoryDto> Handle(UpdateProductCategoryCommand command, CancellationToken ct)
@@ -81,6 +88,7 @@ public class UpdateProductCategoryCommandHandler : IRequestHandler<UpdateProduct
 
         await _catRepo.UpdateAsync(category, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductCategoryDto(category.Id, category.VendorId, category.Name, category.Description, category.ImageUrl, category.SortOrder, category.IsActive);
     }
@@ -92,15 +100,17 @@ public record DeleteProductCategoryCommand(Guid UserId, Guid CategoryId) : IRequ
 
 public class DeleteProductCategoryCommandHandler : IRequestHandler<DeleteProductCategoryCommand>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductCategoryRepository _catRepo;
     private readonly IUnitOfWork _uow;
 
-    public DeleteProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow)
+    public DeleteProductCategoryCommandHandler(IVendorRepository vendorRepo, IProductCategoryRepository catRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _catRepo = catRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteProductCategoryCommand command, CancellationToken ct)
@@ -116,6 +126,7 @@ public class DeleteProductCategoryCommandHandler : IRequestHandler<DeleteProduct
 
         await _catRepo.DeleteAsync(command.CategoryId, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
     }
 }
 
@@ -125,17 +136,19 @@ public record CreateProductCommand(Guid UserId, CreateProductRequest Request) : 
 
 public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, ProductDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductRepository _productRepo;
     private readonly IProductCategoryRepository _catRepo;
     private readonly IUnitOfWork _uow;
 
-    public CreateProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IProductCategoryRepository catRepo, IUnitOfWork uow)
+    public CreateProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IProductCategoryRepository catRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _productRepo = productRepo;
         _catRepo = catRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductDto> Handle(CreateProductCommand command, CancellationToken ct)
@@ -167,6 +180,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
 
         await _productRepo.AddAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductDto(
             product.Id, product.VendorId, product.ProductCategoryId, category.Name,
@@ -183,15 +197,17 @@ public record UpdateProductCommand(Guid UserId, Guid ProductId, UpdateProductReq
 
 public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand, ProductDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductRepository _productRepo;
     private readonly IUnitOfWork _uow;
 
-    public UpdateProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow)
+    public UpdateProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _productRepo = productRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductDto> Handle(UpdateProductCommand command, CancellationToken ct)
@@ -222,6 +238,7 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
 
         await _productRepo.UpdateAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductDto(
             product.Id, product.VendorId, product.ProductCategoryId, product.ProductCategory.Name,
@@ -238,15 +255,17 @@ public record DeleteProductCommand(Guid UserId, Guid ProductId) : IRequest;
 
 public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductRepository _productRepo;
     private readonly IUnitOfWork _uow;
 
-    public DeleteProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow)
+    public DeleteProductCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _productRepo = productRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteProductCommand command, CancellationToken ct)
@@ -262,6 +281,7 @@ public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand>
 
         await _productRepo.DeleteAsync(command.ProductId, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
     }
 }
 
@@ -271,15 +291,17 @@ public record ToggleProductAvailabilityCommand(Guid UserId, Guid ProductId, bool
 
 public class ToggleProductAvailabilityCommandHandler : IRequestHandler<ToggleProductAvailabilityCommand, ProductDto>
 {
+    private readonly IAppCache _cache;
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductRepository _productRepo;
     private readonly IUnitOfWork _uow;
 
-    public ToggleProductAvailabilityCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow)
+    public ToggleProductAvailabilityCommandHandler(IVendorRepository vendorRepo, IProductRepository productRepo, IUnitOfWork uow, IAppCache cache)
     {
         _vendorRepo = vendorRepo;
         _productRepo = productRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductDto> Handle(ToggleProductAvailabilityCommand command, CancellationToken ct)
@@ -299,6 +321,7 @@ public class ToggleProductAvailabilityCommandHandler : IRequestHandler<TogglePro
         product.IsAvailable = command.IsAvailable;
         await _productRepo.UpdateAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductDto(
             product.Id, product.VendorId, product.ProductCategoryId, product.ProductCategory.Name,
@@ -315,13 +338,15 @@ public record ToggleProductActiveCommand(Guid ProductId, bool IsActive) : IReque
 
 public class ToggleProductActiveCommandHandler : IRequestHandler<ToggleProductActiveCommand, ProductDto>
 {
+    private readonly IAppCache _cache;
     private readonly IProductRepository _productRepo;
     private readonly IUnitOfWork _uow;
 
-    public ToggleProductActiveCommandHandler(IProductRepository productRepo, IUnitOfWork uow)
+    public ToggleProductActiveCommandHandler(IProductRepository productRepo, IUnitOfWork uow, IAppCache cache)
     {
         _productRepo = productRepo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ProductDto> Handle(ToggleProductActiveCommand command, CancellationToken ct)
@@ -332,6 +357,7 @@ public class ToggleProductActiveCommandHandler : IRequestHandler<ToggleProductAc
         product.IsActive = command.IsActive;
         await _productRepo.UpdateAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ProductDto(
             product.Id, product.VendorId, product.ProductCategoryId, product.ProductCategory.Name,

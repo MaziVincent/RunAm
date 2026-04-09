@@ -43,7 +43,6 @@ interface FormData {
 	state: string;
 	latitude: number;
 	longitude: number;
-	deliveryRadius: number;
 	openingTime: string;
 	closingTime: string;
 	minimumOrder: number;
@@ -60,7 +59,6 @@ const initialForm: FormData = {
 	state: "",
 	latitude: 0,
 	longitude: 0,
-	deliveryRadius: 5,
 	openingTime: "08:00",
 	closingTime: "22:00",
 	minimumOrder: 500,
@@ -77,7 +75,9 @@ export default function VendorOnboardingPage() {
 	const router = useRouter();
 	const registerVendor = useRegisterVendor();
 	const { data: categoriesRes } = useServiceCategories();
-	const serviceCategories = categoriesRes?.data ?? [];
+	const serviceCategories = (categoriesRes?.data ?? []).filter(
+		(category) => category.requiresVendor,
+	);
 
 	function update(key: keyof FormData, value: string | number) {
 		setForm((prev) => ({ ...prev, [key]: value }));
@@ -427,23 +427,6 @@ export default function VendorOnboardingPage() {
 										}
 										placeholder="e.g. 3.3792"
 									/>
-								</div>
-							</div>
-							<div className="space-y-2">
-								<Label>Delivery Radius: {form.deliveryRadius} km</Label>
-								<input
-									type="range"
-									min={1}
-									max={20}
-									value={form.deliveryRadius}
-									onChange={(e) =>
-										update("deliveryRadius", parseInt(e.target.value))
-									}
-									className="w-full accent-primary"
-								/>
-								<div className="flex justify-between text-xs text-muted-foreground">
-									<span>1 km</span>
-									<span>20 km</span>
 								</div>
 							</div>
 						</div>

@@ -16,12 +16,14 @@ public class RegistrationOtpFlowTests
     private readonly Mock<IOtpService> _otpService;
     private readonly Mock<ISmsService> _smsService;
     private readonly RegisterCommandHandler _handler;
+    private readonly List<ApplicationUser> _users = [];
 
     public RegistrationOtpFlowTests()
     {
         var store = new Mock<IUserStore<ApplicationUser>>();
         _userManager = new Mock<UserManager<ApplicationUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _userManager.SetupGet(x => x.Users).Returns(_users.AsQueryable());
         _otpService = new Mock<IOtpService>();
         _smsService = new Mock<ISmsService>();
 
@@ -39,7 +41,11 @@ public class RegistrationOtpFlowTests
         _userManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
         _userManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-            .Callback<ApplicationUser, string>((u, _) => createdUser = u)
+            .Callback<ApplicationUser, string>((u, _) =>
+            {
+                createdUser = u;
+                _users.Add(u);
+            })
             .ReturnsAsync(IdentityResult.Success);
         _userManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -66,6 +72,7 @@ public class RegistrationOtpFlowTests
         _userManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
         _userManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .Callback<ApplicationUser, string>((u, _) => _users.Add(u))
             .ReturnsAsync(IdentityResult.Success);
         _userManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -95,6 +102,7 @@ public class RegistrationOtpFlowTests
         _userManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
         _userManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
+            .Callback<ApplicationUser, string>((u, _) => _users.Add(u))
             .ReturnsAsync(IdentityResult.Success);
         _userManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -136,7 +144,11 @@ public class RegistrationOtpFlowTests
         _userManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync((ApplicationUser?)null);
         _userManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
-            .Callback<ApplicationUser, string>((u, _) => createdUser = u)
+            .Callback<ApplicationUser, string>((u, _) =>
+            {
+                createdUser = u;
+                _users.Add(u);
+            })
             .ReturnsAsync(IdentityResult.Success);
         _userManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -153,5 +165,28 @@ public class RegistrationOtpFlowTests
         // Assert — should be demoted to Customer
         createdUser.Should().NotBeNull();
         createdUser!.Role.Should().Be(UserRole.Customer);
+    }
+
+    [Fact]
+    public async Task Register_ThrowsIfPhoneNumberAlreadyExists()
+    {
+        // Arrange
+        _users.Add(new ApplicationUser
+        {
+            Email = "existing@runam.app",
+            PhoneNumber = "+2348001234567"
+        });
+
+        _userManager.Setup(x => x.FindByEmailAsync(It.IsAny<string>()))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        var request = new RegisterRequest("new@runam.app", "+234 800 123 4567", "Password1", "A", "B");
+
+        // Act
+        var act = () => _handler.Handle(new RegisterCommand(request), CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*phone number already exists*");
     }
 }

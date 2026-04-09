@@ -137,7 +137,9 @@ export default function VendorDashboardLayout({
 	const { isAuthenticated, hydrate } = useAuthStore();
 	const { user } = useAuthStore();
 	const { data: vendorData, isLoading: vendorLoading } = useMyVendor();
-	const vendor = vendorData?.data;
+	const vendor = vendorData?.success ? vendorData.data : undefined;
+	const vendorProfileMissing =
+		vendorData?.success === false && vendorData.error?.code === "NOT_FOUND";
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [hydrated, setHydrated] = useState(false);
 
@@ -173,12 +175,30 @@ export default function VendorDashboardLayout({
 			hydrated &&
 			isAuthenticated &&
 			!vendorLoading &&
-			!vendor &&
+			vendor &&
+			isOnboarding
+		) {
+			router.replace("/vendor");
+		}
+	}, [hydrated, isAuthenticated, vendorLoading, vendor, isOnboarding]);
+
+	useEffect(() => {
+		if (
+			hydrated &&
+			isAuthenticated &&
+			!vendorLoading &&
+			vendorProfileMissing &&
 			!isOnboarding
 		) {
 			router.replace("/vendor/onboarding");
 		}
-	}, [hydrated, isAuthenticated, vendorLoading, vendor, isOnboarding]);
+	}, [
+		hydrated,
+		isAuthenticated,
+		vendorLoading,
+		vendorProfileMissing,
+		isOnboarding,
+	]);
 
 	const isPendingVendor = vendor && vendor.status !== VendorStatus.Active;
 

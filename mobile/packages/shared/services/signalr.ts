@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "auth_token";
 
-const BASE_URL = __DEV__ ? "http://localhost:5000" : "https://api.runam.com";
+const BASE_URL = __DEV__ ? "http://localhost:5001" : "https://api.runam.com";
 
 type ConnectionStatus =
 	| "disconnected"

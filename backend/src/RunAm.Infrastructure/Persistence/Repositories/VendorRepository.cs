@@ -21,6 +21,7 @@ public class VendorRepository : IVendorRepository
                 .ThenInclude(vsc => vsc.ServiceCategory)
             .Include(v => v.ProductCategories.Where(pc => pc.IsActive).OrderBy(pc => pc.SortOrder))
             .Include(v => v.Products.Where(p => p.IsActive && p.IsAvailable))
+            .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
     public async Task<Vendor?> GetByIdWithAllDetailsAsync(Guid id, CancellationToken ct = default)
@@ -30,10 +31,12 @@ public class VendorRepository : IVendorRepository
                 .ThenInclude(vsc => vsc.ServiceCategory)
             .Include(v => v.ProductCategories.OrderBy(pc => pc.SortOrder))
             .Include(v => v.Products)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == id, ct);
 
     public async Task<Vendor?> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await _db.Vendors
+            .Include(v => v.User)
             .Include(v => v.VendorServiceCategories)
                 .ThenInclude(vsc => vsc.ServiceCategory)
             .FirstOrDefaultAsync(v => v.UserId == userId, ct);

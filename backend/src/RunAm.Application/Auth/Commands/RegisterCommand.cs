@@ -37,6 +37,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
     public async Task<RegisterResponse> Handle(RegisterCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
+        var normalizedPhoneNumber = PhoneNumberNormalizer.Normalize(request.PhoneNumber);
 
         // Prevent privilege escalation — only allow safe roles via self-registration
         var role = AllowedRegistrationRoles.Contains(request.Role) ? request.Role : UserRole.Customer;
@@ -45,11 +46,15 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
         if (existingUser != null)
             throw new InvalidOperationException("A user with this email already exists.");
 
+        var existingPhoneUser = _userManager.Users.FirstOrDefault(u => u.PhoneNumber == normalizedPhoneNumber);
+        if (existingPhoneUser != null)
+            throw new InvalidOperationException("A user with this phone number already exists.");
+
         var user = new ApplicationUser
         {
             UserName = request.Email,
             Email = request.Email,
-            PhoneNumber = request.PhoneNumber,
+            PhoneNumber = normalizedPhoneNumber,
             FirstName = request.FirstName,
             LastName = request.LastName,
             Role = role,
@@ -77,7 +82,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, RegisterR
 
         return new RegisterResponse(
             Message: "Registration successful. Please verify your phone number with the OTP sent via SMS.",
-            PhoneNumber: user.PhoneNumber!,
+            PhoneNumber: normalizedPhoneNumber,
             RequiresVerification: true
         );
     }

@@ -14,7 +14,7 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(u => u.RefreshToken).HasMaxLength(500);
 
         builder.HasIndex(u => u.Email).IsUnique();
-        builder.HasIndex(u => u.PhoneNumber);
+        builder.HasIndex(u => u.PhoneNumber).IsUnique();
         builder.HasIndex(u => u.Status);
 
         builder.HasOne(u => u.RiderProfile)

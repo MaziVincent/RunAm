@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using RunAm.Application.Common.Interfaces;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Interfaces;
 using RunAm.Infrastructure.Identity;
@@ -82,6 +83,12 @@ public static class DependencyInjection
 
         services.AddAuthorization();
 
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+            options.InstanceName = "runam:";
+        });
+
         // Repositories
         services.AddScoped<IErrandRepository, ErrandRepository>();
         services.AddScoped<IRiderRepository, RiderRepository>();
@@ -108,6 +115,7 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IAppCache, RedisCacheService>();
         services.AddSingleton<IFileStorageService, CloudinaryStorageService>();
         services.AddScoped<IOtpService, OtpService>();
 

@@ -23,7 +23,7 @@ export function useMyVendor() {
 export function useUpdateVendorProfile() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: {
+		mutationFn: async (data: {
 			businessName?: string;
 			description?: string;
 			phoneNumber?: string;
@@ -34,7 +34,18 @@ export function useUpdateVendorProfile() {
 			deliveryFee?: number;
 			estimatedPrepTimeMinutes?: number;
 			operatingHours?: string;
-		}) => api.put("/vendors/me", data),
+			logoUrl?: string;
+			bannerUrl?: string;
+		}) => {
+			const res = await api.put<VendorDetailDto>("/vendors/me", data);
+			if (!res.success) {
+				throw new Error(
+					res.error?.message ?? "Failed to update vendor profile",
+				);
+			}
+
+			return res;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-vendor"] });
 		},

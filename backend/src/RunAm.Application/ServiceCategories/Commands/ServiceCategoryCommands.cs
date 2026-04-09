@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 using MediatR;
+using RunAm.Application.Common.Interfaces;
+using RunAm.Application.Vendors;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs.Vendors;
@@ -12,13 +14,15 @@ public record CreateServiceCategoryCommand(CreateServiceCategoryRequest Request)
 
 public class CreateServiceCategoryCommandHandler : IRequestHandler<CreateServiceCategoryCommand, ServiceCategoryDto>
 {
+    private readonly IAppCache _cache;
     private readonly IServiceCategoryRepository _repo;
     private readonly IUnitOfWork _uow;
 
-    public CreateServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow)
+    public CreateServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow, IAppCache cache)
     {
         _repo = repo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ServiceCategoryDto> Handle(CreateServiceCategoryCommand command, CancellationToken ct)
@@ -39,6 +43,8 @@ public class CreateServiceCategoryCommandHandler : IRequestHandler<CreateService
 
         await _repo.AddAsync(category, ct);
         await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(ServiceCategoryCacheKeys.All, ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ServiceCategoryDto(
             category.Id, category.Name, category.Slug, category.Description,
@@ -56,13 +62,15 @@ public record UpdateServiceCategoryCommand(Guid Id, UpdateServiceCategoryRequest
 
 public class UpdateServiceCategoryCommandHandler : IRequestHandler<UpdateServiceCategoryCommand, ServiceCategoryDto>
 {
+    private readonly IAppCache _cache;
     private readonly IServiceCategoryRepository _repo;
     private readonly IUnitOfWork _uow;
 
-    public UpdateServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow)
+    public UpdateServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow, IAppCache cache)
     {
         _repo = repo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task<ServiceCategoryDto> Handle(UpdateServiceCategoryCommand command, CancellationToken ct)
@@ -80,6 +88,9 @@ public class UpdateServiceCategoryCommandHandler : IRequestHandler<UpdateService
 
         await _repo.UpdateAsync(category, ct);
         await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(ServiceCategoryCacheKeys.All, ct);
+        await _cache.RemoveAsync(ServiceCategoryCacheKeys.BySlug(category.Slug), ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
 
         return new ServiceCategoryDto(
             category.Id, category.Name, category.Slug, category.Description,
@@ -94,18 +105,26 @@ public record DeleteServiceCategoryCommand(Guid Id) : IRequest;
 
 public class DeleteServiceCategoryCommandHandler : IRequestHandler<DeleteServiceCategoryCommand>
 {
+    private readonly IAppCache _cache;
     private readonly IServiceCategoryRepository _repo;
     private readonly IUnitOfWork _uow;
 
-    public DeleteServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow)
+    public DeleteServiceCategoryCommandHandler(IServiceCategoryRepository repo, IUnitOfWork uow, IAppCache cache)
     {
         _repo = repo;
         _uow = uow;
+        _cache = cache;
     }
 
     public async Task Handle(DeleteServiceCategoryCommand command, CancellationToken ct)
     {
+        var category = await _repo.GetByIdAsync(command.Id, ct)
+            ?? throw new KeyNotFoundException($"ServiceCategory {command.Id} not found");
+
         await _repo.DeleteAsync(command.Id, ct);
         await _uow.SaveChangesAsync(ct);
+        await _cache.RemoveAsync(ServiceCategoryCacheKeys.All, ct);
+        await _cache.RemoveAsync(ServiceCategoryCacheKeys.BySlug(category.Slug), ct);
+        await VendorCache.BumpCatalogVersionAsync(_cache, ct);
     }
 }

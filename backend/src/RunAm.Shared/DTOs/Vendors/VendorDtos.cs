@@ -37,9 +37,10 @@ public record VendorDto(
     Guid Id,
     Guid UserId,
     string BusinessName,
-    string? BusinessDescription,
+    string? Description,
     string? LogoUrl,
     string? BannerUrl,
+    string? PhoneNumber,
     string Address,
     double Latitude,
     double Longitude,
@@ -61,9 +62,10 @@ public record VendorDetailDto(
     Guid Id,
     Guid UserId,
     string BusinessName,
-    string? BusinessDescription,
+    string? Description,
     string? LogoUrl,
     string? BannerUrl,
+    string? PhoneNumber,
     string Address,
     double Latitude,
     double Longitude,
@@ -99,16 +101,19 @@ public record CreateVendorRequest(
 );
 
 public record UpdateVendorRequest(
-    string BusinessName,
-    string? BusinessDescription,
-    string Address,
-    double Latitude,
-    double Longitude,
-    string? OperatingHours,
-    decimal MinimumOrderAmount,
-    decimal DeliveryFee,
-    int EstimatedPrepTimeMinutes,
-    List<Guid> ServiceCategoryIds
+    string? BusinessName = null,
+    string? Description = null,
+    string? PhoneNumber = null,
+    string? Address = null,
+    double? Latitude = null,
+    double? Longitude = null,
+    string? OperatingHours = null,
+    decimal? MinimumOrderAmount = null,
+    decimal? DeliveryFee = null,
+    int? EstimatedPrepTimeMinutes = null,
+    string? LogoUrl = null,
+    string? BannerUrl = null,
+    List<Guid>? ServiceCategoryIds = null
 );
 
 public record UpdateVendorStatusRequest(bool IsOpen);

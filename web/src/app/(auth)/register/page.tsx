@@ -65,7 +65,9 @@ function RegisterForm() {
 				role: config.userRole,
 			});
 			if (res.success && res.data?.requiresVerification) {
-				router.push(`/verify?phone=${encodeURIComponent(data.phoneNumber)}`);
+				router.push(
+					`/verify?phone=${encodeURIComponent(res.data.phoneNumber)}`,
+				);
 			} else {
 				setError(
 					res.error?.message ?? "Registration failed. Please try again.",
