@@ -7,18 +7,30 @@ namespace RunAm.Application.Payments.Queries;
 
 // ── Get Wallet ──────────────────────────────────
 
-public record GetWalletQuery(Guid UserId) : IRequest<WalletDto>;
+public record GetWalletQuery(Guid UserId) : IRequest<WalletDto?>;
 
-public class GetWalletQueryHandler : IRequestHandler<GetWalletQuery, WalletDto>
+public class GetWalletQueryHandler : IRequestHandler<GetWalletQuery, WalletDto?>
 {
     private readonly IWalletRepository _walletRepo;
 
     public GetWalletQueryHandler(IWalletRepository walletRepo) => _walletRepo = walletRepo;
 
-    public async Task<WalletDto> Handle(GetWalletQuery query, CancellationToken ct)
+    public async Task<WalletDto?> Handle(GetWalletQuery query, CancellationToken ct)
     {
-        var wallet = await _walletRepo.GetOrCreateAsync(query.UserId, ct);
-        return new WalletDto(wallet.Id, wallet.Balance, wallet.Currency);
+        var wallet = await _walletRepo.GetByUserIdAsync(query.UserId, ct);
+        return wallet is null
+            ? null
+            : new WalletDto(
+                wallet.Id,
+                wallet.Balance,
+                wallet.Currency,
+                wallet.IsActive,
+                wallet.MonnifyAccountReference,
+                wallet.MonnifyAccountNumber,
+                wallet.MonnifyAccountName,
+                wallet.MonnifyBankName,
+                wallet.MonnifyBankCode,
+                wallet.ActivatedAt);
     }
 }
 
@@ -42,7 +54,7 @@ public class GetWalletTransactionsQueryHandler : IRequestHandler<GetWalletTransa
 
         var dtos = transactions.Select(t => new WalletTransactionDto(
             t.Id, t.Type, t.Amount, t.BalanceAfter, t.Source,
-            t.ReferenceId, t.Description, t.CreatedAt
+            t.ReferenceId, t.ExternalReference, t.Description, t.CreatedAt
         )).ToList();
 
         return (dtos, totalCount);
@@ -56,12 +68,22 @@ public record GetRiderEarningsQuery(Guid RiderId) : IRequest<EarningsSummaryDto>
 public class GetRiderEarningsQueryHandler : IRequestHandler<GetRiderEarningsQuery, EarningsSummaryDto>
 {
     private readonly IWalletRepository _walletRepo;
+    private readonly IRiderPayoutRepository _payoutRepo;
 
-    public GetRiderEarningsQueryHandler(IWalletRepository walletRepo) => _walletRepo = walletRepo;
+    public GetRiderEarningsQueryHandler(IWalletRepository walletRepo, IRiderPayoutRepository payoutRepo)
+    {
+        _walletRepo = walletRepo;
+        _payoutRepo = payoutRepo;
+    }
 
     public async Task<EarningsSummaryDto> Handle(GetRiderEarningsQuery query, CancellationToken ct)
     {
-        var wallet = await _walletRepo.GetOrCreateAsync(query.RiderId, ct);
+        var wallet = await _walletRepo.GetByUserIdAsync(query.RiderId, ct);
+        if (wallet is null)
+        {
+            return new EarningsSummaryDto(0, 0, 0, 0, 0, 0, 0, 0, new List<DailyEarningsPointDto>());
+        }
+
         var allTransactions = await _walletRepo.GetTransactionsAsync(wallet.Id, 1, int.MaxValue, ct);
 
         var credits = allTransactions.Where(t => t.Type == Domain.Enums.TransactionType.Credit).ToList();
@@ -81,10 +103,23 @@ public class GetRiderEarningsQueryHandler : IRequestHandler<GetRiderEarningsQuer
 
         var todayTrips = errandCredits.Count(t => t.CreatedAt >= today && t.Source == Domain.Enums.TransactionSource.ErrandEarning);
         var weekTrips = errandCredits.Count(t => t.CreatedAt >= weekStart && t.Source == Domain.Enums.TransactionSource.ErrandEarning);
+        var pendingPayouts = (await _payoutRepo.GetOutstandingAsync(ct))
+            .Where(p => p.RiderId == query.RiderId)
+            .Sum(p => p.Amount);
+
+        var dailyEarnings = errandCredits
+            .Where(t => t.CreatedAt >= today.AddDays(-13))
+            .GroupBy(t => t.CreatedAt.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new DailyEarningsPointDto(
+                g.Key,
+                g.Sum(t => t.Amount),
+                g.Count(t => t.Source == Domain.Enums.TransactionSource.ErrandEarning)))
+            .ToList();
 
         return new EarningsSummaryDto(
             todayEarnings, weekEarnings, monthEarnings, totalEarnings,
-            todayTrips, weekTrips, wallet.Balance
+            todayTrips, weekTrips, wallet.Balance, pendingPayouts, dailyEarnings
         );
     }
 }

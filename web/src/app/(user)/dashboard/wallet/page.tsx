@@ -6,16 +6,14 @@ import {
 	ArrowUpRight,
 	ArrowDownRight,
 	Plus,
-	TrendingUp,
-	TrendingDown,
 	Clock,
 	Loader2,
+	Building2,
+	ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,9 +24,9 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { useWallet, useWalletTransactions, useTopUpWallet } from "@/lib/hooks";
+import { useCreateWallet, useWallet, useWalletTransactions } from "@/lib/hooks";
 import { formatCurrency, cn } from "@/lib/utils";
-import { TransactionType, TransactionSource } from "@/types";
+import { TransactionType } from "@/types";
 import { toast } from "sonner";
 
 const sourceLabel: Record<number, string> = {
@@ -42,26 +40,26 @@ const sourceLabel: Record<number, string> = {
 	7: "Commission",
 };
 
-const TOP_UP_PRESETS = [1000, 2000, 5000, 10000];
-
-function TopUpDialog() {
-	const [amount, setAmount] = useState("");
+function CreateWalletDialog() {
+	const [nin, setNin] = useState("");
 	const [open, setOpen] = useState(false);
-	const topUp = useTopUpWallet();
+	const createWallet = useCreateWallet();
 
-	async function handleTopUp() {
-		const numericAmount = parseInt(amount, 10);
-		if (!numericAmount || numericAmount < 100) {
-			toast.error("Minimum top-up is ₦100");
+	async function handleCreateWallet() {
+		const normalizedNin = nin.replace(/\D/g, "");
+		if (normalizedNin.length !== 11) {
+			toast.error("NIN must be exactly 11 digits");
 			return;
 		}
 		try {
-			await topUp.mutateAsync({ amount: numericAmount, paymentMethod: 0 });
-			toast.success(`₦${numericAmount.toLocaleString()} added to wallet`);
+			await createWallet.mutateAsync({ nin: normalizedNin });
+			toast.success(
+				"Wallet created. Fund it using the reserved account below.",
+			);
 			setOpen(false);
-			setAmount("");
-		} catch {
-			toast.error("Top-up failed");
+			setNin("");
+		} catch (error: any) {
+			toast.error(error?.message || "Wallet creation failed");
 		}
 	}
 
@@ -70,49 +68,38 @@ function TopUpDialog() {
 			<DialogTrigger asChild>
 				<Button className="gap-2">
 					<Plus className="h-4 w-4" />
-					Top Up
+					Create Wallet
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Top Up Wallet</DialogTitle>
+					<DialogTitle>Create Monnify Wallet</DialogTitle>
 					<DialogDescription>
-						Add funds to your wallet balance.
+						RunAm creates one reserved Monnify account per wallet. NIN is
+						required before that account can be provisioned.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
-					<div className="grid grid-cols-2 gap-2">
-						{TOP_UP_PRESETS.map((preset) => (
-							<Button
-								key={preset}
-								variant={amount === String(preset) ? "default" : "outline"}
-								onClick={() => setAmount(String(preset))}>
-								{formatCurrency(preset)}
-							</Button>
-						))}
-					</div>
 					<div className="space-y-2">
-						<Label>Custom Amount</Label>
+						<Label>NIN</Label>
 						<Input
-							type="number"
-							value={amount}
-							onChange={(e) => setAmount(e.target.value)}
-							placeholder="Enter amount"
-							min={100}
+							inputMode="numeric"
+							maxLength={11}
+							value={nin}
+							onChange={(e) => setNin(e.target.value.replace(/\D/g, ""))}
+							placeholder="Enter your 11-digit NIN"
 						/>
 					</div>
 					<Button
 						className="w-full gap-2"
-						disabled={!amount || topUp.isPending}
-						onClick={handleTopUp}>
-						{topUp.isPending ? (
+						disabled={nin.length !== 11 || createWallet.isPending}
+						onClick={handleCreateWallet}>
+						{createWallet.isPending ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
 						) : (
-							<Wallet className="h-4 w-4" />
+							<ShieldCheck className="h-4 w-4" />
 						)}
-						{topUp.isPending
-							? "Processing..."
-							: `Add ${amount ? formatCurrency(parseInt(amount)) : ""}`}
+						{createWallet.isPending ? "Creating..." : "Create Wallet"}
 					</Button>
 				</div>
 			</DialogContent>
@@ -128,6 +115,7 @@ export default function WalletPage() {
 	const wallet = walletData?.data;
 	const transactions = txData?.data ?? [];
 	const txPagination = txData?.meta;
+	const walletReady = !!wallet?.isActive;
 
 	return (
 		<div className="space-y-6">
@@ -136,10 +124,10 @@ export default function WalletPage() {
 				<div>
 					<h1 className="text-2xl font-bold">Wallet</h1>
 					<p className="text-sm text-muted-foreground">
-						Manage your balance and transactions
+						Manage your balance, funding account, and transactions
 					</p>
 				</div>
-				<TopUpDialog />
+				{!walletReady && <CreateWalletDialog />}
 			</div>
 
 			{/* Balance Card */}
@@ -150,7 +138,7 @@ export default function WalletPage() {
 						<Skeleton className="mt-2 h-10 w-40 bg-white/20" />
 					) : (
 						<p className="mt-1 text-4xl font-bold">
-							{formatCurrency(wallet?.balance ?? 0)}
+							{formatCurrency(walletReady ? (wallet?.balance ?? 0) : 0)}
 						</p>
 					)}
 					<p className="mt-2 text-xs opacity-70">
@@ -158,6 +146,56 @@ export default function WalletPage() {
 					</p>
 				</CardContent>
 			</Card>
+
+			{walletReady ? (
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2 text-base">
+							<Building2 className="h-4 w-4 text-primary" />
+							Fund Your Wallet
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-3 text-sm">
+						<p className="text-muted-foreground">
+							Transfer to this reserved Monnify account from your bank app. The
+							balance changes only after webhook settlement succeeds.
+						</p>
+						<div className="grid gap-3 sm:grid-cols-2">
+							<div className="rounded-lg border p-3">
+								<p className="text-xs text-muted-foreground">Bank</p>
+								<p className="font-semibold">{wallet.bankName}</p>
+							</div>
+							<div className="rounded-lg border p-3">
+								<p className="text-xs text-muted-foreground">Account Number</p>
+								<p className="font-semibold tracking-wide">
+									{wallet.accountNumber}
+								</p>
+							</div>
+							<div className="rounded-lg border p-3">
+								<p className="text-xs text-muted-foreground">Account Name</p>
+								<p className="font-semibold">{wallet.accountName}</p>
+							</div>
+							<div className="rounded-lg border p-3">
+								<p className="text-xs text-muted-foreground">Reference</p>
+								<p className="font-semibold">{wallet.accountReference}</p>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			) : (
+				<Card>
+					<CardContent className="flex flex-col items-center py-10 text-center">
+						<ShieldCheck className="h-10 w-10 text-primary/70" />
+						<p className="mt-3 text-sm font-medium">
+							Create your wallet to start funding and spending.
+						</p>
+						<p className="mt-1 max-w-md text-sm text-muted-foreground">
+							RunAm wallets are Monnify-backed. Once created, the same reserved
+							account is reused for all dashboard funding.
+						</p>
+					</CardContent>
+				</Card>
+			)}
 
 			{/* Transactions */}
 			<Card>

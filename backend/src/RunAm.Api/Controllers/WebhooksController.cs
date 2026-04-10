@@ -67,14 +67,36 @@ public class WebhooksController : ControllerBase
                 && accountRef.StartsWith("RUNAM-")
                 && Guid.TryParse(accountRef["RUNAM-".Length..], out var userId))
             {
+                if (string.IsNullOrWhiteSpace(data.TransactionReference))
+                {
+                    _logger.LogWarning("Monnify webhook missing transaction reference for account {AccountReference}", accountRef);
+                    return Ok();
+                }
+
+                var verification = await _mediator.Send(new VerifyMonnifyWebhookFundingCommand(
+                    userId,
+                    accountRef,
+                    data.TransactionReference,
+                    data.PaymentReference,
+                    data.AmountPaid));
+
+                if (!verification.ShouldCreditWallet)
+                {
+                    _logger.LogWarning(
+                        "Monnify webhook verification failed for user {UserId} and transaction {TransactionReference}",
+                        userId,
+                        data.TransactionReference);
+                    return Ok();
+                }
+
                 await _mediator.Send(new TopUpWalletCommand(userId, new TopUpWalletRequest(
-                    data.AmountPaid,
+                    verification.Amount,
                     PaymentMethod.BankTransfer,
-                    data.TransactionReference
+                    verification.PaymentReference
                 )));
 
                 _logger.LogInformation("Wallet top-up processed: {Amount} for user {UserId}",
-                    data.AmountPaid, userId);
+                    verification.Amount, userId);
             }
         }
 

@@ -31,9 +31,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useAddresses, useWallet, usePlaceOrder } from "@/lib/hooks";
+import { useAddresses, useWallet, useCreateErrand } from "@/lib/hooks";
 import { formatCurrency, cn } from "@/lib/utils";
-import { PaymentMethod } from "@/types";
+import {
+	ErrandCategory,
+	ErrandPriority,
+	PackageSize,
+	PaymentMethod,
+} from "@/types";
 import { toast } from "sonner";
 
 interface ErrandFormData {
@@ -124,7 +129,7 @@ export default function CreateErrandPage() {
 	const walletBalance = walletData?.data?.balance ?? 0;
 	const { data: addressesData } = useAddresses();
 	const addresses = addressesData?.data ?? [];
-	const placeOrder = usePlaceOrder();
+	const createErrand = useCreateErrand();
 
 	function update(partial: Partial<ErrandFormData>) {
 		setForm((prev) => ({ ...prev, ...partial }));
@@ -144,20 +149,39 @@ export default function CreateErrandPage() {
 
 	async function handleSubmit() {
 		try {
-			await placeOrder.mutateAsync({
-				vendorId: "",
+			await createErrand.mutateAsync({
+				category:
+					form.category === "document"
+						? ErrandCategory.DocumentDelivery
+						: form.category === "custom"
+							? ErrandCategory.CustomErrand
+							: ErrandCategory.PackageDelivery,
+				description: form.description,
+				specialInstructions: form.specialInstructions || null,
+				priority:
+					form.priority === "express"
+						? ErrandPriority.Express
+						: ErrandPriority.Standard,
+				scheduledAt: null,
 				pickupAddress: form.pickupAddress,
 				pickupLatitude: form.pickupLat,
 				pickupLongitude: form.pickupLng,
 				dropoffAddress: form.dropoffAddress,
 				dropoffLatitude: form.dropoffLat,
 				dropoffLongitude: form.dropoffLng,
-				priority: form.priority === "express" ? "Express" : "Standard",
-				scheduledFor: null,
-				notes: form.specialInstructions,
+				packageSize:
+					form.packageSize === "large"
+						? PackageSize.Large
+						: form.packageSize === "medium"
+							? PackageSize.Medium
+							: PackageSize.Small,
+				packageWeight: null,
+				isFragile: form.isFragile,
+				requiresPhotoProof: false,
+				recipientName: form.recipientName,
+				recipientPhone: form.recipientPhone,
 				paymentMethod: form.paymentMethod,
-				promoCode: null,
-				orderItems: [],
+				stops: null,
 			});
 			toast.success("Errand created successfully!");
 			router.push("/dashboard/errands");
@@ -598,8 +622,8 @@ export default function CreateErrandPage() {
 							className="w-full gap-2"
 							size="lg"
 							onClick={handleSubmit}
-							disabled={placeOrder.isPending}>
-							{placeOrder.isPending ? (
+							disabled={createErrand.isPending}>
+							{createErrand.isPending ? (
 								<>
 									<Loader2 className="h-4 w-4 animate-spin" />
 									Creating...

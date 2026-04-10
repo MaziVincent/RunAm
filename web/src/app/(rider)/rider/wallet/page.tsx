@@ -23,6 +23,7 @@ export default function RiderWalletPage() {
 		useRiderWalletTransactions(page);
 	const wallet = walletData?.data;
 	const transactions = txData?.data ?? [];
+	const walletReady = !!wallet?.isActive;
 
 	return (
 		<div className="space-y-6">
@@ -42,15 +43,29 @@ export default function RiderWalletPage() {
 						<div className="space-y-2">
 							<p className="text-sm text-muted-foreground">Available Balance</p>
 							<p className="text-3xl font-bold">
-								{formatCurrency(wallet?.balance ?? 0)}
+								{formatCurrency(walletReady ? (wallet?.balance ?? 0) : 0)}
 							</p>
 							<p className="text-xs text-muted-foreground">
 								{wallet?.currency ?? "NGN"} Wallet
 							</p>
+							{walletReady && wallet.bankName && wallet.accountNumber && (
+								<p className="text-xs text-muted-foreground">
+									Fund via {wallet.bankName} • {wallet.accountNumber}
+								</p>
+							)}
 						</div>
 					)}
 				</CardContent>
 			</Card>
+
+			{!walletReady && !walletLoading && (
+				<Card>
+					<CardContent className="py-8 text-center text-sm text-muted-foreground">
+						Your rider wallet is created during onboarding. If this account
+						predates that flow, complete onboarding again or contact support.
+					</CardContent>
+				</Card>
+			)}
 
 			{/* Transactions */}
 			<Card>

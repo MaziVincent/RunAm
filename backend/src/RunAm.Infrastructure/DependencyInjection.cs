@@ -130,6 +130,8 @@ public static class DependencyInjection
 
         // Payment gateway
         services.AddHttpClient<IMonnifyService, MonnifyService>();
+        services.AddScoped<IRiderPayoutProcessingService, RiderPayoutProcessingService>();
+        services.AddHostedService<RiderPayoutReconciliationWorker>();
 
         return services;
     }

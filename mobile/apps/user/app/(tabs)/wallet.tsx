@@ -17,27 +17,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	getWallet,
 	getWalletTransactions,
-	topUpWallet,
+	createWallet,
 } from "@runam/shared/api/wallet";
-import type {
-	Wallet,
-	WalletTransaction,
-	TopUpResponse,
-} from "@runam/shared/types";
-
-const QUICK_AMOUNTS = [1000, 2000, 5000, 10000, 20000];
+import type { Wallet, WalletTransaction } from "@runam/shared/types";
 
 export default function WalletScreen() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [refreshing, setRefreshing] = useState(false);
-	const [showTopUp, setShowTopUp] = useState(false);
-	const [topUpAmount, setTopUpAmount] = useState("");
-	const [topUpMethod, setTopUpMethod] = useState<"Card" | "BankTransfer">(
-		"Card",
-	);
+	const [showCreateWallet, setShowCreateWallet] = useState(false);
+	const [nin, setNin] = useState("");
 
-	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet>({
+	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet | null>({
 		queryKey: ["wallet"],
 		queryFn: getWallet,
 	});
@@ -49,26 +40,22 @@ export default function WalletScreen() {
 
 	const transactions = transactionsData?.items;
 
-	const topUpMutation = useMutation({
-		mutationFn: (amount: number) =>
-			topUpWallet({
-				amount,
-				paymentMethod: topUpMethod,
-			}),
-		onSuccess: (data) => {
+	const createWalletMutation = useMutation({
+		mutationFn: (normalizedNin: string) => createWallet({ nin: normalizedNin }),
+		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["wallet"] });
-			setShowTopUp(false);
-			setTopUpAmount("");
-			if ((data as any).authorizationUrl) {
-				Alert.alert("Redirecting", "Complete payment in your browser.", [
-					{ text: "OK" },
-				]);
-			} else {
-				Alert.alert("Success", `Wallet topped up successfully!`);
-			}
+			setShowCreateWallet(false);
+			setNin("");
+			Alert.alert(
+				"Success",
+				"Wallet created. Fund it through your reserved Monnify account.",
+			);
 		},
 		onError: (err: any) => {
-			Alert.alert("Error", err?.message || "Top-up failed. Please try again.");
+			Alert.alert(
+				"Error",
+				err?.message || "Wallet creation failed. Please try again.",
+			);
 		},
 	});
 
@@ -78,13 +65,13 @@ export default function WalletScreen() {
 		setRefreshing(false);
 	}, [refetchWallet, refetchTransactions]);
 
-	const handleTopUp = () => {
-		const amount = parseFloat(topUpAmount);
-		if (!amount || amount < 100) {
-			Alert.alert("Invalid Amount", "Minimum top-up is 100.");
+	const handleCreateWallet = () => {
+		const normalizedNin = nin.replace(/\D/g, "");
+		if (normalizedNin.length !== 11) {
+			Alert.alert("Invalid NIN", "NIN must be exactly 11 digits.");
 			return;
 		}
-		topUpMutation.mutate(amount);
+		createWalletMutation.mutate(normalizedNin);
 	};
 
 	const transactionIcons: Record<string, string> = {
@@ -160,12 +147,20 @@ export default function WalletScreen() {
 								{(wallet?.balance ?? 0).toLocaleString()}
 							</Text>
 							<View style={styles.balanceActions}>
-								<TouchableOpacity
-									style={styles.topUpButton}
-									onPress={() => setShowTopUp(true)}
-									activeOpacity={0.8}>
-									<Text style={styles.topUpText}>💰 Top Up</Text>
-								</TouchableOpacity>
+								{wallet?.isActive ? (
+									<TouchableOpacity
+										style={styles.topUpButton}
+										activeOpacity={0.8}>
+										<Text style={styles.topUpText}>🏦 Fund by Transfer</Text>
+									</TouchableOpacity>
+								) : (
+									<TouchableOpacity
+										style={styles.topUpButton}
+										onPress={() => setShowCreateWallet(true)}
+										activeOpacity={0.8}>
+										<Text style={styles.topUpText}>🆔 Create Wallet</Text>
+									</TouchableOpacity>
+								)}
 								<TouchableOpacity
 									style={styles.methodsButton}
 									onPress={() =>
@@ -175,6 +170,22 @@ export default function WalletScreen() {
 									<Text style={styles.methodsText}>💳 Cards</Text>
 								</TouchableOpacity>
 							</View>
+							{wallet?.isActive && wallet.bankName && wallet.accountNumber && (
+								<View style={{ marginTop: 16 }}>
+									<Text style={styles.balanceLabel}>Reserved Account</Text>
+									<Text
+										style={{
+											color: "#FFFFFF",
+											fontWeight: "700",
+											marginTop: 4,
+										}}>
+										{wallet.bankName} • {wallet.accountNumber}
+									</Text>
+									<Text style={{ color: "#BFDBFE", marginTop: 4 }}>
+										{wallet.accountName}
+									</Text>
+								</View>
+							)}
 						</View>
 
 						{/* Transactions Header */}
@@ -189,90 +200,41 @@ export default function WalletScreen() {
 				}
 			/>
 
-			{/* Top Up Modal */}
-			<Modal visible={showTopUp} animationType="slide" transparent>
+			{/* Create Wallet Modal */}
+			<Modal visible={showCreateWallet} animationType="slide" transparent>
 				<View style={styles.modalOverlay}>
 					<View style={styles.modalContent}>
 						<View style={styles.modalHandle} />
-						<Text style={styles.modalTitle}>Top Up Wallet</Text>
+						<Text style={styles.modalTitle}>Create Wallet</Text>
 
-						{/* Quick amounts */}
-						<View style={styles.quickAmountRow}>
-							{QUICK_AMOUNTS.map((amt) => (
-								<TouchableOpacity
-									key={amt}
-									style={[
-										styles.quickAmountBtn,
-										topUpAmount === String(amt) && styles.quickAmountBtnActive,
-									]}
-									onPress={() => setTopUpAmount(String(amt))}>
-									<Text
-										style={[
-											styles.quickAmountText,
-											topUpAmount === String(amt) &&
-												styles.quickAmountTextActive,
-										]}>
-										{amt >= 1000 ? `${amt / 1000}K` : amt}
-									</Text>
-								</TouchableOpacity>
-							))}
-						</View>
-
-						{/* Custom amount */}
-						<Text style={styles.inputLabel}>
-							Amount ({wallet?.currency || "NGN"})
-						</Text>
+						<Text style={styles.inputLabel}>NIN</Text>
 						<TextInput
 							style={styles.amountInput}
-							value={topUpAmount}
-							onChangeText={setTopUpAmount}
-							placeholder="Enter amount"
+							value={nin}
+							onChangeText={(value) => setNin(value.replace(/\D/g, ""))}
+							placeholder="Enter your 11-digit NIN"
 							placeholderTextColor="#9CA3AF"
 							keyboardType="number-pad"
+							maxLength={11}
 						/>
-
-						{/* Payment method */}
-						<Text style={styles.inputLabel}>Payment Method</Text>
-						<View style={styles.methodRow}>
-							{(["Card", "BankTransfer"] as const).map((m) => (
-								<TouchableOpacity
-									key={m}
-									style={[
-										styles.methodChip,
-										topUpMethod === m && styles.methodChipActive,
-									]}
-									onPress={() => setTopUpMethod(m)}>
-									<Text
-										style={[
-											styles.methodChipText,
-											topUpMethod === m && styles.methodChipTextActive,
-										]}>
-										{m === "Card" ? "💳 Card" : "🏦 Bank Transfer"}
-									</Text>
-								</TouchableOpacity>
-							))}
-						</View>
 
 						{/* Actions */}
 						<TouchableOpacity
 							style={[
 								styles.confirmBtn,
-								topUpMutation.isPending && { opacity: 0.6 },
+								createWalletMutation.isPending && { opacity: 0.6 },
 							]}
-							onPress={handleTopUp}
-							disabled={topUpMutation.isPending}>
-							{topUpMutation.isPending ? (
+							onPress={handleCreateWallet}
+							disabled={createWalletMutation.isPending}>
+							{createWalletMutation.isPending ? (
 								<ActivityIndicator color="#FFF" />
 							) : (
-								<Text style={styles.confirmBtnText}>
-									Top Up {wallet?.currency || "NGN"}{" "}
-									{parseFloat(topUpAmount || "0").toLocaleString()}
-								</Text>
+								<Text style={styles.confirmBtnText}>Create Wallet</Text>
 							)}
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.cancelBtn}
-							onPress={() => setShowTopUp(false)}>
+							onPress={() => setShowCreateWallet(false)}>
 							<Text style={styles.cancelBtnText}>Cancel</Text>
 						</TouchableOpacity>
 					</View>

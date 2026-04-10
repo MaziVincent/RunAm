@@ -13,6 +13,11 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         builder.Property(x => x.Balance).HasPrecision(18, 2);
         builder.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("NGN");
+        builder.Property(x => x.MonnifyAccountReference).HasMaxLength(100);
+        builder.Property(x => x.MonnifyAccountNumber).HasMaxLength(50);
+        builder.Property(x => x.MonnifyAccountName).HasMaxLength(200);
+        builder.Property(x => x.MonnifyBankName).HasMaxLength(100);
+        builder.Property(x => x.MonnifyBankCode).HasMaxLength(20);
 
         builder.HasOne(x => x.User)
             .WithOne()
@@ -20,6 +25,7 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(x => x.UserId).IsUnique();
+        builder.HasIndex(x => x.MonnifyAccountReference).IsUnique();
     }
 }
 
@@ -34,6 +40,7 @@ public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTra
         builder.Property(x => x.Amount).HasPrecision(18, 2);
         builder.Property(x => x.BalanceAfter).HasPrecision(18, 2);
         builder.Property(x => x.Source).HasConversion<int>();
+        builder.Property(x => x.ExternalReference).HasMaxLength(200);
         builder.Property(x => x.Description).HasMaxLength(500);
 
         builder.HasOne(x => x.Wallet)
@@ -43,5 +50,6 @@ public class WalletTransactionConfiguration : IEntityTypeConfiguration<WalletTra
 
         builder.HasIndex(x => new { x.WalletId, x.CreatedAt });
         builder.HasIndex(x => x.ReferenceId);
+        builder.HasIndex(x => x.ExternalReference).IsUnique();
     }
 }

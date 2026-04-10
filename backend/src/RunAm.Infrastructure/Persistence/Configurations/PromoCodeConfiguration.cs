@@ -33,6 +33,10 @@ public class RiderPayoutConfiguration : IEntityTypeConfiguration<RiderPayout>
         builder.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("NGN");
         builder.Property(x => x.Status).HasConversion<int>();
         builder.Property(x => x.PaymentReference).HasMaxLength(200);
+        builder.Property(x => x.DestinationBankCode).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.DestinationBankName).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.DestinationAccountNumber).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.DestinationAccountName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.FailureReason).HasMaxLength(500);
 
         builder.HasOne(x => x.Rider)

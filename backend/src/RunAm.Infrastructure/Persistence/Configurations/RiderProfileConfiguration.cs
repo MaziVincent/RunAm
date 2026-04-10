@@ -16,6 +16,10 @@ public class RiderProfileConfiguration : IEntityTypeConfiguration<RiderProfile>
         builder.HasIndex(r => r.IsOnline);
 
         builder.Property(r => r.LicensePlate).HasMaxLength(20);
+        builder.Property(r => r.SettlementBankCode).HasMaxLength(20).IsRequired();
+        builder.Property(r => r.SettlementBankName).HasMaxLength(100).IsRequired();
+        builder.Property(r => r.SettlementAccountNumber).HasMaxLength(20).IsRequired();
+        builder.Property(r => r.SettlementAccountName).HasMaxLength(200).IsRequired();
         builder.Property(r => r.IdDocumentUrl).HasMaxLength(500);
         builder.Property(r => r.SelfieUrl).HasMaxLength(500);
         builder.Property(r => r.BackgroundCheckStatus).HasMaxLength(50);

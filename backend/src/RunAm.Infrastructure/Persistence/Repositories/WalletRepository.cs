@@ -14,18 +14,15 @@ public class WalletRepository : IWalletRepository
         => await _db.Wallets
             .FirstOrDefaultAsync(w => w.UserId == userId, ct);
 
-    public async Task<Wallet> GetOrCreateAsync(Guid userId, CancellationToken ct = default)
-    {
-        var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
-        if (wallet is not null) return wallet;
-
-        wallet = new Wallet { UserId = userId };
-        await _db.Wallets.AddAsync(wallet, ct);
-        return wallet;
-    }
+    public async Task AddAsync(Wallet wallet, CancellationToken ct = default)
+        => await _db.Wallets.AddAsync(wallet, ct);
 
     public async Task AddTransactionAsync(WalletTransaction transaction, CancellationToken ct = default)
         => await _db.WalletTransactions.AddAsync(transaction, ct);
+
+    public async Task<WalletTransaction?> GetTransactionByExternalReferenceAsync(string externalReference, CancellationToken ct = default)
+        => await _db.WalletTransactions
+            .FirstOrDefaultAsync(t => t.ExternalReference == externalReference, ct);
 
     public async Task<IReadOnlyList<WalletTransaction>> GetTransactionsAsync(Guid walletId, int page, int pageSize, CancellationToken ct = default)
         => await _db.WalletTransactions

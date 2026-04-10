@@ -3,10 +3,13 @@ namespace RunAm.Domain.Interfaces;
 public interface IMonnifyService
 {
     /// <summary>Reserve a virtual account for a user's wallet top-ups.</summary>
-    Task<MonnifyReservedAccount> ReserveAccountAsync(Guid userId, string name, string email, CancellationToken ct = default);
+    Task<MonnifyReservedAccount> ReserveAccountAsync(Guid userId, string name, string email, string nin, CancellationToken ct = default);
 
     /// <summary>Initiate a single bank transfer (rider payout).</summary>
     Task<MonnifyTransferResult> InitiateTransferAsync(decimal amount, string bankCode, string accountNumber, string accountName, string reference, CancellationToken ct = default);
+
+    /// <summary>Get a single transfer status by merchant reference.</summary>
+    Task<MonnifyTransferStatus> GetTransferStatusAsync(string reference, CancellationToken ct = default);
 
     /// <summary>Verify a transaction by reference.</summary>
     Task<MonnifyTransactionStatus> VerifyTransactionAsync(string transactionReference, CancellationToken ct = default);
@@ -23,11 +26,21 @@ public record MonnifyReservedAccount(
 public record MonnifyTransferResult(
     bool Success,
     string? Reference,
+    string? Status,
+    string? Message
+);
+
+public record MonnifyTransferStatus(
+    bool Found,
+    string? Status,
+    string? TransactionReference,
     string? Message
 );
 
 public record MonnifyTransactionStatus(
     bool Paid,
     decimal Amount,
-    string? PaymentReference
+    string? PaymentReference,
+    string? TransactionReference,
+    string? AccountReference
 );

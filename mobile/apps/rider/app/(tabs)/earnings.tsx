@@ -10,23 +10,19 @@ import {
 	Alert,
 	TextInput,
 	Modal,
-	ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
 import {
 	getRiderEarnings,
 	getRiderWeeklyEarnings,
-	getRiderBankAccounts,
+	requestPayout,
 } from "@runam/shared/api/rider";
-import { getWallet, withdrawFromWallet } from "@runam/shared/api/wallet";
+import { getWallet } from "@runam/shared/api/wallet";
 import type {
 	RiderEarnings,
 	EarningTransaction,
 	WeeklyEarningsChart,
-	DailyEarning,
-	BankAccount,
 	Wallet,
 } from "@runam/shared/types";
 
@@ -34,9 +30,7 @@ export default function EarningsScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 	const [withdrawAmount, setWithdrawAmount] = useState("");
-	const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
 	const queryClient = useQueryClient();
-	const router = useRouter();
 
 	const {
 		data: earnings,
@@ -47,7 +41,7 @@ export default function EarningsScreen() {
 		queryFn: () => getRiderEarnings(),
 	});
 
-	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet>({
+	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet | null>({
 		queryKey: ["rider", "wallet"],
 		queryFn: () => getWallet(),
 	});
@@ -57,22 +51,11 @@ export default function EarningsScreen() {
 		queryFn: () => getRiderWeeklyEarnings(),
 	});
 
-	const { data: bankAccounts } = useQuery<BankAccount[]>({
-		queryKey: ["rider", "bank-accounts"],
-		queryFn: () => getRiderBankAccounts(),
-	});
-
 	const withdrawMutation = useMutation({
-		mutationFn: (params: {
-			amount: number;
-			bankCode: string;
-			accountNumber: string;
-			accountName: string;
-		}) => withdrawFromWallet(params),
+		mutationFn: (amount: number) => requestPayout(amount),
 		onSuccess: () => {
 			setShowWithdrawModal(false);
 			setWithdrawAmount("");
-			setSelectedBankId(null);
 			queryClient.invalidateQueries({ queryKey: ["rider", "wallet"] });
 			Alert.alert("Success", "Withdrawal request submitted");
 		},
@@ -91,21 +74,7 @@ export default function EarningsScreen() {
 			Alert.alert("Error", "Insufficient balance");
 			return;
 		}
-		if (!bankAccounts || bankAccounts.length === 0) {
-			Alert.alert("Error", "Add a bank account first");
-			return;
-		}
-		const selectedBank = bankAccounts.find((b) => b.id === selectedBankId);
-		if (!selectedBank) {
-			Alert.alert("Error", "Select a bank account");
-			return;
-		}
-		withdrawMutation.mutate({
-			amount,
-			bankCode: selectedBank.bankCode,
-			accountNumber: selectedBank.accountNumber,
-			accountName: selectedBank.accountName,
-		});
+		withdrawMutation.mutate(amount);
 	};
 
 	const onRefresh = useCallback(async () => {
@@ -173,20 +142,8 @@ export default function EarningsScreen() {
 								</View>
 								<View style={styles.walletActions}>
 									<TouchableOpacity
-										style={styles.bankBtn}
-										onPress={() => router.push("/bank-accounts" as never)}>
-										<Text style={styles.bankBtnText}>🏦 Banks</Text>
-									</TouchableOpacity>
-									<TouchableOpacity
 										style={styles.withdrawBtn}
-										onPress={() => {
-											// Pre-select default bank account
-											const defaultBank = bankAccounts?.find(
-												(b) => b.isDefault,
-											);
-											if (defaultBank) setSelectedBankId(defaultBank.id);
-											setShowWithdrawModal(true);
-										}}>
+										onPress={() => setShowWithdrawModal(true)}>
 										<Text style={styles.withdrawBtnText}>Withdraw</Text>
 									</TouchableOpacity>
 								</View>
@@ -312,6 +269,10 @@ export default function EarningsScreen() {
 							Available: {wallet?.currency || "NGN"}{" "}
 							{(wallet?.balance ?? 0).toLocaleString()}
 						</Text>
+						<Text style={styles.modalBalance}>
+							This payout will be sent to the bank account you provided during
+							onboarding.
+						</Text>
 
 						<TextInput
 							style={styles.modalInput}
@@ -321,55 +282,6 @@ export default function EarningsScreen() {
 							placeholderTextColor="#94A3B8"
 							keyboardType="numeric"
 						/>
-
-						{/* Bank Account Selection */}
-						{bankAccounts && bankAccounts.length > 0 && (
-							<View style={styles.bankSection}>
-								<Text style={styles.bankSectionTitle}>Send to</Text>
-								<ScrollView style={styles.bankList} nestedScrollEnabled>
-									{bankAccounts.map((bank) => (
-										<TouchableOpacity
-											key={bank.id}
-											style={[
-												styles.bankOption,
-												selectedBankId === bank.id && styles.bankOptionSelected,
-											]}
-											onPress={() => setSelectedBankId(bank.id)}>
-											<View style={styles.bankRadio}>
-												{selectedBankId === bank.id && (
-													<View style={styles.bankRadioFill} />
-												)}
-											</View>
-											<View style={styles.bankInfo}>
-												<Text style={styles.bankName}>{bank.bankName}</Text>
-												<Text style={styles.bankAcct}>
-													{bank.accountName} • ****
-													{bank.accountNumber.slice(-4)}
-												</Text>
-											</View>
-											{bank.isDefault && (
-												<View style={styles.defaultBadge}>
-													<Text style={styles.defaultBadgeText}>Default</Text>
-												</View>
-											)}
-										</TouchableOpacity>
-									))}
-								</ScrollView>
-							</View>
-						)}
-
-						{bankAccounts && bankAccounts.length === 0 && (
-							<TouchableOpacity
-								style={styles.addBankBtn}
-								onPress={() => {
-									setShowWithdrawModal(false);
-									router.push("/bank-accounts" as never);
-								}}>
-								<Text style={styles.addBankBtnText}>
-									+ Add a bank account first
-								</Text>
-							</TouchableOpacity>
-						)}
 
 						<View style={styles.modalActions}>
 							<TouchableOpacity
@@ -616,17 +528,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		gap: 8,
 	},
-	bankBtn: {
-		backgroundColor: "#334155",
-		borderRadius: 12,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
-	},
-	bankBtnText: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
 	withdrawBtn: {
 		backgroundColor: "#2F8F4E",
 		borderRadius: 12,
@@ -670,88 +571,6 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		color: "#1E293B",
 		marginBottom: 20,
-	},
-	// ── Bank selection in modal ──
-	bankSection: {
-		marginBottom: 20,
-	},
-	bankSectionTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#374151",
-		marginBottom: 10,
-	},
-	bankList: {
-		maxHeight: 180,
-	},
-	bankOption: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#F9FAFB",
-		borderRadius: 12,
-		padding: 14,
-		marginBottom: 8,
-		borderWidth: 1.5,
-		borderColor: "#E5E7EB",
-	},
-	bankOptionSelected: {
-		borderColor: "#2F8F4E",
-		backgroundColor: "#F0FDF4",
-	},
-	bankRadio: {
-		width: 20,
-		height: 20,
-		borderRadius: 10,
-		borderWidth: 2,
-		borderColor: "#D1D5DB",
-		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 12,
-	},
-	bankRadioFill: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-		backgroundColor: "#2F8F4E",
-	},
-	bankInfo: {
-		flex: 1,
-	},
-	bankName: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#111827",
-	},
-	bankAcct: {
-		fontSize: 12,
-		color: "#6B7280",
-		marginTop: 2,
-	},
-	defaultBadge: {
-		backgroundColor: "#DCFCE7",
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 8,
-	},
-	defaultBadgeText: {
-		fontSize: 10,
-		fontWeight: "600",
-		color: "#2F8F4E",
-	},
-	addBankBtn: {
-		backgroundColor: "#F1F5F9",
-		borderRadius: 12,
-		padding: 16,
-		alignItems: "center",
-		marginBottom: 20,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderStyle: "dashed",
-	},
-	addBankBtnText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#2F8F4E",
 	},
 	modalActions: {
 		flexDirection: "row",

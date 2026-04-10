@@ -20,7 +20,12 @@ public record RiderProfileDto(
 
 public record CreateRiderProfileRequest(
     VehicleType VehicleType,
-    string? LicensePlate
+    string? LicensePlate,
+    string Nin,
+    string SettlementBankCode,
+    string SettlementBankName,
+    string SettlementAccountNumber,
+    string SettlementAccountName
 );
 
 public record UpdateRiderLocationRequest(

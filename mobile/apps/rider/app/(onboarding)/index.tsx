@@ -25,6 +25,11 @@ export default function RiderOnboardingScreen() {
 	const router = useRouter();
 	const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
 	const [licensePlate, setLicensePlate] = useState("");
+	const [nin, setNin] = useState("");
+	const [settlementBankName, setSettlementBankName] = useState("");
+	const [settlementBankCode, setSettlementBankCode] = useState("");
+	const [settlementAccountNumber, setSettlementAccountNumber] = useState("");
+	const [settlementAccountName, setSettlementAccountName] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handleSubmit = async () => {
@@ -38,12 +43,32 @@ export default function RiderOnboardingScreen() {
 			return;
 		}
 
+		if (nin.replace(/\D/g, "").length !== 11) {
+			Alert.alert("Error", "Please enter a valid 11-digit NIN.");
+			return;
+		}
+
+		if (
+			!settlementBankName.trim() ||
+			!settlementBankCode.trim() ||
+			!settlementAccountNumber.trim() ||
+			!settlementAccountName.trim()
+		) {
+			Alert.alert("Error", "Please enter your settlement bank details.");
+			return;
+		}
+
 		setIsLoading(true);
 		try {
 			const body: RiderOnboardingRequest = {
 				vehicleType,
 				licensePlate: licensePlate.trim() || undefined,
-				documentUrls: [], // TODO: Implement document upload
+				nin: nin.replace(/\D/g, ""),
+				settlementBankCode: settlementBankCode.trim(),
+				settlementBankName: settlementBankName.trim(),
+				settlementAccountNumber: settlementAccountNumber.trim(),
+				settlementAccountName: settlementAccountName.trim(),
+				documentUrls: [],
 			};
 
 			await onboardRider(body);
@@ -109,6 +134,50 @@ export default function RiderOnboardingScreen() {
 						/>
 					</>
 				)}
+
+				<Text style={styles.sectionLabel}>NIN</Text>
+				<TextInput
+					style={styles.input}
+					placeholder="11-digit NIN"
+					placeholderTextColor="#9CA3AF"
+					value={nin}
+					onChangeText={(value) => setNin(value.replace(/\D/g, ""))}
+					keyboardType="number-pad"
+					maxLength={11}
+				/>
+
+				<Text style={styles.sectionLabel}>Settlement Account</Text>
+				<TextInput
+					style={styles.input}
+					placeholder="Bank name"
+					placeholderTextColor="#9CA3AF"
+					value={settlementBankName}
+					onChangeText={setSettlementBankName}
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="Bank code"
+					placeholderTextColor="#9CA3AF"
+					value={settlementBankCode}
+					onChangeText={setSettlementBankCode}
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="Account number"
+					placeholderTextColor="#9CA3AF"
+					value={settlementAccountNumber}
+					onChangeText={(value) =>
+						setSettlementAccountNumber(value.replace(/\D/g, ""))
+					}
+					keyboardType="number-pad"
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="Account name"
+					placeholderTextColor="#9CA3AF"
+					value={settlementAccountName}
+					onChangeText={setSettlementAccountName}
+				/>
 
 				{/* Document Upload Placeholder */}
 				<Text style={styles.sectionLabel}>Required Documents</Text>

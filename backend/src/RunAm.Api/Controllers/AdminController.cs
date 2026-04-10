@@ -26,12 +26,18 @@ public class AdminController : BaseApiController
     private readonly IMediator _mediator;
     private readonly IRiderRepository _riderRepo;
     private readonly IErrandRepository _errandRepo;
+    private readonly IRiderPayoutRepository _payoutRepo;
 
-    public AdminController(IMediator mediator, IRiderRepository riderRepo, IErrandRepository errandRepo)
+    public AdminController(
+        IMediator mediator,
+        IRiderRepository riderRepo,
+        IErrandRepository errandRepo,
+        IRiderPayoutRepository payoutRepo)
     {
         _mediator = mediator;
         _riderRepo = riderRepo;
         _errandRepo = errandRepo;
+        _payoutRepo = payoutRepo;
     }
 
     /// <summary>Get pending rider approvals</summary>
@@ -101,13 +107,27 @@ public class AdminController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RiderPayoutDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPendingPayouts()
     {
-        // Workaround: get payouts for all riders via pending list
-        var (payouts, totalCount) = await _mediator.Send(new GetRiderPayoutsQuery(Guid.Empty, 1, 100));
-        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(payouts, new PaginationMeta
+        var payouts = await _payoutRepo.GetOutstandingAsync();
+        var dtos = payouts.Select(p => new RiderPayoutDto(
+            p.Id,
+            p.Amount,
+            p.Currency,
+            p.Status,
+            p.PaymentReference,
+            p.DestinationBankName,
+            p.DestinationAccountNumber,
+            p.FailureReason,
+            p.ProcessedAt,
+            p.PeriodStart,
+            p.PeriodEnd,
+            p.ErrandCount,
+            p.CreatedAt)).ToList();
+
+        return Ok(ApiResponse<IReadOnlyList<RiderPayoutDto>>.Ok(dtos, new PaginationMeta
         {
             Page = 1,
             PageSize = 100,
-            TotalCount = totalCount
+            TotalCount = dtos.Count
         }));
     }
 

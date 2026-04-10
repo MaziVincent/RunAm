@@ -20,6 +20,10 @@ public class PaymentRepository : IPaymentRepository
             .OrderByDescending(p => p.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<Payment?> GetByPaymentGatewayRefAsync(string paymentGatewayRef, CancellationToken ct = default)
+        => await _db.Payments
+            .FirstOrDefaultAsync(p => p.PaymentGatewayRef == paymentGatewayRef, ct);
+
     public async Task AddAsync(Payment payment, CancellationToken ct = default)
         => await _db.Payments.AddAsync(payment, ct);
 
@@ -71,6 +75,12 @@ public class RiderPayoutRepository : IRiderPayoutRepository
 
     public RiderPayoutRepository(AppDbContext db) => _db = db;
 
+    public async Task<RiderPayout?> GetByIdAsync(Guid payoutId, CancellationToken ct = default)
+        => await _db.RiderPayouts
+            .Include(p => p.Rider)
+            .ThenInclude(r => r.RiderProfile)
+            .FirstOrDefaultAsync(p => p.Id == payoutId, ct);
+
     public async Task<IReadOnlyList<RiderPayout>> GetByRiderIdAsync(Guid riderId, int page, int pageSize, CancellationToken ct = default)
         => await _db.RiderPayouts
             .Where(p => p.RiderId == riderId)
@@ -85,7 +95,16 @@ public class RiderPayoutRepository : IRiderPayoutRepository
     public async Task<IReadOnlyList<RiderPayout>> GetPendingAsync(CancellationToken ct = default)
         => await _db.RiderPayouts
             .Include(p => p.Rider)
+            .ThenInclude(r => r.RiderProfile)
             .Where(p => p.Status == PayoutStatus.Pending)
+            .OrderBy(p => p.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<RiderPayout>> GetOutstandingAsync(CancellationToken ct = default)
+        => await _db.RiderPayouts
+            .Include(p => p.Rider)
+            .ThenInclude(r => r.RiderProfile)
+            .Where(p => p.Status == PayoutStatus.Pending || p.Status == PayoutStatus.Processing)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(ct);
 

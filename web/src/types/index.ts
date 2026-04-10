@@ -344,6 +344,13 @@ export interface WalletDto {
 	id: string;
 	balance: number;
 	currency: string;
+	isActive: boolean;
+	accountReference: string | null;
+	accountNumber: string | null;
+	accountName: string | null;
+	bankName: string | null;
+	bankCode: string | null;
+	activatedAt: string | null;
 }
 
 export interface WalletTransactionDto {
@@ -353,6 +360,7 @@ export interface WalletTransactionDto {
 	balanceAfter: number;
 	source: TransactionSource;
 	referenceId: string | null;
+	externalReference: string | null;
 	description: string | null;
 	createdAt: string;
 }
@@ -371,12 +379,21 @@ export interface PromoCodeDto {
 	createdAt: string;
 }
 
+export interface PromoCodeValidationResult {
+	isValid: boolean;
+	message: string | null;
+	discountAmount: number;
+	promoCode: PromoCodeDto | null;
+}
+
 export interface RiderPayoutDto {
 	id: string;
 	amount: number;
 	currency: string;
 	status: PayoutStatus;
 	paymentReference: string | null;
+	destinationBankName: string;
+	destinationAccountNumber: string;
 	failureReason: string | null;
 	processedAt: string | null;
 	periodStart: string;

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type {
+	ApiResponse,
 	RiderProfileDto,
 	RiderPayoutDto,
 	ErrandDto,
@@ -9,6 +10,14 @@ import type {
 	WalletTransactionDto,
 } from "@/types";
 import { VehicleType, ErrandStatus } from "@/types";
+
+function ensureSuccess<T>(response: ApiResponse<T>): ApiResponse<T> {
+	if (!response.success) {
+		throw new Error(response.error?.message || "Request failed.");
+	}
+
+	return response;
+}
 
 // ── Rider Profile ──────────────────────────────────────
 
@@ -23,8 +32,16 @@ export function useRiderProfile() {
 export function useCreateRiderProfile() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { vehicleType: VehicleType; licensePlate?: string }) =>
-			api.post<RiderProfileDto>("/rider/profile", data),
+		mutationFn: async (data: {
+			vehicleType: VehicleType;
+			licensePlate?: string;
+			nin: string;
+			settlementBankCode: string;
+			settlementBankName: string;
+			settlementAccountNumber: string;
+			settlementAccountName: string;
+		}) =>
+			ensureSuccess(await api.post<RiderProfileDto>("/rider/profile", data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider-profile"] });
 		},
@@ -122,7 +139,7 @@ export interface RiderEarnings {
 	todayEarnings: number;
 	weekEarnings: number;
 	monthEarnings: number;
-	allTimeEarnings: number;
+	totalEarnings: number;
 	pendingPayout: number;
 	dailyEarnings: { date: string; amount: number; taskCount: number }[];
 }
@@ -159,7 +176,7 @@ export function useRiderPerformance() {
 export function useRiderWallet() {
 	return useQuery({
 		queryKey: ["rider-wallet"],
-		queryFn: () => api.get<WalletDto>("/payments/wallet"),
+		queryFn: () => api.get<WalletDto | null>("/payments/wallet"),
 	});
 }
 
@@ -190,7 +207,10 @@ export function useRiderPayouts(page: number = 1) {
 export function useRequestPayout() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: () => api.post<RiderPayoutDto>("/payments/payouts"),
+		mutationFn: async (amount: number) =>
+			ensureSuccess(
+				await api.post<RiderPayoutDto>("/payments/payouts", { amount }),
+			),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider-payouts"] });
 			queryClient.invalidateQueries({ queryKey: ["rider-wallet"] });

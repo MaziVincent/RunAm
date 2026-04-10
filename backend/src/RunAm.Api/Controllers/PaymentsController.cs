@@ -26,11 +26,20 @@ public class PaymentsController : BaseApiController
 
     /// <summary>Get current user's wallet</summary>
     [HttpGet("wallet")]
-    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<WalletDto?>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWallet()
     {
         var result = await _mediator.Send(new GetWalletQuery(GetUserId()));
-        return Ok(ApiResponse<WalletDto>.Ok(result));
+        return Ok(ApiResponse<WalletDto?>.Ok(result));
+    }
+
+    /// <summary>Create the current user's Monnify wallet</summary>
+    [HttpPost("wallet")]
+    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateWallet([FromBody] CreateWalletRequest request)
+    {
+        var result = await _mediator.Send(new CreateWalletCommand(GetUserId(), request));
+        return Created("", ApiResponse<WalletDto>.Ok(result));
     }
 
     /// <summary>Get wallet transactions</summary>
@@ -49,20 +58,22 @@ public class PaymentsController : BaseApiController
 
     /// <summary>Top up wallet</summary>
     [HttpPost("wallet/topup")]
-    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> TopUp([FromBody] TopUpWalletRequest request)
+    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status400BadRequest)]
+    public IActionResult TopUp([FromBody] TopUpWalletRequest request)
     {
-        var result = await _mediator.Send(new TopUpWalletCommand(GetUserId(), request));
-        return Ok(ApiResponse<WalletDto>.Ok(result));
+        return BadRequest(ApiResponse<WalletDto>.Fail(
+            "Fund your wallet by transferring to your reserved Monnify account from the dashboard.",
+            "WALLET_FUNDING_VIA_TRANSFER"));
     }
 
     /// <summary>Withdraw from wallet</summary>
     [HttpPost("wallet/withdraw")]
-    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Withdraw([FromBody] WithdrawRequest request)
+    [ProducesResponseType(typeof(ApiResponse<WalletDto>), StatusCodes.Status400BadRequest)]
+    public IActionResult Withdraw([FromBody] WithdrawRequest request)
     {
-        var result = await _mediator.Send(new WithdrawCommand(GetUserId(), request));
-        return Ok(ApiResponse<WalletDto>.Ok(result));
+        return BadRequest(ApiResponse<WalletDto>.Fail(
+            "Direct wallet withdrawals are disabled. Rider withdrawals are processed through payouts, and customer wallets are funding-only.",
+            "DIRECT_WALLET_WITHDRAWAL_DISABLED"));
     }
 
     // ── Payments ────────────────────────────────
@@ -147,10 +158,9 @@ public class PaymentsController : BaseApiController
     [HttpPost("payouts")]
     [Authorize(Roles = "Rider")]
     [ProducesResponseType(typeof(ApiResponse<RiderPayoutDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> RequestPayout()
+    public async Task<IActionResult> RequestPayout([FromBody] CreateRiderPayoutRequest request)
     {
-        var now = DateTime.UtcNow;
-        var result = await _mediator.Send(new CreateRiderPayoutCommand(GetUserId(), now.AddDays(-7), now));
+        var result = await _mediator.Send(new CreateRiderPayoutCommand(GetUserId(), request));
         return Created("", ApiResponse<RiderPayoutDto>.Ok(result));
     }
 
@@ -158,12 +168,12 @@ public class PaymentsController : BaseApiController
 
     /// <summary>Get or create a reserved virtual account for wallet top-up</summary>
     [HttpPost("wallet/reserve-account")]
-    [ProducesResponseType(typeof(ApiResponse<MonnifyReservedAccount>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ReserveAccount([FromBody] ReserveAccountRequest request)
+    [ProducesResponseType(typeof(ApiResponse<MonnifyReservedAccount>), StatusCodes.Status400BadRequest)]
+    public IActionResult ReserveAccount([FromBody] ReserveAccountRequest request)
     {
-        var account = await _monnify.ReserveAccountAsync(
-            GetUserId(), request.AccountName, request.Email);
-        return Ok(ApiResponse<MonnifyReservedAccount>.Ok(account));
+        return BadRequest(ApiResponse<MonnifyReservedAccount>.Fail(
+            "Create your wallet with NIN first, then use the returned reserved account details for funding.",
+            "CREATE_WALLET_REQUIRED"));
     }
 
     /// <summary>Verify a Monnify transaction</summary>

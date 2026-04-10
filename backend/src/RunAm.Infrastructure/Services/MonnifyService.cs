@@ -70,12 +70,12 @@ public class MonnifyService : IMonnifyService
 
     // ── Reserve Virtual Account ─────────────────────────
 
-    public async Task<MonnifyReservedAccount> ReserveAccountAsync(Guid userId, string name, string email, CancellationToken ct)
+    public async Task<MonnifyReservedAccount> ReserveAccountAsync(Guid userId, string name, string email, string nin, CancellationToken ct)
     {
         var contractCode = _config["Monnify:ContractCode"]
             ?? throw new InvalidOperationException("Monnify:ContractCode is not configured.");
 
-        var accountReference = $"RUNAM-{userId:N}";
+        var accountReference = $"RUNAM-{userId}";
 
         var body = new
         {
@@ -85,6 +85,7 @@ public class MonnifyService : IMonnifyService
             contractCode,
             customerEmail = email,
             customerName = name,
+            nin,
             getAllAvailableBanks = false,
             preferredBanks = new[] { "035" } // Wema Bank — commonly used for reserved accounts
         };
@@ -119,6 +120,9 @@ public class MonnifyService : IMonnifyService
     public async Task<MonnifyTransferResult> InitiateTransferAsync(
         decimal amount, string bankCode, string accountNumber, string accountName, string reference, CancellationToken ct)
     {
+        var sourceAccountNumber = _config["Monnify:SourceAccountNumber"]
+            ?? throw new InvalidOperationException("Monnify:SourceAccountNumber is not configured.");
+
         var body = new
         {
             amount,
@@ -126,9 +130,10 @@ public class MonnifyService : IMonnifyService
             narration = $"RunAm payout - {reference}",
             destinationBankCode = bankCode,
             destinationAccountNumber = accountNumber,
+            destinationAccountName = accountName,
             currency = "NGN",
-            sourceAccountNumber = _config["Monnify:SourceAccountNumber"]
-                ?? throw new InvalidOperationException("Monnify:SourceAccountNumber is not configured.")
+            sourceAccountNumber,
+            async = true
         };
 
         var request = await CreateAuthedRequestAsync(HttpMethod.Post, "/api/v2/disbursements/single", ct);
@@ -140,14 +145,45 @@ public class MonnifyService : IMonnifyService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Monnify transfer failed: {StatusCode} {Content}", response.StatusCode, content);
-            return new MonnifyTransferResult(false, null, content);
+            return new MonnifyTransferResult(false, null, null, content);
         }
 
         var result = JsonSerializer.Deserialize<MonnifyApiResponse<MonnifyTransferData>>(content, JsonOpts);
+        var status = result?.ResponseBody?.Status;
+
         return new MonnifyTransferResult(
-            result?.ResponseBody?.Status == "SUCCESS",
+            status == "SUCCESS" || status == "PENDING" || status == "PENDING_AUTHORIZATION",
             result?.ResponseBody?.Reference,
-            result?.ResponseBody?.Status
+            status,
+            result?.ResponseMessage
+        );
+    }
+
+    public async Task<MonnifyTransferStatus> GetTransferStatusAsync(string reference, CancellationToken ct)
+    {
+        var encodedRef = Uri.EscapeDataString(reference);
+        var request = await CreateAuthedRequestAsync(HttpMethod.Get, $"/api/v2/disbursements/single/summary?reference={encodedRef}", ct);
+
+        var response = await _http.SendAsync(request, ct);
+        var content = await response.Content.ReadAsStringAsync(ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return new MonnifyTransferStatus(false, null, null, "Transfer not found.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Monnify transfer status lookup failed: {StatusCode} {Content}", response.StatusCode, content);
+            return new MonnifyTransferStatus(false, null, null, content);
+        }
+
+        var result = JsonSerializer.Deserialize<MonnifyApiResponse<MonnifyTransferSummaryData>>(content, JsonOpts);
+        return new MonnifyTransferStatus(
+            true,
+            result?.ResponseBody?.Status,
+            result?.ResponseBody?.TransactionReference,
+            result?.ResponseBody?.TransactionDescription
         );
     }
 
@@ -164,7 +200,7 @@ public class MonnifyService : IMonnifyService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("Monnify transaction verify failed: {StatusCode}", response.StatusCode);
-            return new MonnifyTransactionStatus(false, 0, null);
+            return new MonnifyTransactionStatus(false, 0, null, null, null);
         }
 
         var result = JsonSerializer.Deserialize<MonnifyApiResponse<MonnifyTransactionData>>(content, JsonOpts);
@@ -173,7 +209,9 @@ public class MonnifyService : IMonnifyService
         return new MonnifyTransactionStatus(
             body?.PaymentStatus == "PAID",
             body?.AmountPaid ?? 0,
-            body?.PaymentReference
+            body?.PaymentReference,
+            body?.TransactionReference ?? transactionReference,
+            body?.Product?.Reference
         );
     }
 
@@ -184,5 +222,12 @@ public class MonnifyService : IMonnifyService
     private record MonnifyReserveAccountData(List<MonnifyAccountInfo>? Accounts);
     private record MonnifyAccountInfo(string AccountNumber, string AccountName, string BankName, string BankCode);
     private record MonnifyTransferData(string? Reference, string? Status);
-    private record MonnifyTransactionData(string? PaymentStatus, decimal AmountPaid, string? PaymentReference);
+    private record MonnifyTransferSummaryData(string? Status, string? TransactionReference, string? TransactionDescription);
+    private record MonnifyTransactionData(
+        string? PaymentStatus,
+        decimal AmountPaid,
+        string? PaymentReference,
+        string? TransactionReference,
+        MonnifyTransactionProductData? Product);
+    private record MonnifyTransactionProductData(string? Reference);
 }

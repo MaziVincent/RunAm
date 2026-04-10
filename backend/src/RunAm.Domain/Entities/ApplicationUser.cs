@@ -7,6 +7,7 @@ public class ApplicationUser : IdentityUser<Guid>
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+    public string? Nin { get; set; }
     public string? ProfileImageUrl { get; set; }
     public UserRole Role { get; set; } = UserRole.Customer;
     public UserStatus Status { get; set; } = UserStatus.PendingVerification;

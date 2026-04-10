@@ -18,6 +18,9 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
     private readonly IVendorRepository _vendorRepo;
     private readonly IProductRepository _productRepo;
     private readonly IOrderItemRepository _orderItemRepo;
+    private readonly IPromoCodeRepository _promoRepo;
+    private readonly IWalletRepository _walletRepo;
+    private readonly IPaymentRepository _paymentRepo;
     private readonly IUnitOfWork _uow;
 
     public CreateMarketplaceOrderCommandHandler(
@@ -25,12 +28,18 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         IVendorRepository vendorRepo,
         IProductRepository productRepo,
         IOrderItemRepository orderItemRepo,
+        IPromoCodeRepository promoRepo,
+        IWalletRepository walletRepo,
+        IPaymentRepository paymentRepo,
         IUnitOfWork uow)
     {
         _errandRepo = errandRepo;
         _vendorRepo = vendorRepo;
         _productRepo = productRepo;
         _orderItemRepo = orderItemRepo;
+        _promoRepo = promoRepo;
+        _walletRepo = walletRepo;
+        _paymentRepo = paymentRepo;
         _uow = uow;
     }
 
@@ -127,7 +136,24 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
             vendor.Latitude, vendor.Longitude,
             req.DropoffLatitude, req.DropoffLongitude);
         var deliveryFee = vendor.DeliveryFee > 0 ? vendor.DeliveryFee : (decimal)distanceKm * AppConstants.Pricing.PerKmRate + AppConstants.Pricing.BaseFare;
-        var totalAmount = itemsTotal + deliveryFee;
+        var preDiscountTotal = itemsTotal + deliveryFee;
+        var discountAmount = 0m;
+
+        PromoCode? promoCode = null;
+        if (!string.IsNullOrWhiteSpace(req.PromoCode))
+        {
+            promoCode = await _promoRepo.GetByCodeAsync(req.PromoCode, cancellationToken)
+                ?? throw new DomainException("Promo code not found.");
+
+            if (!promoCode.IsValid())
+                throw new DomainException("Promo code is expired or has reached its usage limit.");
+
+            discountAmount = promoCode.CalculateDiscount(preDiscountTotal);
+            if (discountAmount <= 0)
+                throw new DomainException("Promo code is not valid for this order.");
+        }
+
+        var totalAmount = preDiscountTotal - discountAmount;
         var commission = totalAmount * AppConstants.Pricing.CommissionRate;
 
         var errand = new Errand
@@ -165,8 +191,54 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         foreach (var oi in orderItems)
             oi.ErrandId = errand.Id;
 
+        var payment = new Payment
+        {
+            ErrandId = errand.Id,
+            PayerId = command.CustomerId,
+            Amount = totalAmount,
+            PaymentMethod = req.PaymentMethod,
+            Status = PaymentStatus.Pending
+        };
+
+        if (req.PaymentMethod == PaymentMethod.Wallet)
+        {
+            var wallet = await _walletRepo.GetByUserIdAsync(command.CustomerId, cancellationToken)
+                ?? throw new NotFoundException("Wallet", command.CustomerId);
+
+            if (!wallet.IsActive)
+                throw new DomainException("Create your wallet from the dashboard before paying with wallet.");
+
+            wallet.Debit(totalAmount);
+            await _walletRepo.UpdateAsync(wallet, cancellationToken);
+
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = wallet.Id,
+                Type = TransactionType.Debit,
+                Amount = totalAmount,
+                BalanceAfter = wallet.Balance,
+                Source = TransactionSource.ErrandPayment,
+                ReferenceId = errand.Id,
+                Description = $"Marketplace order payment #{errand.Id.ToString()[..8]}"
+            }, cancellationToken);
+
+            payment.Status = PaymentStatus.Completed;
+        }
+        else if (req.PaymentMethod != PaymentMethod.Cash)
+        {
+            throw new DomainException("Marketplace checkout currently supports wallet or cash on delivery.");
+        }
+
         await _errandRepo.AddAsync(errand, cancellationToken);
         await _orderItemRepo.AddRangeAsync(orderItems, cancellationToken);
+        await _paymentRepo.AddAsync(payment, cancellationToken);
+
+        if (promoCode is not null)
+        {
+            promoCode.UsedCount += 1;
+            await _promoRepo.UpdateAsync(promoCode, cancellationToken);
+        }
+
         await _uow.SaveChangesAsync(cancellationToken);
 
         return MapToDto(errand);

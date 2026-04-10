@@ -1,10 +1,19 @@
 import apiClient, { type PaginatedResult } from "./client";
-import type { Wallet, WalletTransaction, TopUpRequest } from "../types";
+import type {
+	CreateWalletRequest,
+	Wallet,
+	WalletTransaction,
+	TopUpRequest,
+} from "../types";
 
 // ── Get Wallet ───────────────────────────────────────────────
 
-export function getWallet(): Promise<Wallet> {
-	return apiClient.get<Wallet>("/payments/wallet");
+export function getWallet(): Promise<Wallet | null> {
+	return apiClient.get<Wallet | null>("/payments/wallet");
+}
+
+export function createWallet(data: CreateWalletRequest): Promise<Wallet> {
+	return apiClient.post<Wallet>("/payments/wallet", data);
 }
 
 // ── Get Transactions ─────────────────────────────────────────

@@ -6,6 +6,7 @@ public interface IPaymentRepository
 {
     Task<Payment?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Payment?> GetByErrandIdAsync(Guid errandId, CancellationToken ct = default);
+    Task<Payment?> GetByPaymentGatewayRefAsync(string paymentGatewayRef, CancellationToken ct = default);
     Task AddAsync(Payment payment, CancellationToken ct = default);
     Task UpdateAsync(Payment payment, CancellationToken ct = default);
 }
@@ -22,9 +23,11 @@ public interface IPromoCodeRepository
 
 public interface IRiderPayoutRepository
 {
+    Task<RiderPayout?> GetByIdAsync(Guid payoutId, CancellationToken ct = default);
     Task<IReadOnlyList<RiderPayout>> GetByRiderIdAsync(Guid riderId, int page, int pageSize, CancellationToken ct = default);
     Task<int> GetCountByRiderIdAsync(Guid riderId, CancellationToken ct = default);
     Task<IReadOnlyList<RiderPayout>> GetPendingAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<RiderPayout>> GetOutstandingAsync(CancellationToken ct = default);
     Task AddAsync(RiderPayout payout, CancellationToken ct = default);
     Task UpdateAsync(RiderPayout payout, CancellationToken ct = default);
 }

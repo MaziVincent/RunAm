@@ -10,6 +10,7 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
     {
         builder.Property(u => u.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(u => u.LastName).HasMaxLength(100).IsRequired();
+        builder.Property(u => u.Nin).HasMaxLength(20);
         builder.Property(u => u.ProfileImageUrl).HasMaxLength(500);
         builder.Property(u => u.RefreshToken).HasMaxLength(500);
 

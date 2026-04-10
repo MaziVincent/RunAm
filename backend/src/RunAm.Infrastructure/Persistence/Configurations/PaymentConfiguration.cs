@@ -28,6 +28,6 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.ErrandId);
-        builder.HasIndex(x => x.PaymentGatewayRef);
+        builder.HasIndex(x => x.PaymentGatewayRef).IsUnique();
     }
 }

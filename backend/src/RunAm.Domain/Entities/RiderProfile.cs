@@ -7,6 +7,10 @@ public class RiderProfile : BaseEntity
     public Guid UserId { get; set; }
     public VehicleType VehicleType { get; set; } = VehicleType.OnFoot;
     public string? LicensePlate { get; set; }
+    public string SettlementBankCode { get; set; } = string.Empty;
+    public string SettlementBankName { get; set; } = string.Empty;
+    public string SettlementAccountNumber { get; set; } = string.Empty;
+    public string SettlementAccountName { get; set; } = string.Empty;
     public string? IdDocumentUrl { get; set; }
     public string? SelfieUrl { get; set; }
     public string? BackgroundCheckStatus { get; set; }

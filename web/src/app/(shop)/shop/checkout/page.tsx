@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -36,6 +36,7 @@ import {
 	useVendorDetail,
 	usePlaceOrder,
 	useDeliveryEstimate,
+	useValidatePromoCode,
 } from "@/lib/hooks";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -129,18 +130,6 @@ const PAYMENT_OPTIONS = [
 		color: "text-primary",
 	},
 	{
-		value: PaymentMethod.Card,
-		label: "Card",
-		icon: CreditCard,
-		color: "text-blue-500",
-	},
-	{
-		value: PaymentMethod.MobileMoney,
-		label: "Mobile Money",
-		icon: Smartphone,
-		color: "text-purple-500",
-	},
-	{
 		value: PaymentMethod.Cash,
 		label: "Cash on Delivery",
 		icon: Banknote,
@@ -152,17 +141,20 @@ function PaymentSelector({
 	selected,
 	onSelect,
 	walletBalance,
+	walletReady,
 	total,
 }: {
 	selected: PaymentMethod;
 	onSelect: (m: PaymentMethod) => void;
 	walletBalance: number | null;
+	walletReady: boolean;
 	total: number;
 }) {
 	const insufficientBalance =
 		selected === PaymentMethod.Wallet &&
 		walletBalance !== null &&
 		walletBalance < total;
+	const missingWallet = selected === PaymentMethod.Wallet && !walletReady;
 
 	return (
 		<div className="space-y-2">
@@ -189,6 +181,15 @@ function PaymentSelector({
 					</label>
 				))}
 			</RadioGroup>
+
+			{missingWallet && (
+				<div className="flex items-center gap-2 rounded-md bg-amber-100 p-3 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+					<AlertCircle className="h-4 w-4 shrink-0" />
+					<p>
+						Create your wallet from the dashboard before using wallet payment.
+					</p>
+				</div>
+			)}
 
 			{insufficientBalance && (
 				<div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-xs text-destructive">
@@ -275,7 +276,8 @@ export default function CheckoutPage() {
 
 	// Wallet balance
 	const { data: walletData } = useWallet();
-	const walletBalance = walletData?.data?.balance ?? null;
+	const wallet = walletData?.data ?? null;
+	const walletBalance = wallet?.balance ?? null;
 
 	// State
 	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
@@ -284,7 +286,10 @@ export default function CheckoutPage() {
 	const [paymentMethod, setPaymentMethod] = useState(PaymentMethod.Wallet);
 	const [specialInstructions, setSpecialInstructions] = useState("");
 	const [promoCode, setPromoCode] = useState("");
-	const [promoApplied, setPromoApplied] = useState(false);
+	const [appliedPromo, setAppliedPromo] = useState<{
+		code: string;
+		discountAmount: number;
+	} | null>(null);
 	const [isScheduled, setIsScheduled] = useState(false);
 
 	// Get the selected address
@@ -304,15 +309,21 @@ export default function CheckoutPage() {
 
 	// Pricing
 	const deliveryFee = estimateData?.data?.estimatedPrice ?? 500;
-	const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
+	const discount = appliedPromo?.discountAmount ?? 0;
 	const total = subtotal + deliveryFee - discount;
 
 	// Place order mutation
 	const placeOrder = usePlaceOrder();
+	const validatePromo = useValidatePromoCode();
+
+	useEffect(() => {
+		setAppliedPromo(null);
+	}, [subtotal, deliveryFee, selectedAddressId]);
 
 	const canPlaceOrder =
 		selectedAddressId &&
 		itemCount > 0 &&
+		!(paymentMethod === PaymentMethod.Wallet && !wallet?.isActive) &&
 		!(
 			paymentMethod === PaymentMethod.Wallet &&
 			walletBalance !== null &&
@@ -326,21 +337,17 @@ export default function CheckoutPage() {
 		try {
 			const result = await placeOrder.mutateAsync({
 				vendorId: vendor.id,
-				pickupAddress: vendor.address,
-				pickupLatitude: vendor.latitude,
-				pickupLongitude: vendor.longitude,
 				dropoffAddress: selectedAddress.address,
 				dropoffLatitude: selectedAddress.latitude,
 				dropoffLongitude: selectedAddress.longitude,
-				priority: "Standard",
-				scheduledFor: null,
-				notes: specialInstructions.trim(),
+				recipientName: null,
+				recipientPhone: null,
+				specialInstructions: specialInstructions.trim() || null,
 				paymentMethod: paymentMethod,
-				promoCode: promoApplied ? promoCode : null,
-				orderItems: items.map((item) => ({
+				promoCode: appliedPromo?.code ?? null,
+				items: items.map((item) => ({
 					productId: item.productId,
 					quantity: item.quantity,
-					unitPrice: item.unitPrice,
 					notes: item.notes || null,
 					selectedVariantJson: item.variant
 						? JSON.stringify(item.variant)
@@ -472,6 +479,7 @@ export default function CheckoutPage() {
 							selected={paymentMethod}
 							onSelect={setPaymentMethod}
 							walletBalance={walletBalance}
+							walletReady={!!wallet?.isActive}
 							total={total}
 						/>
 					</CardContent>
@@ -490,16 +498,44 @@ export default function CheckoutPage() {
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => {
-									if (promoCode.trim()) setPromoApplied(true);
+								onClick={async () => {
+									try {
+										const response = await validatePromo.mutateAsync({
+											code: promoCode.trim(),
+											orderAmount: subtotal + deliveryFee,
+										});
+
+										if (!response.data?.isValid) {
+											toast.error(
+												response.data?.message || "Promo code is not valid.",
+											);
+											setAppliedPromo(null);
+											return;
+										}
+
+										setAppliedPromo({
+											code: promoCode.trim(),
+											discountAmount: response.data.discountAmount,
+										});
+										toast.success("Promo code applied.");
+									} catch (error: any) {
+										setAppliedPromo(null);
+										toast.error(
+											error?.message || "Failed to validate promo code.",
+										);
+									}
 								}}
-								disabled={!promoCode.trim() || promoApplied}>
-								{promoApplied ? "Applied" : "Apply"}
+								disabled={!promoCode.trim() || validatePromo.isPending}>
+								{appliedPromo?.code === promoCode.trim()
+									? "Applied"
+									: validatePromo.isPending
+										? "Checking..."
+										: "Apply"}
 							</Button>
 						</div>
-						{promoApplied && (
+						{appliedPromo && (
 							<p className="mt-2 text-xs text-primary">
-								✓ 10% discount applied
+								✓ {formatCurrency(appliedPromo.discountAmount)} discount applied
 							</p>
 						)}
 					</CardContent>

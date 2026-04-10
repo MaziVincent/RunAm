@@ -133,7 +133,12 @@ export interface RiderProfile {
 export interface RiderOnboardingRequest {
 	vehicleType: VehicleType;
 	licensePlate?: string;
-	documentUrls: string[];
+	nin: string;
+	settlementBankCode: string;
+	settlementBankName: string;
+	settlementAccountNumber: string;
+	settlementAccountName: string;
+	documentUrls?: string[];
 }
 
 export interface RiderEarnings {
@@ -156,8 +161,16 @@ export interface EarningTransaction {
 
 // ── Wallet ───────────────────────────────────────────────────
 export interface Wallet {
+	id?: string;
 	balance: number;
 	currency: string;
+	isActive?: boolean;
+	accountReference?: string | null;
+	accountNumber?: string | null;
+	accountName?: string | null;
+	bankName?: string | null;
+	bankCode?: string | null;
+	activatedAt?: string | null;
 }
 
 export interface WalletTransaction {
@@ -319,6 +332,10 @@ export interface TopUpResponse {
 	currency: string;
 	status: string;
 	authorizationUrl?: string;
+}
+
+export interface CreateWalletRequest {
+	nin: string;
 }
 
 // ── Bank Account (Rider) ────────────────────────────────────

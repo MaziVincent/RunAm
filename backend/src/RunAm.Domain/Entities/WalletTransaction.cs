@@ -10,6 +10,7 @@ public class WalletTransaction : BaseEntity
     public decimal BalanceAfter { get; set; }
     public TransactionSource Source { get; set; }
     public Guid? ReferenceId { get; set; }
+    public string? ExternalReference { get; set; }
     public string? Description { get; set; }
 
     // Navigation

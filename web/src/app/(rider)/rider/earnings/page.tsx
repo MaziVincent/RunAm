@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
 	DollarSign,
 	TrendingUp,
@@ -11,11 +12,20 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import {
 	useRiderEarnings,
 	useRiderPayouts,
 	useRequestPayout,
+	useRiderWallet,
 } from "@/lib/hooks";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PayoutStatus } from "@/types";
@@ -165,32 +175,76 @@ function DailyBreakdown() {
 
 function PayoutsHistory() {
 	const { data, isLoading } = useRiderPayouts(1);
+	const { data: walletData } = useRiderWallet();
 	const requestPayout = useRequestPayout();
+	const [amount, setAmount] = useState("");
+	const [open, setOpen] = useState(false);
 	const payouts = data?.data ?? [];
+	const wallet = walletData?.data;
 
 	return (
 		<Card>
 			<CardHeader className="flex flex-row items-center justify-between">
 				<CardTitle className="text-base">Payout History</CardTitle>
-				<Button
-					size="sm"
-					className="gap-2"
-					disabled={requestPayout.isPending}
-					onClick={async () => {
-						try {
-							await requestPayout.mutateAsync();
-							toast.success("Payout requested!");
-						} catch {
-							toast.error("Failed to request payout");
-						}
-					}}>
-					{requestPayout.isPending ? (
-						<Loader2 className="h-3 w-3 animate-spin" />
-					) : (
-						<ArrowDownToLine className="h-3 w-3" />
-					)}
-					Request Payout
-				</Button>
+				<Dialog open={open} onOpenChange={setOpen}>
+					<DialogTrigger asChild>
+						<Button
+							size="sm"
+							className="gap-2"
+							disabled={requestPayout.isPending || !wallet}>
+							{requestPayout.isPending ? (
+								<Loader2 className="h-3 w-3 animate-spin" />
+							) : (
+								<ArrowDownToLine className="h-3 w-3" />
+							)}
+							Withdraw
+						</Button>
+					</DialogTrigger>
+					<DialogContent className="sm:max-w-sm">
+						<DialogHeader>
+							<DialogTitle>Withdraw Earnings</DialogTitle>
+							<DialogDescription>
+								This payout will be sent to the bank account you provided during
+								onboarding.
+							</DialogDescription>
+						</DialogHeader>
+						<div className="space-y-4">
+							<div className="space-y-2">
+								<Input
+									type="number"
+									min={1}
+									value={amount}
+									onChange={(event) => setAmount(event.target.value)}
+									placeholder="Enter withdrawal amount"
+								/>
+								<p className="text-xs text-muted-foreground">
+									Available: {formatCurrency(wallet?.balance ?? 0)}
+								</p>
+							</div>
+							<Button
+								className="w-full"
+								disabled={!amount || requestPayout.isPending}
+								onClick={async () => {
+									const numericAmount = Number(amount);
+									if (!numericAmount || numericAmount <= 0) {
+										toast.error("Enter a valid withdrawal amount.");
+										return;
+									}
+
+									try {
+										await requestPayout.mutateAsync(numericAmount);
+										toast.success("Withdrawal requested.");
+										setAmount("");
+										setOpen(false);
+									} catch (error: any) {
+										toast.error(error?.message || "Failed to request payout");
+									}
+								}}>
+								Submit Withdrawal
+							</Button>
+						</div>
+					</DialogContent>
+				</Dialog>
 			</CardHeader>
 			<CardContent>
 				{isLoading ? (
@@ -226,6 +280,10 @@ function PayoutsHistory() {
 									<p className="text-xs text-muted-foreground">
 										{payout.errandCount} deliveries •{" "}
 										{new Date(payout.createdAt).toLocaleDateString()}
+									</p>
+									<p className="text-[10px] text-muted-foreground">
+										{payout.destinationBankName} • ****
+										{payout.destinationAccountNumber.slice(-4)}
 									</p>
 									{payout.periodStart && payout.periodEnd && (
 										<p className="text-[10px] text-muted-foreground">

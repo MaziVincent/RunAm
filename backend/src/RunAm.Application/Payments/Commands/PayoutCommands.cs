@@ -3,50 +3,83 @@ using RunAm.Domain.Entities;
 using RunAm.Domain.Enums;
 using RunAm.Domain.Exceptions;
 using RunAm.Domain.Interfaces;
-using RunAm.Shared.Constants;
 using RunAm.Shared.DTOs.Payments;
 
 namespace RunAm.Application.Payments.Commands;
 
 // ── Create Rider Payout ─────────────────────────
 
-public record CreateRiderPayoutCommand(Guid RiderId, DateTime PeriodStart, DateTime PeriodEnd) : IRequest<RiderPayoutDto>;
+public record CreateRiderPayoutCommand(Guid RiderId, CreateRiderPayoutRequest Request) : IRequest<RiderPayoutDto>;
 
 public class CreateRiderPayoutCommandHandler : IRequestHandler<CreateRiderPayoutCommand, RiderPayoutDto>
 {
     private readonly IRiderPayoutRepository _payoutRepo;
+    private readonly IRiderRepository _riderRepo;
     private readonly IWalletRepository _walletRepo;
     private readonly IUnitOfWork _uow;
 
     public CreateRiderPayoutCommandHandler(
         IRiderPayoutRepository payoutRepo,
+        IRiderRepository riderRepo,
         IWalletRepository walletRepo,
         IUnitOfWork uow)
     {
         _payoutRepo = payoutRepo;
+        _riderRepo = riderRepo;
         _walletRepo = walletRepo;
         _uow = uow;
     }
 
     public async Task<RiderPayoutDto> Handle(CreateRiderPayoutCommand command, CancellationToken ct)
     {
+        var outstanding = await _payoutRepo.GetOutstandingAsync(ct);
+        if (outstanding.Any(p => p.RiderId == command.RiderId))
+            throw new InvalidOperationException("You already have a payout in progress.");
+
         var wallet = await _walletRepo.GetByUserIdAsync(command.RiderId, ct)
             ?? throw new NotFoundException("Wallet", command.RiderId);
 
-        if (wallet.Balance <= 0)
-            throw new InvalidOperationException("No available balance for payout.");
+        var riderProfile = await _riderRepo.GetByUserIdAsync(command.RiderId, ct)
+            ?? throw new NotFoundException("RiderProfile", command.RiderId);
+
+        if (command.Request.Amount <= 0)
+            throw new InvalidOperationException("Payout amount must be greater than zero.");
+
+        if (wallet.Balance < command.Request.Amount)
+            throw new InvalidOperationException("Insufficient wallet balance.");
 
         var payout = new RiderPayout
         {
             RiderId = command.RiderId,
-            Amount = wallet.Balance,
-            PeriodStart = command.PeriodStart,
-            PeriodEnd = command.PeriodEnd,
+            Amount = command.Request.Amount,
+            PaymentReference = $"PAYOUT-{Guid.NewGuid():N}",
+            DestinationBankCode = riderProfile.SettlementBankCode,
+            DestinationBankName = riderProfile.SettlementBankName,
+            DestinationAccountNumber = riderProfile.SettlementAccountNumber,
+            DestinationAccountName = riderProfile.SettlementAccountName,
+            PeriodStart = DateTime.UtcNow,
+            PeriodEnd = DateTime.UtcNow,
             Status = PayoutStatus.Pending,
-            ErrandCount = 0 // Would be calculated from completed errands in period
+            ErrandCount = 0
         };
 
+        wallet.Debit(command.Request.Amount);
+        await _walletRepo.UpdateAsync(wallet, ct);
+
         await _payoutRepo.AddAsync(payout, ct);
+
+        await _walletRepo.AddTransactionAsync(new Domain.Entities.WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Type = TransactionType.Debit,
+            Amount = payout.Amount,
+            BalanceAfter = wallet.Balance,
+            Source = TransactionSource.Withdrawal,
+            ReferenceId = payout.Id,
+            ExternalReference = payout.PaymentReference,
+            Description = $"Rider payout request #{payout.Id.ToString()[..8]}"
+        }, ct);
+
         await _uow.SaveChangesAsync(ct);
 
         return MapToDto(payout);
@@ -54,7 +87,7 @@ public class CreateRiderPayoutCommandHandler : IRequestHandler<CreateRiderPayout
 
     private static RiderPayoutDto MapToDto(RiderPayout p) => new(
         p.Id, p.Amount, p.Currency, p.Status, p.PaymentReference,
-        p.FailureReason, p.ProcessedAt, p.PeriodStart, p.PeriodEnd,
+        p.DestinationBankName, p.DestinationAccountNumber, p.FailureReason, p.ProcessedAt, p.PeriodStart, p.PeriodEnd,
         p.ErrandCount, p.CreatedAt
     );
 }
@@ -66,51 +99,26 @@ public record ProcessPayoutCommand(Guid PayoutId) : IRequest<RiderPayoutDto>;
 public class ProcessPayoutCommandHandler : IRequestHandler<ProcessPayoutCommand, RiderPayoutDto>
 {
     private readonly IRiderPayoutRepository _payoutRepo;
-    private readonly IWalletRepository _walletRepo;
-    private readonly IUnitOfWork _uow;
+    private readonly IRiderPayoutProcessingService _payoutProcessor;
 
     public ProcessPayoutCommandHandler(
         IRiderPayoutRepository payoutRepo,
-        IWalletRepository walletRepo,
-        IUnitOfWork uow)
+        IRiderPayoutProcessingService payoutProcessor)
     {
         _payoutRepo = payoutRepo;
-        _walletRepo = walletRepo;
-        _uow = uow;
+        _payoutProcessor = payoutProcessor;
     }
 
     public async Task<RiderPayoutDto> Handle(ProcessPayoutCommand command, CancellationToken ct)
     {
-        var pending = await _payoutRepo.GetPendingAsync(ct);
-        var payout = pending.FirstOrDefault(p => p.Id == command.PayoutId)
+        var payout = await _payoutRepo.GetByIdAsync(command.PayoutId, ct)
             ?? throw new NotFoundException("Payout", command.PayoutId);
 
-        // Debit rider wallet
-        var wallet = await _walletRepo.GetByUserIdAsync(payout.RiderId, ct)
-            ?? throw new NotFoundException("Wallet", payout.RiderId);
-
-        wallet.Debit(payout.Amount);
-        await _walletRepo.UpdateAsync(wallet, ct);
-
-        await _walletRepo.AddTransactionAsync(new WalletTransaction
-        {
-            WalletId = wallet.Id,
-            Type = TransactionType.Debit,
-            Amount = payout.Amount,
-            BalanceAfter = wallet.Balance,
-            Source = TransactionSource.Withdrawal,
-            ReferenceId = payout.Id,
-            Description = $"Payout #{payout.Id.ToString()[..8]} processed"
-        }, ct);
-
-        payout.Status = PayoutStatus.Completed;
-        payout.ProcessedAt = DateTime.UtcNow;
-        await _payoutRepo.UpdateAsync(payout, ct);
-        await _uow.SaveChangesAsync(ct);
+        payout = await _payoutProcessor.ProcessAsync(payout, ct);
 
         return new RiderPayoutDto(
             payout.Id, payout.Amount, payout.Currency, payout.Status,
-            payout.PaymentReference, payout.FailureReason, payout.ProcessedAt,
+            payout.PaymentReference, payout.DestinationBankName, payout.DestinationAccountNumber, payout.FailureReason, payout.ProcessedAt,
             payout.PeriodStart, payout.PeriodEnd, payout.ErrandCount, payout.CreatedAt
         );
     }
@@ -133,7 +141,7 @@ public class GetRiderPayoutsQueryHandler : IRequestHandler<GetRiderPayoutsQuery,
 
         var dtos = payouts.Select(p => new RiderPayoutDto(
             p.Id, p.Amount, p.Currency, p.Status, p.PaymentReference,
-            p.FailureReason, p.ProcessedAt, p.PeriodStart, p.PeriodEnd,
+            p.DestinationBankName, p.DestinationAccountNumber, p.FailureReason, p.ProcessedAt, p.PeriodStart, p.PeriodEnd,
             p.ErrandCount, p.CreatedAt
         )).ToList();
 

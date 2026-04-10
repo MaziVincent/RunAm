@@ -1,11 +1,6 @@
 "use client";
 
-import {
-	Banknote,
-	Clock,
-	DollarSign,
-	Info,
-} from "lucide-react";
+import { Banknote, Clock, DollarSign, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
@@ -59,9 +54,7 @@ export default function VendorPayoutsPage() {
 				<CardContent>
 					<div className="flex flex-col items-center py-8 text-center">
 						<Banknote className="h-10 w-10 text-muted-foreground/30" />
-						<p className="mt-3 text-sm text-muted-foreground">
-							No payouts yet
-						</p>
+						<p className="mt-3 text-sm text-muted-foreground">No payouts yet</p>
 					</div>
 				</CardContent>
 			</Card>

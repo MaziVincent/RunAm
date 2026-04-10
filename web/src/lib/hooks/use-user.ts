@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type {
+	ApiResponse,
 	ErrandDto,
+	PromoCodeValidationResult,
 	WalletDto,
 	WalletTransactionDto,
 	UserAddressDto,
@@ -9,6 +11,14 @@ import type {
 	ReviewDto,
 	UserDto,
 } from "@/types";
+
+function ensureSuccess<T>(response: ApiResponse<T>): ApiResponse<T> {
+	if (!response.success) {
+		throw new Error(response.error?.message || "Request failed.");
+	}
+
+	return response;
+}
 
 // ── User Profile ───────────────────────────────────────
 
@@ -62,12 +72,24 @@ export function useErrandDetail(id: string) {
 	});
 }
 
+export function useCreateErrand() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (data: Record<string, unknown>) =>
+			ensureSuccess(await api.post<ErrandDto>("/errands", data)),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["my-errands"] });
+			queryClient.invalidateQueries({ queryKey: ["wallet"] });
+		},
+	});
+}
+
 // ── Wallet ─────────────────────────────────────────────
 
 export function useWallet() {
 	return useQuery({
 		queryKey: ["wallet"],
-		queryFn: () => api.get<WalletDto>("/payments/wallet"),
+		queryFn: () => api.get<WalletDto | null>("/payments/wallet"),
 	});
 }
 
@@ -82,15 +104,27 @@ export function useWalletTransactions(page: number = 1) {
 	});
 }
 
-export function useTopUpWallet() {
+export function useCreateWallet() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { amount: number; paymentMethod: number }) =>
-			api.post("/payments/wallet/top-up", data),
+		mutationFn: async (data: { nin: string }) =>
+			ensureSuccess(await api.post<WalletDto>("/payments/wallet", data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["wallet"] });
 			queryClient.invalidateQueries({ queryKey: ["wallet-transactions"] });
 		},
+	});
+}
+
+export function useValidatePromoCode() {
+	return useMutation({
+		mutationFn: async (data: { code: string; orderAmount: number }) =>
+			ensureSuccess(
+				await api.post<PromoCodeValidationResult>(
+					"/payments/promo/validate",
+					data,
+				),
+			),
 	});
 }
 
@@ -141,21 +175,17 @@ export function useDeliveryEstimate(params: {
 
 export interface PlaceOrderPayload {
 	vendorId: string;
-	pickupAddress: string;
-	pickupLatitude: number;
-	pickupLongitude: number;
 	dropoffAddress: string;
 	dropoffLatitude: number;
 	dropoffLongitude: number;
-	priority: string;
-	scheduledFor: string | null;
-	notes: string;
+	recipientName: string | null;
+	recipientPhone: string | null;
+	specialInstructions: string | null;
 	paymentMethod: number;
 	promoCode: string | null;
-	orderItems: {
+	items: {
 		productId: string;
 		quantity: number;
-		unitPrice: number;
 		notes: string | null;
 		selectedVariantJson: string | null;
 		selectedExtrasJson: string | null;
@@ -165,8 +195,8 @@ export interface PlaceOrderPayload {
 export function usePlaceOrder() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (data: PlaceOrderPayload) =>
-			api.post<ErrandDto>("/errands", data),
+		mutationFn: async (data: PlaceOrderPayload) =>
+			ensureSuccess(await api.post<ErrandDto>("/errands/marketplace", data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-errands"] });
 			queryClient.invalidateQueries({ queryKey: ["wallet"] });

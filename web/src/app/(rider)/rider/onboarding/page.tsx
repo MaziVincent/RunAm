@@ -50,6 +50,11 @@ export default function RiderOnboardingPage() {
 	const [step, setStep] = useState(0);
 	const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
 	const [licensePlate, setLicensePlate] = useState("");
+	const [nin, setNin] = useState("");
+	const [settlementBankName, setSettlementBankName] = useState("");
+	const [settlementBankCode, setSettlementBankCode] = useState("");
+	const [settlementAccountNumber, setSettlementAccountNumber] = useState("");
+	const [settlementAccountName, setSettlementAccountName] = useState("");
 	const [agreed, setAgreed] = useState(false);
 	const router = useRouter();
 	const createProfile = useCreateRiderProfile();
@@ -70,6 +75,11 @@ export default function RiderOnboardingPage() {
 			await createProfile.mutateAsync({
 				vehicleType,
 				licensePlate: needsPlate ? licensePlate : undefined,
+				nin: nin.replace(/\D/g, ""),
+				settlementBankCode,
+				settlementBankName,
+				settlementAccountNumber,
+				settlementAccountName,
 			});
 			toast.success("Rider profile created! Pending approval.");
 			router.push("/rider");
@@ -143,27 +153,139 @@ export default function RiderOnboardingPage() {
 						<div className="space-y-4">
 							<h2 className="text-lg font-semibold">Vehicle Details</h2>
 							{needsPlate ? (
-								<div className="space-y-2">
-									<Label>License Plate Number</Label>
-									<Input
-										value={licensePlate}
-										onChange={(e) =>
-											setLicensePlate(e.target.value.toUpperCase())
-										}
-										placeholder="e.g. ABC-123-XY"
-									/>
-									<p className="text-xs text-muted-foreground">
-										Required for motorized vehicles
-									</p>
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label>License Plate Number</Label>
+										<Input
+											value={licensePlate}
+											onChange={(e) =>
+												setLicensePlate(e.target.value.toUpperCase())
+											}
+											placeholder="e.g. ABC-123-XY"
+										/>
+										<p className="text-xs text-muted-foreground">
+											Required for motorized vehicles
+										</p>
+									</div>
+									<div className="space-y-2">
+										<Label>NIN</Label>
+										<Input
+											inputMode="numeric"
+											maxLength={11}
+											value={nin}
+											onChange={(e) =>
+												setNin(e.target.value.replace(/\D/g, ""))
+											}
+											placeholder="11-digit NIN"
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2">
+										<div className="space-y-2">
+											<Label>Settlement Bank Name</Label>
+											<Input
+												value={settlementBankName}
+												onChange={(e) => setSettlementBankName(e.target.value)}
+												placeholder="e.g. Moniepoint"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Bank Code</Label>
+											<Input
+												value={settlementBankCode}
+												onChange={(e) => setSettlementBankCode(e.target.value)}
+												placeholder="e.g. 50515"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Account Number</Label>
+											<Input
+												inputMode="numeric"
+												value={settlementAccountNumber}
+												onChange={(e) =>
+													setSettlementAccountNumber(
+														e.target.value.replace(/\D/g, ""),
+													)
+												}
+												placeholder="0123456789"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Account Name</Label>
+											<Input
+												value={settlementAccountName}
+												onChange={(e) =>
+													setSettlementAccountName(e.target.value)
+												}
+												placeholder="Account holder name"
+											/>
+										</div>
+									</div>
 								</div>
 							) : (
-								<div className="rounded-lg bg-muted/50 p-4 text-center">
-									<Bike className="mx-auto h-8 w-8 text-muted-foreground" />
-									<p className="mt-2 text-sm text-muted-foreground">
-										No license plate required for{" "}
-										{vehicleType === VehicleType.OnFoot ? "on-foot" : "bicycle"}{" "}
-										deliveries
-									</p>
+								<div className="space-y-4">
+									<div className="rounded-lg bg-muted/50 p-4 text-center">
+										<Bike className="mx-auto h-8 w-8 text-muted-foreground" />
+										<p className="mt-2 text-sm text-muted-foreground">
+											No license plate required for{" "}
+											{vehicleType === VehicleType.OnFoot
+												? "on-foot"
+												: "bicycle"}{" "}
+											deliveries
+										</p>
+									</div>
+									<div className="space-y-2">
+										<Label>NIN</Label>
+										<Input
+											inputMode="numeric"
+											maxLength={11}
+											value={nin}
+											onChange={(e) =>
+												setNin(e.target.value.replace(/\D/g, ""))
+											}
+											placeholder="11-digit NIN"
+										/>
+									</div>
+									<div className="grid gap-4 sm:grid-cols-2">
+										<div className="space-y-2">
+											<Label>Settlement Bank Name</Label>
+											<Input
+												value={settlementBankName}
+												onChange={(e) => setSettlementBankName(e.target.value)}
+												placeholder="e.g. Moniepoint"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Bank Code</Label>
+											<Input
+												value={settlementBankCode}
+												onChange={(e) => setSettlementBankCode(e.target.value)}
+												placeholder="e.g. 50515"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Account Number</Label>
+											<Input
+												inputMode="numeric"
+												value={settlementAccountNumber}
+												onChange={(e) =>
+													setSettlementAccountNumber(
+														e.target.value.replace(/\D/g, ""),
+													)
+												}
+												placeholder="0123456789"
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label>Settlement Account Name</Label>
+											<Input
+												value={settlementAccountName}
+												onChange={(e) =>
+													setSettlementAccountName(e.target.value)
+												}
+												placeholder="Account holder name"
+											/>
+										</div>
+									</div>
 								</div>
 							)}
 							<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/30">
@@ -195,6 +317,18 @@ export default function RiderOnboardingPage() {
 										<span className="font-medium">{licensePlate}</span>
 									</div>
 								)}
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">NIN</span>
+									<span className="font-medium">{nin}</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">
+										Settlement Account
+									</span>
+									<span className="font-medium">
+										{settlementBankName} • {settlementAccountNumber}
+									</span>
+								</div>
 							</div>
 
 							<label className="flex items-start gap-2 text-sm">
@@ -233,6 +367,20 @@ export default function RiderOnboardingPage() {
 									}
 									if (step === 1 && needsPlate && !licensePlate) {
 										toast.error("License plate is required");
+										return;
+									}
+									if (step === 1 && nin.replace(/\D/g, "").length !== 11) {
+										toast.error("NIN must be exactly 11 digits");
+										return;
+									}
+									if (
+										step === 1 &&
+										(!settlementBankName ||
+											!settlementBankCode ||
+											!settlementAccountNumber ||
+											!settlementAccountName)
+									) {
+										toast.error("Settlement account details are required");
 										return;
 									}
 									setStep((s) => s + 1);

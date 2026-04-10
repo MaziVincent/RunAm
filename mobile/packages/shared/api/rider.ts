@@ -190,6 +190,6 @@ export function getPayouts(
 	);
 }
 
-export function requestPayout(): Promise<RiderPayout> {
-	return apiClient.post<RiderPayout>("/payments/payouts");
+export function requestPayout(amount: number): Promise<RiderPayout> {
+	return apiClient.post<RiderPayout>("/payments/payouts", { amount });
 }

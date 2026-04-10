@@ -7,7 +7,14 @@ namespace RunAm.Shared.DTOs.Payments;
 public record WalletDto(
     Guid Id,
     decimal Balance,
-    string Currency
+    string Currency,
+    bool IsActive,
+    string? AccountReference,
+    string? AccountNumber,
+    string? AccountName,
+    string? BankName,
+    string? BankCode,
+    DateTime? ActivatedAt
 );
 
 public record WalletTransactionDto(
@@ -17,9 +24,12 @@ public record WalletTransactionDto(
     decimal BalanceAfter,
     TransactionSource Source,
     Guid? ReferenceId,
+    string? ExternalReference,
     string? Description,
     DateTime CreatedAt
 );
+
+public record CreateWalletRequest(string Nin);
 
 public record TopUpWalletRequest(
     decimal Amount,
@@ -33,6 +43,8 @@ public record WithdrawRequest(
     string AccountNumber,
     string AccountName
 );
+
+public record CreateRiderPayoutRequest(decimal Amount);
 
 // ── Payment ─────────────────────────────────────
 
@@ -101,7 +113,15 @@ public record EarningsSummaryDto(
     decimal TotalEarnings,
     int TodayTrips,
     int WeekTrips,
-    decimal AvailableBalance
+    decimal AvailableBalance,
+    decimal PendingPayout,
+    List<DailyEarningsPointDto> DailyEarnings
+);
+
+public record DailyEarningsPointDto(
+    DateTime Date,
+    decimal Amount,
+    int TaskCount
 );
 
 public record RiderPayoutDto(
@@ -110,6 +130,8 @@ public record RiderPayoutDto(
     string Currency,
     PayoutStatus Status,
     string? PaymentReference,
+    string DestinationBankName,
+    string DestinationAccountNumber,
     string? FailureReason,
     DateTime? ProcessedAt,
     DateTime PeriodStart,
