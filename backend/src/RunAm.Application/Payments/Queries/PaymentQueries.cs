@@ -1,4 +1,5 @@
 using MediatR;
+using RunAm.Domain.Enums;
 using RunAm.Domain.Exceptions;
 using RunAm.Domain.Interfaces;
 using RunAm.Shared.DTOs.Payments;
@@ -84,42 +85,64 @@ public class GetRiderEarningsQueryHandler : IRequestHandler<GetRiderEarningsQuer
             return new EarningsSummaryDto(0, 0, 0, 0, 0, 0, 0, 0, new List<DailyEarningsPointDto>());
         }
 
-        var allTransactions = await _walletRepo.GetTransactionsAsync(wallet.Id, 1, int.MaxValue, ct);
-
-        var credits = allTransactions.Where(t => t.Type == Domain.Enums.TransactionType.Credit).ToList();
+        var earningSources = new[] { TransactionSource.ErrandEarning, TransactionSource.Tip };
         var now = DateTime.UtcNow;
         var today = now.Date;
         var weekStart = today.AddDays(-(int)today.DayOfWeek);
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var chartStart = today.AddDays(-13);
 
-        var todayEarnings = credits.Where(t => t.CreatedAt >= today).Sum(t => t.Amount);
-        var weekEarnings = credits.Where(t => t.CreatedAt >= weekStart).Sum(t => t.Amount);
-        var monthEarnings = credits.Where(t => t.CreatedAt >= monthStart).Sum(t => t.Amount);
-        var totalEarnings = credits.Sum(t => t.Amount);
+        // Use DB-level aggregation instead of loading all transactions
+        var totalEarnings = await _walletRepo.GetTotalCreditAmountAsync(wallet.Id, earningSources, ct);
 
-        var errandCredits = credits.Where(t =>
-            t.Source == Domain.Enums.TransactionSource.ErrandEarning ||
-            t.Source == Domain.Enums.TransactionSource.Tip).ToList();
+        var monthCredits = await _walletRepo.GetCreditTransactionsSinceAsync(wallet.Id, monthStart, earningSources, ct);
+        var monthEarnings = monthCredits.Sum(t => t.Amount);
+        var weekEarnings = monthCredits.Where(t => t.CreatedAt >= weekStart).Sum(t => t.Amount);
+        var todayEarnings = monthCredits.Where(t => t.CreatedAt >= today).Sum(t => t.Amount);
 
-        var todayTrips = errandCredits.Count(t => t.CreatedAt >= today && t.Source == Domain.Enums.TransactionSource.ErrandEarning);
-        var weekTrips = errandCredits.Count(t => t.CreatedAt >= weekStart && t.Source == Domain.Enums.TransactionSource.ErrandEarning);
+        var todayTrips = monthCredits.Count(t => t.CreatedAt >= today && t.Source == TransactionSource.ErrandEarning);
+        var weekTrips = monthCredits.Count(t => t.CreatedAt >= weekStart && t.Source == TransactionSource.ErrandEarning);
+
         var pendingPayouts = (await _payoutRepo.GetOutstandingAsync(ct))
             .Where(p => p.RiderId == query.RiderId)
             .Sum(p => p.Amount);
 
-        var dailyEarnings = errandCredits
-            .Where(t => t.CreatedAt >= today.AddDays(-13))
+        var dailyEarnings = monthCredits
+            .Where(t => t.CreatedAt >= chartStart)
             .GroupBy(t => t.CreatedAt.Date)
             .OrderBy(g => g.Key)
             .Select(g => new DailyEarningsPointDto(
                 g.Key,
                 g.Sum(t => t.Amount),
-                g.Count(t => t.Source == Domain.Enums.TransactionSource.ErrandEarning)))
+                g.Count(t => t.Source == TransactionSource.ErrandEarning)))
             .ToList();
 
         return new EarningsSummaryDto(
             todayEarnings, weekEarnings, monthEarnings, totalEarnings,
             todayTrips, weekTrips, wallet.Balance, pendingPayouts, dailyEarnings
+        );
+    }
+}
+
+// ── Get Errand Payment Status ───────────────────
+
+public record GetErrandPaymentStatusQuery(Guid UserId, Guid ErrandId) : IRequest<PaymentDto?>;
+
+public class GetErrandPaymentStatusQueryHandler : IRequestHandler<GetErrandPaymentStatusQuery, PaymentDto?>
+{
+    private readonly IPaymentRepository _paymentRepo;
+
+    public GetErrandPaymentStatusQueryHandler(IPaymentRepository paymentRepo) => _paymentRepo = paymentRepo;
+
+    public async Task<PaymentDto?> Handle(GetErrandPaymentStatusQuery query, CancellationToken ct)
+    {
+        var payment = await _paymentRepo.GetByErrandIdAsync(query.ErrandId, ct);
+        if (payment is null || payment.PayerId != query.UserId) return null;
+
+        return new PaymentDto(
+            payment.Id, payment.ErrandId, payment.PayerId,
+            payment.Amount, payment.Currency, payment.PaymentMethod,
+            payment.PaymentGatewayRef, payment.Status, payment.CreatedAt
         );
     }
 }

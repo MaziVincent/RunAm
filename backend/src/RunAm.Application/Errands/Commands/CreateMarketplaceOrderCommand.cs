@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Enums;
 using RunAm.Domain.Exceptions;
@@ -10,9 +12,9 @@ using RunAm.Shared.DTOs.Errands;
 
 namespace RunAm.Application.Errands.Commands;
 
-public record CreateMarketplaceOrderCommand(Guid CustomerId, CreateMarketplaceOrderRequest Request) : IRequest<ErrandDto>;
+public record CreateMarketplaceOrderCommand(Guid CustomerId, CreateMarketplaceOrderRequest Request) : IRequest<MarketplaceOrderResult>;
 
-public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarketplaceOrderCommand, ErrandDto>
+public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarketplaceOrderCommand, MarketplaceOrderResult>
 {
     private readonly IErrandRepository _errandRepo;
     private readonly IVendorRepository _vendorRepo;
@@ -21,6 +23,9 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
     private readonly IPromoCodeRepository _promoRepo;
     private readonly IWalletRepository _walletRepo;
     private readonly IPaymentRepository _paymentRepo;
+    private readonly IMonnifyService _monnify;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IConfiguration _config;
     private readonly IUnitOfWork _uow;
 
     public CreateMarketplaceOrderCommandHandler(
@@ -31,6 +36,9 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         IPromoCodeRepository promoRepo,
         IWalletRepository walletRepo,
         IPaymentRepository paymentRepo,
+        IMonnifyService monnify,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration config,
         IUnitOfWork uow)
     {
         _errandRepo = errandRepo;
@@ -40,10 +48,13 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         _promoRepo = promoRepo;
         _walletRepo = walletRepo;
         _paymentRepo = paymentRepo;
+        _monnify = monnify;
+        _userManager = userManager;
+        _config = config;
         _uow = uow;
     }
 
-    public async Task<ErrandDto> Handle(CreateMarketplaceOrderCommand command, CancellationToken cancellationToken)
+    public async Task<MarketplaceOrderResult> Handle(CreateMarketplaceOrderCommand command, CancellationToken cancellationToken)
     {
         var req = command.Request;
 
@@ -166,6 +177,7 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
             Description = $"Order from {vendor.BusinessName}",
             SpecialInstructions = req.SpecialInstructions,
             Priority = ErrandPriority.Standard,
+            ScheduledAt = req.ScheduledAt,
             PickupAddress = vendor.Address,
             PickupLatitude = vendor.Latitude,
             PickupLongitude = vendor.Longitude,
@@ -190,6 +202,8 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         // Link order items to errand
         foreach (var oi in orderItems)
             oi.ErrandId = errand.Id;
+
+        string? checkoutUrl = null;
 
         var payment = new Payment
         {
@@ -224,9 +238,34 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
 
             payment.Status = PaymentStatus.Completed;
         }
-        else if (req.PaymentMethod != PaymentMethod.Cash)
+        else if (req.PaymentMethod == PaymentMethod.BankTransfer || req.PaymentMethod == PaymentMethod.Card)
         {
-            throw new DomainException("Marketplace checkout currently supports wallet or cash on delivery.");
+            // Initialize Monnify transaction — payment stays Pending until webhook confirms
+            var user = await _userManager.FindByIdAsync(command.CustomerId.ToString())
+                ?? throw new NotFoundException("User", command.CustomerId);
+
+            var paymentRef = $"ORDER-{errand.Id.ToString()[..8]}-{Guid.NewGuid().ToString()[..4]}".ToUpperInvariant();
+            var frontendBaseUrl = _config["Frontend:BaseUrl"] ?? "http://localhost:3000";
+            var redirectUrl = $"{frontendBaseUrl}/shop/payment-callback/{errand.Id}";
+
+            var initResult = await _monnify.InitializeTransactionAsync(
+                Math.Round(totalAmount, 2),
+                user.FullName,
+                user.Email!,
+                paymentRef,
+                $"Order from {vendor.BusinessName}",
+                redirectUrl,
+                cancellationToken);
+
+            if (!initResult.Success || string.IsNullOrEmpty(initResult.CheckoutUrl))
+                throw new DomainException("Failed to initialize payment gateway. Please try again.");
+
+            payment.PaymentGatewayRef = initResult.TransactionReference;
+            checkoutUrl = initResult.CheckoutUrl;
+        }
+        else
+        {
+            throw new DomainException("Supported payment methods: Wallet, Bank Transfer, or Card.");
         }
 
         await _errandRepo.AddAsync(errand, cancellationToken);
@@ -241,7 +280,7 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
 
         await _uow.SaveChangesAsync(cancellationToken);
 
-        return MapToDto(errand);
+        return new MarketplaceOrderResult(MapToDto(errand), checkoutUrl);
     }
 
     private static ErrandDto MapToDto(Errand e) => new(

@@ -3,6 +3,7 @@ import { api } from "@/lib/api/client";
 import type {
 	ApiResponse,
 	ErrandDto,
+	MarketplaceOrderResult,
 	PromoCodeValidationResult,
 	WalletDto,
 	WalletTransactionDto,
@@ -183,6 +184,7 @@ export interface PlaceOrderPayload {
 	specialInstructions: string | null;
 	paymentMethod: number;
 	promoCode: string | null;
+	scheduledAt: string | null;
 	items: {
 		productId: string;
 		quantity: number;
@@ -196,7 +198,9 @@ export function usePlaceOrder() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (data: PlaceOrderPayload) =>
-			ensureSuccess(await api.post<ErrandDto>("/errands/marketplace", data)),
+			ensureSuccess(
+				await api.post<MarketplaceOrderResult>("/errands/marketplace", data),
+			),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-errands"] });
 			queryClient.invalidateQueries({ queryKey: ["wallet"] });
@@ -209,7 +213,7 @@ export function usePlaceOrder() {
 export function useAddresses() {
 	return useQuery({
 		queryKey: ["addresses"],
-		queryFn: () => api.get<UserAddressDto[]>("/users/addresses"),
+		queryFn: () => api.get<UserAddressDto[]>("/users/me/addresses"),
 	});
 }
 
@@ -222,7 +226,7 @@ export function useCreateAddress() {
 			latitude: number;
 			longitude: number;
 			isDefault?: boolean;
-		}) => api.post("/users/addresses", data),
+		}) => api.post("/users/me/addresses", data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["addresses"] });
 		},

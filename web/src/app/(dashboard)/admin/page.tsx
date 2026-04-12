@@ -27,7 +27,8 @@ export default function DashboardPage() {
 
 	const { data: errandsRes, isLoading: loadingErrands } = useQuery({
 		queryKey: ["recent-errands"],
-		queryFn: () => api.get<ErrandDto[]>("/errands", { page: 1, pageSize: 10 }),
+		queryFn: () =>
+			api.get<ErrandDto[]>("/admin/errands", { page: 1, pageSize: 10 }),
 	});
 
 	const stats = statsRes?.data;

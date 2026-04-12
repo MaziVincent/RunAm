@@ -5,7 +5,7 @@ using RunAm.Shared.DTOs.Errands;
 
 namespace RunAm.Application.Errands.Queries;
 
-public record GetMyErrandsQuery(Guid CustomerId, int Page = 1, int PageSize = 20) : IRequest<(IReadOnlyList<ErrandDto> Errands, int TotalCount)>;
+public record GetMyErrandsQuery(Guid CustomerId, int Page = 1, int PageSize = 20, string? Status = null) : IRequest<(IReadOnlyList<ErrandDto> Errands, int TotalCount)>;
 
 public class GetMyErrandsQueryHandler : IRequestHandler<GetMyErrandsQuery, (IReadOnlyList<ErrandDto> Errands, int TotalCount)>
 {
@@ -15,8 +15,8 @@ public class GetMyErrandsQueryHandler : IRequestHandler<GetMyErrandsQuery, (IRea
 
     public async Task<(IReadOnlyList<ErrandDto> Errands, int TotalCount)> Handle(GetMyErrandsQuery query, CancellationToken cancellationToken)
     {
-        var errands = await _errandRepo.GetByCustomerIdAsync(query.CustomerId, query.Page, query.PageSize, cancellationToken);
-        var totalCount = await _errandRepo.GetCountByCustomerIdAsync(query.CustomerId, cancellationToken);
+        var errands = await _errandRepo.GetByCustomerIdAsync(query.CustomerId, query.Page, query.PageSize, query.Status, cancellationToken);
+        var totalCount = await _errandRepo.GetCountByCustomerIdAsync(query.CustomerId, query.Status, cancellationToken);
 
         var dtos = errands.Select(e => new ErrandDto(
             e.Id, e.CustomerId, "", e.RiderId, e.Rider?.FullName,
@@ -26,7 +26,8 @@ public class GetMyErrandsQueryHandler : IRequestHandler<GetMyErrandsQuery, (IRea
             e.EstimatedDistance, e.EstimatedDuration, e.PackageSize, e.PackageWeight,
             e.IsFragile, e.RequiresPhotoProof, e.RecipientName, e.RecipientPhone,
             e.TotalAmount, e.AcceptedAt, e.PickedUpAt, e.DeliveredAt, e.CancelledAt,
-            e.CancellationReason, e.CreatedAt, null, null
+            e.CancellationReason, e.CreatedAt, null, null,
+            e.VendorId, e.Vendor?.BusinessName, e.VendorOrderStatus != null ? (int)e.VendorOrderStatus : null
         )).ToList();
 
         return (dtos, totalCount);

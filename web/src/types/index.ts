@@ -619,3 +619,20 @@ export interface UpdateVendorStatusRequest {
 	status: VendorStatus;
 	reason?: string;
 }
+
+export interface MarketplaceOrderResult {
+	errand: ErrandDto;
+	checkoutUrl: string | null;
+}
+
+export interface PaymentDto {
+	id: string;
+	errandId: string;
+	payerId: string;
+	amount: number;
+	currency: string;
+	paymentMethod: PaymentMethod;
+	paymentGatewayRef: string | null;
+	status: PaymentStatus;
+	createdAt: string;
+}

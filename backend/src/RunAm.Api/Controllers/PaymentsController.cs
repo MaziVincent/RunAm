@@ -96,6 +96,15 @@ public class PaymentsController : BaseApiController
         return Created("", ApiResponse<PaymentDto>.Ok(result));
     }
 
+    /// <summary>Get payment status for an errand</summary>
+    [HttpGet("errand/{errandId:guid}/status")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentDto?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetErrandPaymentStatus(Guid errandId)
+    {
+        var result = await _mediator.Send(new GetErrandPaymentStatusQuery(GetUserId(), errandId));
+        return Ok(ApiResponse<PaymentDto?>.Ok(result));
+    }
+
     // ── Promo Codes ─────────────────────────────
 
     /// <summary>Validate a promo code</summary>

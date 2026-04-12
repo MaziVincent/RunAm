@@ -43,6 +43,15 @@ export default function FinancePage() {
 	const queryClient = useQueryClient();
 	const [showPromoForm, setShowPromoForm] = useState(false);
 
+	// Finance Stats
+	const { data: financeRes } = useQuery({
+		queryKey: ["finance-stats"],
+		queryFn: () =>
+			api.get<{ totalRevenue: number; commissionEarned: number }>(
+				"/admin/finance/stats",
+			),
+	});
+
 	// Promo Codes
 	const { data: promoRes, isLoading: loadingPromos } = useQuery({
 		queryKey: ["promo-codes"],
@@ -64,6 +73,7 @@ export default function FinancePage() {
 
 	const promoCodes = promoRes?.data ?? [];
 	const payouts = payoutsRes?.data ?? [];
+	const financeStats = financeRes?.data;
 
 	return (
 		<div className="space-y-8">
@@ -82,13 +92,13 @@ export default function FinancePage() {
 				{[
 					{
 						label: "Total Revenue",
-						value: formatCurrency(0),
+						value: formatCurrency(financeStats?.totalRevenue ?? 0),
 						icon: DollarSign,
 						color: "text-green-600 bg-green-50 dark:bg-green-900/30",
 					},
 					{
 						label: "Commission Earned",
-						value: formatCurrency(0),
+						value: formatCurrency(financeStats?.commissionEarned ?? 0),
 						icon: TrendingUp,
 						color: "text-blue-600 bg-blue-50 dark:bg-blue-900/30",
 					},

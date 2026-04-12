@@ -29,19 +29,6 @@ public class TopUpWalletCommandValidator : AbstractValidator<TopUpWalletCommand>
     }
 }
 
-public class WithdrawCommandValidator : AbstractValidator<WithdrawCommand>
-{
-    public WithdrawCommandValidator()
-    {
-        RuleFor(x => x.UserId).NotEmpty();
-        RuleFor(x => x.Request.Amount)
-            .GreaterThan(0).WithMessage("Withdrawal amount must be greater than zero.");
-        RuleFor(x => x.Request.BankCode).NotEmpty().WithMessage("Bank code is required.");
-        RuleFor(x => x.Request.AccountNumber).NotEmpty().WithMessage("Account number is required.");
-        RuleFor(x => x.Request.AccountName).NotEmpty().WithMessage("Account name is required.");
-    }
-}
-
 public class ProcessPaymentCommandValidator : AbstractValidator<ProcessPaymentCommand>
 {
     public ProcessPaymentCommandValidator()

@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore, type CartItem } from "@/lib/stores/cart-store";
+import { useVendorDetail } from "@/lib/hooks";
 import { formatCurrency, cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -149,10 +150,10 @@ export default function CartPage() {
 
 	const subtotal = getSubtotal();
 	const itemCount = getItemCount();
-	// Estimated delivery fee (accurate fee calculated at checkout based on distance)
-	const deliveryFee = 500;
-	const discount = promoApplied ? Math.round(subtotal * 0.1) : 0;
-	const total = subtotal + deliveryFee - discount;
+
+	const { data: vendorData } = useVendorDetail(vendorId ?? "");
+	const minimumOrder = vendorData?.data?.minimumOrderAmount ?? 0;
+	const belowMinimum = minimumOrder > 0 && subtotal < minimumOrder;
 
 	if (itemCount === 0) return <EmptyCart />;
 
@@ -243,27 +244,52 @@ export default function CartPage() {
 					</div>
 					<div className="flex justify-between text-sm">
 						<span className="text-muted-foreground">Delivery Fee</span>
-						<span>{formatCurrency(deliveryFee)}</span>
+						<span className="text-xs text-muted-foreground italic">
+							Calculated at checkout
+						</span>
 					</div>
-					{discount > 0 && (
+					{promoApplied && (
 						<div className="flex justify-between text-sm text-primary">
 							<span>Discount</span>
-							<span>-{formatCurrency(discount)}</span>
+							<span className="text-xs text-muted-foreground italic">
+								Applied at checkout
+							</span>
 						</div>
 					)}
 					<Separator />
 					<div className="flex justify-between font-bold">
-						<span>Total</span>
-						<span>{formatCurrency(total)}</span>
+						<span>Subtotal</span>
+						<span>{formatCurrency(subtotal)}</span>
 					</div>
 				</CardContent>
 			</Card>
 
+			{/* Minimum order warning */}
+			{belowMinimum && (
+				<div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+					<Tag className="h-4 w-4 shrink-0" />
+					<span>
+						Minimum order amount is{" "}
+						<strong>{formatCurrency(minimumOrder)}</strong>. Add{" "}
+						<strong>{formatCurrency(minimumOrder - subtotal)}</strong> more to
+						proceed.
+					</span>
+				</div>
+			)}
+
 			{/* Checkout CTA */}
-			<Button asChild className="w-full gap-2" size="lg">
-				<Link href="/shop/checkout">
-					Proceed to Checkout — {formatCurrency(total)}
-				</Link>
+			<Button
+				asChild={!belowMinimum}
+				className="w-full gap-2"
+				size="lg"
+				disabled={belowMinimum}>
+				{belowMinimum ? (
+					<>Minimum order: {formatCurrency(minimumOrder)}</>
+				) : (
+					<Link href="/shop/checkout">
+						Proceed to Checkout — {formatCurrency(subtotal)}
+					</Link>
+				)}
 			</Button>
 		</div>
 	);

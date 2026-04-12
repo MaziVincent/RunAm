@@ -29,9 +29,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
 import { useCartStore } from "@/lib/stores/cart-store";
 import {
 	useAddresses,
+	useCreateAddress,
 	useWallet,
 	useVendorDetail,
 	usePlaceOrder,
@@ -41,6 +49,10 @@ import {
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PaymentMethod } from "@/types";
+import {
+	AddressAutocomplete,
+	type AddressResult,
+} from "@/components/shared/location-picker";
 import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
@@ -55,6 +67,11 @@ function AddressSelector({
 }) {
 	const { data, isLoading } = useAddresses();
 	const addresses = data?.data ?? [];
+	const createAddress = useCreateAddress();
+
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [newLabel, setNewLabel] = useState("");
+	const [newAddress, setNewAddress] = useState<AddressResult | null>(null);
 
 	useEffect(() => {
 		if (!selectedId && addresses.length > 0) {
@@ -62,6 +79,26 @@ function AddressSelector({
 			onSelect(def.id);
 		}
 	}, [addresses, selectedId]);
+
+	async function handleSaveAddress() {
+		if (!newAddress || !newLabel.trim()) return;
+		try {
+			const result = await createAddress.mutateAsync({
+				label: newLabel.trim(),
+				address: newAddress.address,
+				latitude: newAddress.latitude,
+				longitude: newAddress.longitude,
+				isDefault: addresses.length === 0,
+			});
+			if (result?.data?.id) onSelect(result.data.id);
+			setDialogOpen(false);
+			setNewLabel("");
+			setNewAddress(null);
+			toast.success("Address saved");
+		} catch {
+			toast.error("Failed to save address");
+		}
+	}
 
 	if (isLoading) {
 		return (
@@ -75,47 +112,153 @@ function AddressSelector({
 
 	if (addresses.length === 0) {
 		return (
-			<div className="rounded-lg border border-dashed p-6 text-center">
-				<MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
-				<p className="mt-2 text-sm text-muted-foreground">No saved addresses</p>
-				<Button variant="outline" size="sm" className="mt-3 gap-1.5">
-					<Plus className="h-3.5 w-3.5" />
-					Add Address
-				</Button>
-			</div>
+			<>
+				<div className="rounded-lg border border-dashed p-6 text-center">
+					<MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
+					<p className="mt-2 text-sm text-muted-foreground">
+						No saved addresses
+					</p>
+					<Button
+						variant="outline"
+						size="sm"
+						className="mt-3 gap-1.5"
+						onClick={() => setDialogOpen(true)}>
+						<Plus className="h-3.5 w-3.5" />
+						Add Address
+					</Button>
+				</div>
+				<AddAddressDialog
+					open={dialogOpen}
+					onOpenChange={setDialogOpen}
+					label={newLabel}
+					onLabelChange={setNewLabel}
+					onAddressSelect={setNewAddress}
+					selectedAddress={newAddress}
+					onSave={handleSaveAddress}
+					isSaving={createAddress.isPending}
+				/>
+			</>
 		);
 	}
 
 	return (
-		<RadioGroup value={selectedId ?? ""} onValueChange={onSelect}>
-			<div className="space-y-2">
-				{addresses.map((addr) => (
-					<label
-						key={addr.id}
-						className={cn(
-							"flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
-							selectedId === addr.id
-								? "border-primary bg-primary/5"
-								: "hover:bg-accent",
-						)}>
-						<RadioGroupItem value={addr.id} className="mt-0.5" />
-						<div className="flex-1">
-							<div className="flex items-center gap-2">
-								<span className="text-sm font-semibold">{addr.label}</span>
-								{addr.isDefault && (
-									<Badge variant="secondary" className="text-[10px]">
-										Default
-									</Badge>
-								)}
+		<>
+			<RadioGroup value={selectedId ?? ""} onValueChange={onSelect}>
+				<div className="space-y-2">
+					{addresses.map((addr) => (
+						<label
+							key={addr.id}
+							className={cn(
+								"flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+								selectedId === addr.id
+									? "border-primary bg-primary/5"
+									: "hover:bg-accent",
+							)}>
+							<RadioGroupItem value={addr.id} className="mt-0.5" />
+							<div className="flex-1">
+								<div className="flex items-center gap-2">
+									<span className="text-sm font-semibold">{addr.label}</span>
+									{addr.isDefault && (
+										<Badge variant="secondary" className="text-[10px]">
+											Default
+										</Badge>
+									)}
+								</div>
+								<p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+									{addr.address}
+								</p>
 							</div>
-							<p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
-								{addr.address}
+						</label>
+					))}
+				</div>
+			</RadioGroup>
+			<Button
+				variant="outline"
+				size="sm"
+				className="mt-3 gap-1.5"
+				onClick={() => setDialogOpen(true)}>
+				<Plus className="h-3.5 w-3.5" />
+				Add Address
+			</Button>
+			<AddAddressDialog
+				open={dialogOpen}
+				onOpenChange={setDialogOpen}
+				label={newLabel}
+				onLabelChange={setNewLabel}
+				onAddressSelect={setNewAddress}
+				selectedAddress={newAddress}
+				onSave={handleSaveAddress}
+				isSaving={createAddress.isPending}
+			/>
+		</>
+	);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Add Address Dialog                                                */
+/* ------------------------------------------------------------------ */
+function AddAddressDialog({
+	open,
+	onOpenChange,
+	label,
+	onLabelChange,
+	onAddressSelect,
+	selectedAddress,
+	onSave,
+	isSaving,
+}: {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	label: string;
+	onLabelChange: (v: string) => void;
+	onAddressSelect: (a: AddressResult) => void;
+	selectedAddress: AddressResult | null;
+	onSave: () => void;
+	isSaving: boolean;
+}) {
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>Add New Address</DialogTitle>
+				</DialogHeader>
+				<div className="space-y-4 py-2">
+					<div className="space-y-2">
+						<Label htmlFor="addr-label">Label</Label>
+						<Input
+							id="addr-label"
+							value={label}
+							onChange={(e) => onLabelChange(e.target.value)}
+							placeholder="e.g. Home, Office, School"
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label>Address</Label>
+						<AddressAutocomplete onSelect={onAddressSelect} />
+						{selectedAddress && (
+							<p className="text-xs text-muted-foreground">
+								<Check className="mr-1 inline h-3 w-3 text-primary" />
+								{selectedAddress.address}
 							</p>
-						</div>
-					</label>
-				))}
-			</div>
-		</RadioGroup>
+						)}
+					</div>
+				</div>
+				<DialogFooter>
+					<Button
+						onClick={onSave}
+						disabled={!label.trim() || !selectedAddress || isSaving}>
+						{isSaving ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Saving…
+							</>
+						) : (
+							"Save Address"
+						)}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }
 
@@ -130,10 +273,16 @@ const PAYMENT_OPTIONS = [
 		color: "text-primary",
 	},
 	{
-		value: PaymentMethod.Cash,
-		label: "Cash on Delivery",
+		value: PaymentMethod.BankTransfer,
+		label: "Bank Transfer",
 		icon: Banknote,
 		color: "text-green-600",
+	},
+	{
+		value: PaymentMethod.Card,
+		label: "Pay with Card",
+		icon: CreditCard,
+		color: "text-blue-600",
 	},
 ] as const;
 
@@ -291,6 +440,7 @@ export default function CheckoutPage() {
 		discountAmount: number;
 	} | null>(null);
 	const [isScheduled, setIsScheduled] = useState(false);
+	const [scheduledTime, setScheduledTime] = useState("");
 
 	// Get the selected address
 	const { data: addressesData } = useAddresses();
@@ -320,9 +470,14 @@ export default function CheckoutPage() {
 		setAppliedPromo(null);
 	}, [subtotal, deliveryFee, selectedAddressId]);
 
+	const minimumOrder = vendor?.minimumOrderAmount ?? 0;
+	const belowMinimum = minimumOrder > 0 && subtotal < minimumOrder;
+
 	const canPlaceOrder =
 		selectedAddressId &&
 		itemCount > 0 &&
+		!belowMinimum &&
+		!(isScheduled && !scheduledTime) &&
 		!(paymentMethod === PaymentMethod.Wallet && !wallet?.isActive) &&
 		!(
 			paymentMethod === PaymentMethod.Wallet &&
@@ -345,6 +500,10 @@ export default function CheckoutPage() {
 				specialInstructions: specialInstructions.trim() || null,
 				paymentMethod: paymentMethod,
 				promoCode: appliedPromo?.code ?? null,
+				scheduledAt:
+					isScheduled && scheduledTime
+						? new Date(scheduledTime).toISOString()
+						: null,
 				items: items.map((item) => ({
 					productId: item.productId,
 					quantity: item.quantity,
@@ -357,12 +516,20 @@ export default function CheckoutPage() {
 				})),
 			});
 
-			// Success: clear cart, navigate to confirmation
-			clearCart();
-			const errandId = result?.data?.id;
-			router.push(
-				`/shop/order-confirmation${errandId ? `?id=${errandId}` : ""}`,
-			);
+			// Success: navigate, then clear cart
+			const checkoutUrl = result?.data?.checkoutUrl;
+			if (checkoutUrl) {
+				// Card / BankTransfer: redirect to Monnify checkout, clear cart after redirect starts
+				window.location.href = checkoutUrl;
+				clearCart();
+			} else {
+				// Wallet payment: go straight to confirmation
+				clearCart();
+				const errandId = result?.data?.errand?.id;
+				router.push(
+					`/shop/order-confirmation${errandId ? `?id=${errandId}` : ""}`,
+				);
+			}
 		} catch (err: any) {
 			toast.error("Failed to place order", {
 				description: err?.message || "Something went wrong. Please try again.",
@@ -383,6 +550,22 @@ export default function CheckoutPage() {
 				</Button>
 				<h1 className="text-xl font-bold">Checkout</h1>
 			</div>
+
+			{/* Minimum order warning */}
+			{belowMinimum && (
+				<div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+					<AlertCircle className="h-4 w-4 shrink-0" />
+					<span>
+						Minimum order amount is{" "}
+						<strong>{formatCurrency(minimumOrder)}</strong>. Add{" "}
+						<strong>{formatCurrency(minimumOrder - subtotal)}</strong> more to
+						place your order.{" "}
+						<Link href="/shop/cart" className="underline font-medium">
+							Go back to cart
+						</Link>
+					</span>
+				</div>
+			)}
 
 			<div className="space-y-6">
 				{/* 1. Delivery Address */}
@@ -447,6 +630,25 @@ export default function CheckoutPage() {
 								</div>
 							</label>
 						</RadioGroup>
+						{isScheduled && (
+							<div className="mt-3">
+								<Label
+									htmlFor="scheduled-time"
+									className="text-xs text-muted-foreground">
+									Delivery date &amp; time
+								</Label>
+								<Input
+									id="scheduled-time"
+									type="datetime-local"
+									value={scheduledTime}
+									onChange={(e) => setScheduledTime(e.target.value)}
+									min={new Date(Date.now() + 60 * 60_000)
+										.toISOString()
+										.slice(0, 16)}
+									className="mt-1"
+								/>
+							</div>
+						)}
 					</CardContent>
 				</Card>
 

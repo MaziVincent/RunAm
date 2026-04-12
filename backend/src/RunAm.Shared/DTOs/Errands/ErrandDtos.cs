@@ -36,7 +36,10 @@ public record ErrandDto(
     string? CancellationReason,
     DateTime CreatedAt,
     List<ErrandStatusHistoryDto>? StatusHistory,
-    List<ErrandStopDto>? Stops
+    List<ErrandStopDto>? Stops,
+    Guid? VendorId = null,
+    string? VendorName = null,
+    int? VendorOrderStatus = null
 );
 
 public record CreateErrandRequest(
@@ -138,6 +141,7 @@ public record CreateMarketplaceOrderRequest(
     string? SpecialInstructions,
     PaymentMethod PaymentMethod,
     string? PromoCode,
+    DateTime? ScheduledAt,
     List<CreateOrderItemRequest> Items
 );
 
@@ -147,4 +151,9 @@ public record CreateOrderItemRequest(
     string? Notes,
     string? SelectedVariantJson,
     string? SelectedExtrasJson
+);
+
+public record MarketplaceOrderResult(
+    ErrandDto Errand,
+    string? CheckoutUrl
 );

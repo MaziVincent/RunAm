@@ -115,6 +115,50 @@ public class MonnifyService : IMonnifyService
         );
     }
 
+    // ── Initialize Transaction (Card / Bank Transfer / USSD) ──
+
+    public async Task<MonnifyInitTransactionResult> InitializeTransactionAsync(
+        decimal amount, string customerName, string customerEmail, string paymentReference, string paymentDescription, string redirectUrl, CancellationToken ct)
+    {
+        var contractCode = _config["Monnify:ContractCode"]
+            ?? throw new InvalidOperationException("Monnify:ContractCode is not configured.");
+
+        var body = new
+        {
+            amount,
+            customerName,
+            customerEmail,
+            paymentReference,
+            paymentDescription,
+            currencyCode = "NGN",
+            contractCode,
+            redirectUrl,
+            paymentMethods = new[] { "CARD", "ACCOUNT_TRANSFER" }
+        };
+
+        var request = await CreateAuthedRequestAsync(HttpMethod.Post, "/api/v1/merchant/transactions/init-transaction", ct);
+        request.Content = JsonContent.Create(body, options: JsonOpts);
+
+        var response = await _http.SendAsync(request, ct);
+        var content = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Monnify init transaction failed: {StatusCode} {Content}", response.StatusCode, content);
+            return new MonnifyInitTransactionResult(false, null, null, content);
+        }
+
+        var result = JsonSerializer.Deserialize<MonnifyApiResponse<MonnifyInitTransactionData>>(content, JsonOpts);
+        var data = result?.ResponseBody;
+
+        return new MonnifyInitTransactionResult(
+            data is not null,
+            data?.TransactionReference,
+            data?.CheckoutUrl,
+            result?.ResponseMessage
+        );
+    }
+
     // ── Initiate Transfer (Payout) ──────────────────────
 
     public async Task<MonnifyTransferResult> InitiateTransferAsync(
@@ -218,11 +262,12 @@ public class MonnifyService : IMonnifyService
     // ── Internal DTOs for Monnify API responses ─────────
 
     private record MonnifyApiResponse<T>(bool RequestSuccessful, string ResponseMessage, T? ResponseBody);
-    private record MonnifyAuthData(string AccessToken, DateTime ExpiresIn);
+    private record MonnifyAuthData(string AccessToken, long ExpiresIn);
     private record MonnifyReserveAccountData(List<MonnifyAccountInfo>? Accounts);
     private record MonnifyAccountInfo(string AccountNumber, string AccountName, string BankName, string BankCode);
     private record MonnifyTransferData(string? Reference, string? Status);
     private record MonnifyTransferSummaryData(string? Status, string? TransactionReference, string? TransactionDescription);
+    private record MonnifyInitTransactionData(string? TransactionReference, string? PaymentReference, string? CheckoutUrl);
     private record MonnifyTransactionData(
         string? PaymentStatus,
         decimal AmountPaid,

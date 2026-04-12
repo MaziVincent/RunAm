@@ -78,6 +78,8 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 
     // CORS
     ["Cors:Origins"] = E("CORS_ORIGINS"),
+    // Frontend
+    ["Frontend:BaseUrl"] = E("FRONTEND_BASE_URL"),
 }.Where(kv => kv.Value is not null)!);
 
 // Helper: read env var (returns null when not set — filtered out above)
@@ -149,6 +151,17 @@ builder.Services.AddRateLimiter(options =>
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // Webhook policy — allow reasonable burst from payment gateways
+    options.AddPolicy("webhook", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));

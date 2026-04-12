@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RunAm.Domain.Entities;
+using RunAm.Domain.Enums;
 using RunAm.Domain.Interfaces;
 
 namespace RunAm.Infrastructure.Persistence.Repositories;
@@ -40,4 +41,30 @@ public class WalletRepository : IWalletRepository
         _db.Wallets.Update(wallet);
         return Task.CompletedTask;
     }
+
+    public async Task<IReadOnlyList<WalletTransaction>> GetCreditTransactionsSinceAsync(
+        Guid walletId, DateTime since, TransactionSource[] sources, CancellationToken ct = default)
+        => await _db.WalletTransactions
+            .Where(t => t.WalletId == walletId
+                && t.Type == TransactionType.Credit
+                && t.CreatedAt >= since
+                && sources.Contains(t.Source))
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<decimal> GetTotalCreditAmountAsync(
+        Guid walletId, TransactionSource[] sources, CancellationToken ct = default)
+        => await _db.WalletTransactions
+            .Where(t => t.WalletId == walletId
+                && t.Type == TransactionType.Credit
+                && sources.Contains(t.Source))
+            .SumAsync(t => t.Amount, ct);
+
+    public async Task<int> GetCreditCountSinceAsync(
+        Guid walletId, DateTime since, TransactionSource source, CancellationToken ct = default)
+        => await _db.WalletTransactions
+            .CountAsync(t => t.WalletId == walletId
+                && t.Type == TransactionType.Credit
+                && t.Source == source
+                && t.CreatedAt >= since, ct);
 }

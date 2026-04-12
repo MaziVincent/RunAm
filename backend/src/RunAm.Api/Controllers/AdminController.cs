@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using RunAm.Application.Admin.Commands;
 using RunAm.Application.Matching.Queries;
 using RunAm.Application.Notifications.Commands;
@@ -9,7 +11,10 @@ using RunAm.Application.Products.Commands;
 using RunAm.Application.Reviews.Commands;
 using RunAm.Application.Reviews.Queries;
 using RunAm.Application.Vendors.Queries;
+using RunAm.Domain.Entities;
+using RunAm.Domain.Enums;
 using RunAm.Domain.Interfaces;
+using RunAm.Infrastructure.Persistence;
 using RunAm.Shared.DTOs;
 using RunAm.Shared.DTOs.Errands;
 using RunAm.Shared.DTOs.Payments;
@@ -27,17 +32,46 @@ public class AdminController : BaseApiController
     private readonly IRiderRepository _riderRepo;
     private readonly IErrandRepository _errandRepo;
     private readonly IRiderPayoutRepository _payoutRepo;
+    private readonly AppDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IUnitOfWork _uow;
 
     public AdminController(
         IMediator mediator,
         IRiderRepository riderRepo,
         IErrandRepository errandRepo,
-        IRiderPayoutRepository payoutRepo)
+        IRiderPayoutRepository payoutRepo,
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUnitOfWork uow)
     {
         _mediator = mediator;
         _riderRepo = riderRepo;
         _errandRepo = errandRepo;
         _payoutRepo = payoutRepo;
+        _db = db;
+        _userManager = userManager;
+        _uow = uow;
+    }
+
+    /// <summary>Get dashboard stats</summary>
+    [HttpGet("dashboard/stats")]
+    [ProducesResponseType(typeof(ApiResponse<DashboardStatsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDashboardStats()
+    {
+        var today = DateTime.UtcNow.Date;
+
+        var totalUsers = await _userManager.Users.CountAsync();
+        var activeRiders = await _db.RiderProfiles.CountAsync(r => r.IsOnline);
+        var todaysErrands = await _db.Errands.CountAsync(e => e.CreatedAt >= today);
+        var revenue = await _db.Payments
+            .Where(p => p.Status == PaymentStatus.Completed)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+        var totalVendors = await _db.Vendors.CountAsync();
+        var pendingVendors = await _db.Vendors.CountAsync(v => v.Status == VendorStatus.Pending);
+
+        var stats = new DashboardStatsDto(totalUsers, activeRiders, todaysErrands, revenue, totalVendors, pendingVendors);
+        return Ok(ApiResponse<DashboardStatsDto>.Ok(stats));
     }
 
     /// <summary>Get pending rider approvals</summary>
@@ -63,12 +97,91 @@ public class AdminController : BaseApiController
         return Ok(ApiResponse<RiderProfileDto>.Ok(result));
     }
 
-    /// <summary>Get all pending errands</summary>
+    /// <summary>Get errand detail (admin, no ownership check)</summary>
+    [HttpGet("errands/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetErrandDetail(Guid id)
+    {
+        var errand = await _errandRepo.GetByIdWithDetailsAsync(id);
+        if (errand is null) return NotFound();
+
+        var dto = new ErrandDto(
+            errand.Id, errand.CustomerId, errand.Customer?.FullName ?? "", errand.RiderId, errand.Rider?.FullName,
+            errand.Category, errand.Status, errand.Description, errand.SpecialInstructions,
+            errand.Priority, errand.ScheduledAt, errand.PickupAddress, errand.PickupLatitude, errand.PickupLongitude,
+            errand.DropoffAddress, errand.DropoffLatitude, errand.DropoffLongitude,
+            errand.EstimatedDistance, errand.EstimatedDuration, errand.PackageSize, errand.PackageWeight,
+            errand.IsFragile, errand.RequiresPhotoProof, errand.RecipientName, errand.RecipientPhone,
+            errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
+            errand.CancellationReason, errand.CreatedAt,
+            errand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
+            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
+            errand.VendorId, errand.Vendor?.BusinessName, errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
+        );
+        return Ok(ApiResponse<ErrandDto>.Ok(dto));
+    }
+
+    /// <summary>Assign a rider to an errand</summary>
+    [HttpPatch("errands/{id:guid}/assign-rider")]
+    [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AssignRider(Guid id, [FromBody] AssignRiderRequest request)
+    {
+        var errand = await _errandRepo.GetByIdWithDetailsAsync(id);
+        if (errand is null) return NotFound();
+
+        var rider = await _riderRepo.GetByIdAsync(request.RiderId);
+        if (rider is null) return BadRequest(ApiResponse<object>.Fail("Rider not found"));
+
+        errand.RiderId = rider.UserId;
+        if (errand.Status == ErrandStatus.Pending)
+        {
+            errand.TransitionTo(ErrandStatus.Accepted);
+        }
+
+        await _errandRepo.UpdateAsync(errand);
+        await _uow.SaveChangesAsync();
+
+        // Reload with details
+        errand = await _errandRepo.GetByIdWithDetailsAsync(id);
+        var dto = new ErrandDto(
+            errand!.Id, errand.CustomerId, errand.Customer?.FullName ?? "", errand.RiderId, errand.Rider?.FullName,
+            errand.Category, errand.Status, errand.Description, errand.SpecialInstructions,
+            errand.Priority, errand.ScheduledAt, errand.PickupAddress, errand.PickupLatitude, errand.PickupLongitude,
+            errand.DropoffAddress, errand.DropoffLatitude, errand.DropoffLongitude,
+            errand.EstimatedDistance, errand.EstimatedDuration, errand.PackageSize, errand.PackageWeight,
+            errand.IsFragile, errand.RequiresPhotoProof, errand.RecipientName, errand.RecipientPhone,
+            errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
+            errand.CancellationReason, errand.CreatedAt,
+            errand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
+            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
+            errand.VendorId, errand.Vendor?.BusinessName, errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
+        );
+        return Ok(ApiResponse<ErrandDto>.Ok(dto));
+    }
+
+    /// <summary>Get available riders for assignment</summary>
+    [HttpGet("riders/available")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RiderProfileDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAvailableRiders()
+    {
+        var riders = await _db.RiderProfiles
+            .Include(r => r.User)
+            .Where(r => r.IsOnline && r.ApprovalStatus == ApprovalStatus.Approved)
+            .ToListAsync();
+        var dtos = riders.Select(r => new RiderProfileDto(
+            r.Id, r.UserId, r.User?.FullName ?? "", r.VehicleType, r.LicensePlate,
+            r.ApprovalStatus, r.Rating, r.TotalCompletedTasks, r.IsOnline,
+            r.CurrentLatitude, r.CurrentLongitude, r.LastLocationUpdate, r.CreatedAt
+        )).ToList();
+        return Ok(ApiResponse<IReadOnlyList<RiderProfileDto>>.Ok(dtos));
+    }
+
+    /// <summary>Get all errands (admin)</summary>
     [HttpGet("errands")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ErrandDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetErrands()
+    public async Task<IActionResult> GetErrands([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] int? status = null)
     {
-        var errands = await _errandRepo.GetPendingErrandsAsync();
+        var (errands, totalCount) = await _errandRepo.GetAllAsync(page, pageSize, search, status);
         var dtos = errands.Select(e => new ErrandDto(
             e.Id, e.CustomerId, e.Customer?.FullName ?? "", e.RiderId, null,
             e.Category, e.Status, e.Description, e.SpecialInstructions,
@@ -77,12 +190,34 @@ public class AdminController : BaseApiController
             e.EstimatedDistance, e.EstimatedDuration, e.PackageSize, e.PackageWeight,
             e.IsFragile, e.RequiresPhotoProof, e.RecipientName, e.RecipientPhone,
             e.TotalAmount, e.AcceptedAt, e.PickedUpAt, e.DeliveredAt, e.CancelledAt,
-            e.CancellationReason, e.CreatedAt, null, null
+            e.CancellationReason, e.CreatedAt, null, null,
+            e.VendorId, e.Vendor?.BusinessName, e.VendorOrderStatus != null ? (int)e.VendorOrderStatus : null
         )).ToList();
-        return Ok(ApiResponse<IReadOnlyList<ErrandDto>>.Ok(dtos));
+        return Ok(ApiResponse<IReadOnlyList<ErrandDto>>.Ok(dtos, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
     }
 
     // ── Finance Endpoints ───────────────────────
+
+    /// <summary>Get finance stats (revenue + commission)</summary>
+    [HttpGet("finance/stats")]
+    [ProducesResponseType(typeof(ApiResponse<FinanceStatsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetFinanceStats()
+    {
+        var totalRevenue = await _db.Payments
+            .Where(p => p.Status == PaymentStatus.Completed)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+        var commissionEarned = await _db.Errands
+            .Where(e => e.Status == ErrandStatus.Delivered)
+            .SumAsync(e => (decimal?)e.CommissionAmount) ?? 0m;
+
+        return Ok(ApiResponse<FinanceStatsDto>.Ok(new FinanceStatsDto(totalRevenue, commissionEarned)));
+    }
 
     /// <summary>Get all promo codes</summary>
     [HttpGet("promo-codes")]

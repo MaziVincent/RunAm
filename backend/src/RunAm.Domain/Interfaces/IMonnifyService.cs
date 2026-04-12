@@ -5,6 +5,9 @@ public interface IMonnifyService
     /// <summary>Reserve a virtual account for a user's wallet top-ups.</summary>
     Task<MonnifyReservedAccount> ReserveAccountAsync(Guid userId, string name, string email, string nin, CancellationToken ct = default);
 
+    /// <summary>Initialize a transaction (card, bank transfer, USSD) and get a checkout URL.</summary>
+    Task<MonnifyInitTransactionResult> InitializeTransactionAsync(decimal amount, string customerName, string customerEmail, string paymentReference, string paymentDescription, string redirectUrl, CancellationToken ct = default);
+
     /// <summary>Initiate a single bank transfer (rider payout).</summary>
     Task<MonnifyTransferResult> InitiateTransferAsync(decimal amount, string bankCode, string accountNumber, string accountName, string reference, CancellationToken ct = default);
 
@@ -43,4 +46,11 @@ public record MonnifyTransactionStatus(
     string? PaymentReference,
     string? TransactionReference,
     string? AccountReference
+);
+
+public record MonnifyInitTransactionResult(
+    bool Success,
+    string? TransactionReference,
+    string? CheckoutUrl,
+    string? Message
 );

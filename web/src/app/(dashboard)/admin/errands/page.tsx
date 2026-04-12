@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { api } from "@/lib/api/client";
 import {
@@ -17,15 +18,16 @@ import type { ErrandDto } from "@/types";
 import { format } from "date-fns";
 
 export default function ErrandsPage() {
+	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [search, setSearch] = useState("");
 	const [statusFilter, setStatusFilter] = useState<string>("");
 	const pageSize = 20;
 
 	const { data: res, isLoading } = useQuery({
-		queryKey: ["errands", page, search, statusFilter],
+		queryKey: ["admin-errands", page, search, statusFilter],
 		queryFn: () =>
-			api.get<ErrandDto[]>("/errands", {
+			api.get<ErrandDto[]>("/admin/errands", {
 				page,
 				pageSize,
 				...(search && { search }),
@@ -140,7 +142,8 @@ export default function ErrandsPage() {
 								errands.map((errand) => (
 									<tr
 										key={errand.id}
-										className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+										onClick={() => router.push(`/admin/errands/${errand.id}`)}
+										className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
 										<td className="whitespace-nowrap px-6 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">
 											{errand.id.slice(0, 8)}…
 										</td>

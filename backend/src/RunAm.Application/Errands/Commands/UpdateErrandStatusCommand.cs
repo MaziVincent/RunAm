@@ -1,4 +1,5 @@
 using MediatR;
+using RunAm.Domain.Entities;
 using RunAm.Domain.Enums;
 using RunAm.Domain.Exceptions;
 using RunAm.Domain.Interfaces;
@@ -11,11 +12,19 @@ public record UpdateErrandStatusCommand(Guid ErrandId, Guid UserId, UpdateErrand
 public class UpdateErrandStatusCommandHandler : IRequestHandler<UpdateErrandStatusCommand, ErrandDto>
 {
     private readonly IErrandRepository _errandRepo;
+    private readonly IWalletRepository _walletRepo;
+    private readonly IPaymentRepository _paymentRepo;
     private readonly IUnitOfWork _uow;
 
-    public UpdateErrandStatusCommandHandler(IErrandRepository errandRepo, IUnitOfWork uow)
+    public UpdateErrandStatusCommandHandler(
+        IErrandRepository errandRepo,
+        IWalletRepository walletRepo,
+        IPaymentRepository paymentRepo,
+        IUnitOfWork uow)
     {
         _errandRepo = errandRepo;
+        _walletRepo = walletRepo;
+        _paymentRepo = paymentRepo;
         _uow = uow;
     }
 
@@ -27,10 +36,62 @@ public class UpdateErrandStatusCommandHandler : IRequestHandler<UpdateErrandStat
         var req = command.Request;
         errand.TransitionTo(req.Status, req.Latitude, req.Longitude, req.Notes, req.ImageUrl);
 
+        if (req.Status == ErrandStatus.Delivered)
+            await HandleDeliveryPaymentAsync(errand, cancellationToken);
+
         await _errandRepo.UpdateAsync(errand, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
 
         return MapToDto(errand);
+    }
+
+    private async Task HandleDeliveryPaymentAsync(Errand errand, CancellationToken ct)
+    {
+        // Mark cash payments as completed on delivery
+        var payment = await _paymentRepo.GetByErrandIdAsync(errand.Id, ct);
+        if (payment is not null && payment.Status == PaymentStatus.Pending && payment.PaymentMethod == PaymentMethod.Cash)
+        {
+            payment.Status = PaymentStatus.Completed;
+            await _paymentRepo.UpdateAsync(payment, ct);
+        }
+
+        // Credit rider wallet with earnings (total minus commission)
+        if (!errand.RiderId.HasValue) return;
+
+        var riderWallet = await _walletRepo.GetByUserIdAsync(errand.RiderId.Value, ct);
+        if (riderWallet is null || !riderWallet.IsActive) return;
+
+        var riderEarnings = errand.TotalAmount - errand.CommissionAmount;
+        if (riderEarnings <= 0) return;
+
+        riderWallet.Credit(riderEarnings);
+        await _walletRepo.UpdateAsync(riderWallet, ct);
+
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = riderWallet.Id,
+            Type = TransactionType.Credit,
+            Amount = riderEarnings,
+            BalanceAfter = riderWallet.Balance,
+            Source = TransactionSource.ErrandEarning,
+            ReferenceId = errand.Id,
+            Description = $"Earning for errand #{errand.Id.ToString()[..8]}"
+        }, ct);
+
+        // Record platform commission as a separate transaction for audit trail
+        if (errand.CommissionAmount > 0)
+        {
+            await _walletRepo.AddTransactionAsync(new WalletTransaction
+            {
+                WalletId = riderWallet.Id,
+                Type = TransactionType.Debit,
+                Amount = errand.CommissionAmount,
+                BalanceAfter = riderWallet.Balance,
+                Source = TransactionSource.Commission,
+                ReferenceId = errand.Id,
+                Description = $"Platform commission for errand #{errand.Id.ToString()[..8]}"
+            }, ct);
+        }
     }
 
     private static ErrandDto MapToDto(Domain.Entities.Errand e) => new(

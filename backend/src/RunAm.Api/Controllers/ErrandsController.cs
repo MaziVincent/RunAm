@@ -27,19 +27,19 @@ public class ErrandsController : BaseApiController
 
     /// <summary>Create a marketplace (vendor) order</summary>
     [HttpPost("marketplace")]
-    [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<MarketplaceOrderResult>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateMarketplaceOrder([FromBody] CreateMarketplaceOrderRequest request)
     {
         var result = await _mediator.Send(new CreateMarketplaceOrderCommand(GetUserId(), request));
-        return Created($"/api/v1/errands/{result.Id}", ApiResponse<ErrandDto>.Ok(result));
+        return Created($"/api/v1/errands/{result.Errand.Id}", ApiResponse<MarketplaceOrderResult>.Ok(result));
     }
 
     /// <summary>Get current user's errands</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ErrandDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMyErrands([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetMyErrands([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? status = null)
     {
-        var (errands, totalCount) = await _mediator.Send(new GetMyErrandsQuery(GetUserId(), page, pageSize));
+        var (errands, totalCount) = await _mediator.Send(new GetMyErrandsQuery(GetUserId(), page, pageSize, status));
         return Ok(ApiResponse<IReadOnlyList<ErrandDto>>.Ok(errands, new PaginationMeta
         {
             Page = page,

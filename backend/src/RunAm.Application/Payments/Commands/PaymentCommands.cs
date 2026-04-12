@@ -178,68 +178,6 @@ public class VerifyMonnifyWebhookFundingCommandHandler : IRequestHandler<VerifyM
     }
 }
 
-// ── Withdraw ────────────────────────────────────
-
-public record WithdrawCommand(Guid UserId, WithdrawRequest Request) : IRequest<WalletDto>;
-
-public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, WalletDto>
-{
-    private readonly IWalletRepository _walletRepo;
-    private readonly IMonnifyService _monnify;
-    private readonly IUnitOfWork _uow;
-
-    public WithdrawCommandHandler(IWalletRepository walletRepo, IMonnifyService monnify, IUnitOfWork uow)
-    {
-        _walletRepo = walletRepo;
-        _monnify = monnify;
-        _uow = uow;
-    }
-
-    public async Task<WalletDto> Handle(WithdrawCommand command, CancellationToken ct)
-    {
-        var wallet = await _walletRepo.GetByUserIdAsync(command.UserId, ct)
-            ?? throw new NotFoundException("Wallet", command.UserId);
-
-        if (!wallet.IsActive)
-            throw new InvalidOperationException("Create your Monnify wallet before withdrawing.");
-
-        if (wallet.Balance < command.Request.Amount)
-            throw new InvalidOperationException("Insufficient wallet balance.");
-
-        // Initiate bank transfer via Monnify FIRST — only debit wallet on success
-        var reference = $"WD-{Guid.NewGuid():N}";
-        var transfer = await _monnify.InitiateTransferAsync(
-            command.Request.Amount,
-            command.Request.BankCode,
-            command.Request.AccountNumber,
-            command.Request.AccountName,
-            reference,
-            ct);
-
-        if (!transfer.Success)
-            throw new InvalidOperationException($"Bank transfer failed: {transfer.Message}");
-
-        wallet.Debit(command.Request.Amount);
-        await _walletRepo.UpdateAsync(wallet, ct);
-
-        var transaction = new WalletTransaction
-        {
-            WalletId = wallet.Id,
-            Type = TransactionType.Debit,
-            Amount = command.Request.Amount,
-            BalanceAfter = wallet.Balance,
-            Source = TransactionSource.Withdrawal,
-            ExternalReference = transfer.Reference,
-            Description = $"Withdrawal to {command.Request.BankCode} - {command.Request.AccountNumber} (ref: {transfer.Reference})"
-        };
-
-        await _walletRepo.AddTransactionAsync(transaction, ct);
-        await _uow.SaveChangesAsync(ct);
-
-        return PaymentMappings.MapWallet(wallet);
-    }
-}
-
 // ── Process Payment ─────────────────────────────
 
 public record ProcessPaymentCommand(Guid PayerId, ProcessPaymentRequest Request) : IRequest<PaymentDto>;
@@ -370,8 +308,32 @@ public class AddTipCommandHandler : IRequestHandler<AddTipCommand, PaymentDto>
         var errand = await _errandRepo.GetByIdAsync(command.ErrandId, ct)
             ?? throw new NotFoundException("Errand", command.ErrandId);
 
+        if (errand.Status != ErrandStatus.Delivered)
+            throw new InvalidOperationException("Tips can only be added after the errand is delivered.");
+
         if (!errand.RiderId.HasValue)
             throw new InvalidOperationException("Cannot tip — no rider assigned.");
+
+        // Debit tipper's wallet
+        var tipperWallet = await _walletRepo.GetByUserIdAsync(command.UserId, ct)
+            ?? throw new NotFoundException("Wallet", command.UserId);
+
+        if (!tipperWallet.IsActive)
+            throw new InvalidOperationException("Create your wallet before sending a tip.");
+
+        tipperWallet.Debit(command.Amount);
+        await _walletRepo.UpdateAsync(tipperWallet, ct);
+
+        await _walletRepo.AddTransactionAsync(new WalletTransaction
+        {
+            WalletId = tipperWallet.Id,
+            Type = TransactionType.Debit,
+            Amount = command.Amount,
+            BalanceAfter = tipperWallet.Balance,
+            Source = TransactionSource.Tip,
+            ReferenceId = errand.Id,
+            Description = $"Tip sent for errand #{errand.Id.ToString()[..8]}"
+        }, ct);
 
         // Create a payment record for the tip
         var tipPayment = new Payment
@@ -409,6 +371,50 @@ public class AddTipCommandHandler : IRequestHandler<AddTipCommand, PaymentDto>
             tipPayment.Amount, tipPayment.Currency, tipPayment.PaymentMethod,
             null, tipPayment.Status, tipPayment.CreatedAt
         );
+    }
+}
+
+// ── Confirm Order Payment (via webhook) ─────────
+
+public record ConfirmOrderPaymentCommand(
+    string TransactionReference,
+    string PaymentReference,
+    decimal AmountPaid) : IRequest<bool>;
+
+public class ConfirmOrderPaymentCommandHandler : IRequestHandler<ConfirmOrderPaymentCommand, bool>
+{
+    private readonly IPaymentRepository _paymentRepo;
+    private readonly IMonnifyService _monnify;
+    private readonly IUnitOfWork _uow;
+
+    public ConfirmOrderPaymentCommandHandler(
+        IPaymentRepository paymentRepo,
+        IMonnifyService monnify,
+        IUnitOfWork uow)
+    {
+        _paymentRepo = paymentRepo;
+        _monnify = monnify;
+        _uow = uow;
+    }
+
+    public async Task<bool> Handle(ConfirmOrderPaymentCommand command, CancellationToken ct)
+    {
+        // Find the payment by the gateway ref (transactionReference stored at init)
+        var payment = await _paymentRepo.GetByPaymentGatewayRefAsync(command.TransactionReference, ct);
+        if (payment is null || payment.Status == PaymentStatus.Completed)
+            return false; // Already processed or not found
+
+        // Server-side verify with Monnify
+        var verification = await _monnify.VerifyTransactionAsync(command.TransactionReference, ct);
+        if (!verification.Paid || verification.Amount < payment.Amount)
+            return false;
+
+        payment.Status = PaymentStatus.Completed;
+        payment.PaymentGatewayRef = verification.TransactionReference ?? command.TransactionReference;
+        await _paymentRepo.UpdateAsync(payment, ct);
+        await _uow.SaveChangesAsync(ct);
+
+        return true;
     }
 }
 

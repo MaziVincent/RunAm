@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
 	Search,
@@ -11,6 +12,7 @@ import {
 	ArrowLeft,
 	User,
 	Menu,
+	Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,48 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/stores/cart-store";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { useDebounce } from "@/lib/hooks";
+import { useDebounce, useGeolocation } from "@/lib/hooks";
+import RunAmLogo from "@/assets/RunAmLogo.png";
+
+function useLocationName(lat?: number, lng?: number) {
+	const [name, setName] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
+
+	useEffect(() => {
+		if (!lat || !lng) return;
+		let cancelled = false;
+		setLoading(true);
+
+		fetch(
+			`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`,
+			{ headers: { "Accept-Language": "en" } },
+		)
+			.then((r) => r.json())
+			.then((data) => {
+				if (cancelled) return;
+				const addr = data?.address;
+				const display =
+					addr?.neighbourhood ||
+					addr?.suburb ||
+					addr?.city_district ||
+					addr?.city ||
+					addr?.town ||
+					addr?.state ||
+					null;
+				setName(display);
+			})
+			.catch(() => {})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [lat, lng]);
+
+	return { name, loading };
+}
 
 export function ShopNavbar() {
 	const router = useRouter();
@@ -32,6 +75,8 @@ export function ShopNavbar() {
 	const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 	const debouncedQuery = useDebounce(searchQuery, 400);
 	const searchInputRef = useRef<HTMLInputElement>(null);
+	const { lat, lng, loading: geoLoading } = useGeolocation();
+	const { name: locationName, loading: locationLoading } = useLocationName(lat, lng);
 
 	// Navigate on debounced search
 	useEffect(() => {
@@ -44,7 +89,8 @@ export function ShopNavbar() {
 
 	const isShopHome = pathname === "/shop";
 	const isVendorPage = pathname.startsWith("/shop/vendors/");
-
+	
+	//const isScrolled = scrollY > 20;
 	return (
 		<header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
 			<nav className="container mx-auto flex h-14 items-center gap-3 px-4 lg:h-16">
@@ -60,10 +106,15 @@ export function ShopNavbar() {
 					</Button>
 				) : (
 					<Link href="/" className="flex shrink-0 items-center gap-2">
-						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white text-sm">
-							R
-						</div>
-						<span className="hidden text-lg font-bold sm:inline">RunAm</span>
+						<Image
+												src="/logo.svg"
+												alt="RunAm"
+												width={120}
+												height={36}
+												className={cn("h-9 w-auto")}
+												priority
+											/>
+						
 					</Link>
 				)}
 
@@ -104,7 +155,13 @@ export function ShopNavbar() {
 				{/* Location indicator (compact) */}
 				<button className="hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:flex">
 					<MapPin className="h-4 w-4 text-primary" />
-					<span className="max-w-[120px] truncate">Lekki Phase 1</span>
+					{geoLoading || locationLoading ? (
+						<Loader2 className="h-3 w-3 animate-spin" />
+					) : (
+						<span className="max-w-[160px] truncate">
+							{locationName ?? "Set location"}
+						</span>
+					)}
 				</button>
 
 				{/* Cart button */}

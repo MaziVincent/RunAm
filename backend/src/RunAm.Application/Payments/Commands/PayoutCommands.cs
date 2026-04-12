@@ -48,6 +48,16 @@ public class CreateRiderPayoutCommandHandler : IRequestHandler<CreateRiderPayout
         if (wallet.Balance < command.Request.Amount)
             throw new InvalidOperationException("Insufficient wallet balance.");
 
+        // Calculate meaningful period: from last completed payout to now
+        var lastPayouts = await _payoutRepo.GetByRiderIdAsync(command.RiderId, 1, 1, ct);
+        var lastCompleted = lastPayouts.FirstOrDefault(p => p.Status == PayoutStatus.Completed);
+        var periodStart = lastCompleted?.PeriodEnd ?? wallet.CreatedAt;
+        var periodEnd = DateTime.UtcNow;
+
+        // Count errands delivered in this period
+        var errandCount = await _walletRepo.GetCreditCountSinceAsync(
+            wallet.Id, periodStart, TransactionSource.ErrandEarning, ct);
+
         var payout = new RiderPayout
         {
             RiderId = command.RiderId,
@@ -57,10 +67,10 @@ public class CreateRiderPayoutCommandHandler : IRequestHandler<CreateRiderPayout
             DestinationBankName = riderProfile.SettlementBankName,
             DestinationAccountNumber = riderProfile.SettlementAccountNumber,
             DestinationAccountName = riderProfile.SettlementAccountName,
-            PeriodStart = DateTime.UtcNow,
-            PeriodEnd = DateTime.UtcNow,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
             Status = PayoutStatus.Pending,
-            ErrandCount = 0
+            ErrandCount = errandCount
         };
 
         wallet.Debit(command.Request.Amount);
