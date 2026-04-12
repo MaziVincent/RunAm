@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
 	User,
 	Bike,
@@ -20,10 +19,15 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useRiderProfile } from "@/lib/hooks";
+import {
+	useRiderProfile,
+	useNotificationPreferences,
+	useUpdateNotificationPreferences,
+} from "@/lib/hooks";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { VehicleType, ApprovalStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const vehicleTypeLabel: Record<number, string> = {
 	[VehicleType.OnFoot]: "On Foot",
@@ -49,8 +53,16 @@ export default function RiderSettingsPage() {
 	const { data, isLoading } = useRiderProfile();
 	const { user, logout } = useAuthStore();
 	const profile = data?.data;
-	const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-	const [soundEnabled, setSoundEnabled] = useState(true);
+	const { data: prefsData, isLoading: prefsLoading } =
+		useNotificationPreferences();
+	const updatePrefs = useUpdateNotificationPreferences();
+	const prefs = prefsData?.data;
+
+	function togglePref(key: "pushEnabled" | "errandUpdates" | "chatMessages" | "paymentAlerts", value: boolean) {
+		updatePrefs.mutate({ [key]: value }, {
+			onError: () => toast.error("Failed to update preference"),
+		});
+	}
 
 	if (isLoading) {
 		return (
@@ -173,28 +185,71 @@ export default function RiderSettingsPage() {
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm font-medium">Push Notifications</p>
-							<p className="text-xs text-muted-foreground">
-								Receive notifications for new tasks and updates
-							</p>
+					{prefsLoading ? (
+						<div className="space-y-3">
+							{[1, 2, 3, 4].map((i) => (
+								<Skeleton key={i} className="h-10" />
+							))}
 						</div>
-						<Switch
-							checked={notificationsEnabled}
-							onCheckedChange={setNotificationsEnabled}
-						/>
-					</div>
-					<Separator />
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm font-medium">Sound Alerts</p>
-							<p className="text-xs text-muted-foreground">
-								Play sound for incoming task notifications
-							</p>
-						</div>
-						<Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
-					</div>
+					) : (
+						<>
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-sm font-medium">Push Notifications</p>
+									<p className="text-xs text-muted-foreground">
+										Receive notifications for new tasks and updates
+									</p>
+								</div>
+								<Switch
+									checked={prefs?.pushEnabled ?? true}
+									disabled={updatePrefs.isPending}
+									onCheckedChange={(v) => togglePref("pushEnabled", v)}
+								/>
+							</div>
+							<Separator />
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-sm font-medium">Errand Updates</p>
+									<p className="text-xs text-muted-foreground">
+										Status changes for your deliveries
+									</p>
+								</div>
+								<Switch
+									checked={prefs?.errandUpdates ?? true}
+									disabled={updatePrefs.isPending}
+									onCheckedChange={(v) => togglePref("errandUpdates", v)}
+								/>
+							</div>
+							<Separator />
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-sm font-medium">Chat Messages</p>
+									<p className="text-xs text-muted-foreground">
+										Notifications for new chat messages
+									</p>
+								</div>
+								<Switch
+									checked={prefs?.chatMessages ?? true}
+									disabled={updatePrefs.isPending}
+									onCheckedChange={(v) => togglePref("chatMessages", v)}
+								/>
+							</div>
+							<Separator />
+							<div className="flex items-center justify-between">
+								<div>
+									<p className="text-sm font-medium">Payment Alerts</p>
+									<p className="text-xs text-muted-foreground">
+										Earnings, payouts, and wallet activity
+									</p>
+								</div>
+								<Switch
+									checked={prefs?.paymentAlerts ?? true}
+									disabled={updatePrefs.isPending}
+									onCheckedChange={(v) => togglePref("paymentAlerts", v)}
+								/>
+							</div>
+						</>
+					)}
 				</CardContent>
 			</Card>
 

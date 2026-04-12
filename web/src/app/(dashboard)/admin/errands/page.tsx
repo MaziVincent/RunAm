@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useDeferredValue } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Search, ChevronLeft, ChevronRight, Filter } from "lucide-react";
@@ -21,16 +21,17 @@ export default function ErrandsPage() {
 	const router = useRouter();
 	const [page, setPage] = useState(1);
 	const [search, setSearch] = useState("");
+	const deferredSearch = useDeferredValue(search);
 	const [statusFilter, setStatusFilter] = useState<string>("");
 	const pageSize = 20;
 
 	const { data: res, isLoading } = useQuery({
-		queryKey: ["admin-errands", page, search, statusFilter],
+		queryKey: ["admin-errands", page, deferredSearch, statusFilter],
 		queryFn: () =>
 			api.get<ErrandDto[]>("/admin/errands", {
 				page,
 				pageSize,
-				...(search && { search }),
+				...(deferredSearch && { search: deferredSearch }),
 				...(statusFilter && { status: statusFilter }),
 			}),
 	});

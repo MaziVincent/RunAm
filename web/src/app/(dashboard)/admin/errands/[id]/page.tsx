@@ -3,16 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import {
-	ArrowLeft,
-	MapPin,
-	Package,
-	User,
-	Bike,
-	Clock,
-	DollarSign,
-	Phone,
-} from "lucide-react";
+import { ArrowLeft, MapPin, User, Bike } from "lucide-react";
 import { api } from "@/lib/api/client";
 import {
 	cn,

@@ -53,15 +53,24 @@ public class CreateRiderProfileCommandHandler : IRequestHandler<CreateRiderProfi
             throw new InvalidOperationException(errors);
         }
 
+        if (!command.Request.AgreedToTerms)
+            throw new InvalidOperationException("You must agree to the rider terms and policy.");
+
         var profile = new RiderProfile
         {
             UserId = command.UserId,
             VehicleType = command.Request.VehicleType,
             LicensePlate = command.Request.LicensePlate,
+            SelfieUrl = command.Request.SelfieUrl,
+            Address = command.Request.Address,
+            City = command.Request.City,
+            State = command.Request.State,
             SettlementBankCode = command.Request.SettlementBankCode,
             SettlementBankName = command.Request.SettlementBankName,
             SettlementAccountNumber = command.Request.SettlementAccountNumber,
             SettlementAccountName = command.Request.SettlementAccountName,
+            AgreedToTerms = true,
+            AgreedAt = DateTime.UtcNow,
             ApprovalStatus = Domain.Enums.ApprovalStatus.Pending
         };
 
@@ -93,7 +102,7 @@ public class CreateRiderProfileCommandHandler : IRequestHandler<CreateRiderProfi
         await _uow.SaveChangesAsync(cancellationToken);
 
         return new RiderProfileDto(
-            profile.Id, profile.UserId, "", profile.VehicleType, profile.LicensePlate,
+            profile.Id, profile.UserId, user.FullName, profile.VehicleType, profile.LicensePlate,
             profile.ApprovalStatus, profile.Rating, profile.TotalCompletedTasks,
             profile.IsOnline, profile.CurrentLatitude, profile.CurrentLongitude,
             profile.LastLocationUpdate, profile.CreatedAt

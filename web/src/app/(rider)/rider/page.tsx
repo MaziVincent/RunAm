@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
 	Truck,
 	DollarSign,
@@ -326,30 +328,19 @@ function EarningsSummary() {
 export default function RiderDashboardPage() {
 	const { data, isLoading } = useRiderProfile();
 	const profile = data?.data;
+	const router = useRouter();
 
-	if (isLoading) {
+	// Auto-redirect to onboarding if no profile
+	useEffect(() => {
+		if (!isLoading && !profile) {
+			router.replace("/rider/onboarding");
+		}
+	}, [isLoading, profile, router]);
+
+	if (isLoading || !profile) {
 		return (
 			<div className="flex items-center justify-center py-20">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-			</div>
-		);
-	}
-
-	// No profile — redirect to onboarding
-	if (!profile) {
-		return (
-			<div className="flex flex-col items-center py-12 text-center">
-				<div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-					<Truck className="h-8 w-8 text-primary" />
-				</div>
-				<h2 className="mt-4 text-xl font-semibold">Become a Rider</h2>
-				<p className="mt-2 max-w-sm text-sm text-muted-foreground">
-					Join RunAm&apos;s delivery network and start earning money by
-					delivering packages in your area.
-				</p>
-				<Link href="/rider/onboarding" className="mt-4">
-					<Button size="lg">Get Started</Button>
-				</Link>
 			</div>
 		);
 	}

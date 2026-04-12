@@ -97,7 +97,7 @@ function VerifyForm() {
 			});
 			if (res.success && res.data) {
 				setVerified(true);
-				loginUser(res.data.accessToken, res.data.refreshToken, res.data.user);
+				loginUser(res.data.accessToken, res.data.user);
 				const dest = getDashboardPath(res.data.user.role);
 				setTimeout(() => router.push(dest), 2000);
 			} else {

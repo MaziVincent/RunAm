@@ -259,6 +259,33 @@ public class MonnifyService : IMonnifyService
         );
     }
 
+    // ── Validate Bank Account ────────────────────────────
+
+    public async Task<MonnifyBankAccountInfo> ValidateBankAccountAsync(string bankCode, string accountNumber, CancellationToken ct)
+    {
+        var request = await CreateAuthedRequestAsync(HttpMethod.Get,
+            $"/api/v1/disbursements/account/validate?accountNumber={Uri.EscapeDataString(accountNumber)}&bankCode={Uri.EscapeDataString(bankCode)}", ct);
+
+        var response = await _http.SendAsync(request, ct);
+        var content = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Monnify bank account validation failed: {StatusCode} {Content}", response.StatusCode, content);
+            return new MonnifyBankAccountInfo(false, null, null, null);
+        }
+
+        var result = JsonSerializer.Deserialize<MonnifyApiResponse<MonnifyBankValidationData>>(content, JsonOpts);
+        var body = result?.ResponseBody;
+
+        return new MonnifyBankAccountInfo(
+            body?.AccountName is not null,
+            body?.AccountNumber,
+            body?.AccountName,
+            body?.BankCode
+        );
+    }
+
     // ── Internal DTOs for Monnify API responses ─────────
 
     private record MonnifyApiResponse<T>(bool RequestSuccessful, string ResponseMessage, T? ResponseBody);
@@ -275,4 +302,5 @@ public class MonnifyService : IMonnifyService
         string? TransactionReference,
         MonnifyTransactionProductData? Product);
     private record MonnifyTransactionProductData(string? Reference);
+    private record MonnifyBankValidationData(string? AccountNumber, string? AccountName, string? BankCode);
 }

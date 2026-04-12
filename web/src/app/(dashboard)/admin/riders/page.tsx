@@ -56,7 +56,7 @@ export default function RidersPage() {
 		}: {
 			riderId: string;
 			body: ApproveRiderRequest;
-		}) => api.put(`/admin/riders/${riderId}/approve`, body),
+		}) => api.patch(`/admin/riders/${riderId}/approve`, body),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["riders"] });
 		},

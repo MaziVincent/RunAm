@@ -217,6 +217,27 @@ export interface ApproveRiderRequest {
 	reason?: string;
 }
 
+export interface ValidateBankAccountResult {
+	success: boolean;
+	accountName: string | null;
+	message: string | null;
+}
+
+export interface CreateRiderProfileRequest {
+	vehicleType: VehicleType;
+	licensePlate?: string;
+	nin: string;
+	selfieUrl?: string;
+	address: string;
+	city: string;
+	state: string;
+	settlementBankCode: string;
+	settlementBankName: string;
+	settlementAccountNumber: string;
+	settlementAccountName: string;
+	agreedToTerms: boolean;
+}
+
 export interface UserAddressDto {
 	id: string;
 	label: string;
@@ -470,6 +491,18 @@ export interface NotificationPreferenceDto {
 	promotions: boolean;
 	systemAlerts: boolean;
 	fcmToken: string | null;
+}
+
+export interface UpdateNotificationPreferenceRequest {
+	pushEnabled?: boolean;
+	emailEnabled?: boolean;
+	smsEnabled?: boolean;
+	errandUpdates?: boolean;
+	chatMessages?: boolean;
+	paymentAlerts?: boolean;
+	promotions?: boolean;
+	systemAlerts?: boolean;
+	fcmToken?: string;
 }
 
 export interface NotificationTemplateDto {

@@ -134,45 +134,42 @@ export default function VendorDashboardLayout({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { isAuthenticated, hydrate } = useAuthStore();
-	const { user } = useAuthStore();
+	const { isAuthenticated, isHydrated, hydrate, user } = useAuthStore();
 	const { data: vendorData, isLoading: vendorLoading } = useMyVendor();
 	const vendor = vendorData?.success ? vendorData.data : undefined;
 	const vendorProfileMissing =
 		vendorData?.success === false && vendorData.error?.code === "NOT_FOUND";
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [hydrated, setHydrated] = useState(false);
 
 	const isOnboarding = pathname === "/vendor/onboarding";
 
 	useEffect(() => {
 		hydrate();
-		setHydrated(true);
 	}, []);
 
 	useEffect(() => {
-		if (hydrated && !isAuthenticated) {
+		if (isHydrated && !isAuthenticated) {
 			router.push(
 				"/login?role=vendor&redirect=" + encodeURIComponent(pathname),
 			);
 		}
-	}, [hydrated, isAuthenticated]);
+	}, [isHydrated, isAuthenticated]);
 
 	useEffect(() => {
 		if (
-			hydrated &&
+			isHydrated &&
 			isAuthenticated &&
 			user &&
 			user.role !== UserRole.Merchant
 		) {
 			router.push("/dashboard");
 		}
-	}, [hydrated, isAuthenticated, user]);
+	}, [isHydrated, isAuthenticated, user]);
 
 	// Redirect to onboarding if no vendor profile (but not if already there)
 	useEffect(() => {
 		if (
-			hydrated &&
+			isHydrated &&
 			isAuthenticated &&
 			!vendorLoading &&
 			vendor &&
@@ -180,11 +177,11 @@ export default function VendorDashboardLayout({
 		) {
 			router.replace("/vendor");
 		}
-	}, [hydrated, isAuthenticated, vendorLoading, vendor, isOnboarding]);
+	}, [isHydrated, isAuthenticated, vendorLoading, vendor, isOnboarding]);
 
 	useEffect(() => {
 		if (
-			hydrated &&
+			isHydrated &&
 			isAuthenticated &&
 			!vendorLoading &&
 			vendorProfileMissing &&
@@ -193,7 +190,7 @@ export default function VendorDashboardLayout({
 			router.replace("/vendor/onboarding");
 		}
 	}, [
-		hydrated,
+		isHydrated,
 		isAuthenticated,
 		vendorLoading,
 		vendorProfileMissing,
@@ -205,16 +202,16 @@ export default function VendorDashboardLayout({
 	// If vendor is pending/suspended, only allow the main dashboard page
 	useEffect(() => {
 		if (
-			hydrated &&
+			isHydrated &&
 			isPendingVendor &&
 			pathname !== "/vendor" &&
 			!isOnboarding
 		) {
 			router.replace("/vendor");
 		}
-	}, [hydrated, isPendingVendor, pathname, isOnboarding]);
+	}, [isHydrated, isPendingVendor, pathname, isOnboarding]);
 
-	if (!hydrated || !isAuthenticated) {
+	if (!isHydrated || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

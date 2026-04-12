@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { UserRole } from "@/types";
@@ -18,16 +18,14 @@ export function AuthGuard({
 	redirectTo = "/login",
 }: AuthGuardProps) {
 	const router = useRouter();
-	const { user, isAuthenticated, hydrate } = useAuthStore();
-	const [hydrated, setHydrated] = useState(false);
+	const { user, isAuthenticated, isHydrated, hydrate } = useAuthStore();
 
 	useEffect(() => {
 		hydrate();
-		setHydrated(true);
 	}, [hydrate]);
 
 	useEffect(() => {
-		if (!hydrated) return;
+		if (!isHydrated) return;
 
 		if (!isAuthenticated) {
 			const currentPath =
@@ -47,9 +45,9 @@ export function AuthGuard({
 			};
 			router.push(roleRedirects[user.role] ?? "/");
 		}
-	}, [hydrated, isAuthenticated, user, allowedRoles, router, redirectTo]);
+	}, [isHydrated, isAuthenticated, user, allowedRoles, router, redirectTo]);
 
-	if (!hydrated) {
+	if (!isHydrated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<Loader2 className="h-8 w-8 animate-spin text-primary" />

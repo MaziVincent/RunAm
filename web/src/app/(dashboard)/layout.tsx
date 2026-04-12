@@ -18,6 +18,8 @@ import {
 	X,
 	MapPin,
 	Star,
+	Tag,
+	Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
@@ -32,6 +34,8 @@ const navItems = [
 	{ label: "Errands", href: "/admin/errands", icon: Package },
 	{ label: "Tracking", href: "/admin/tracking", icon: MapPin },
 	{ label: "Finance", href: "/admin/finance", icon: DollarSign },
+	{ label: "Promo Codes", href: "/admin/promo-codes", icon: Tag },
+	{ label: "Payouts", href: "/admin/payouts", icon: Wallet },
 	{ label: "Reviews", href: "/admin/reviews", icon: Star },
 	{ label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
 	{ label: "Settings", href: "/admin/settings", icon: Settings },
@@ -44,33 +48,31 @@ export default function DashboardLayout({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { user, isAuthenticated, hydrate, logout } = useAuthStore();
+	const { user, isAuthenticated, isHydrated, hydrate, logout } =
+		useAuthStore();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
-	const [hydrated, setHydrated] = useState(false);
 
 	useEffect(() => {
 		hydrate();
-		setHydrated(true);
 	}, [hydrate]);
 
 	useEffect(() => {
-		if (hydrated && !isAuthenticated) {
+		if (!isHydrated) return;
+		if (!isAuthenticated) {
 			router.push("/login");
 			return;
 		}
 		// Role check: only Admin and SupportAgent
 		if (
-			hydrated &&
-			isAuthenticated &&
 			user &&
 			user.role !== UserRole.Admin &&
 			user.role !== UserRole.SupportAgent
 		) {
 			router.push("/dashboard");
 		}
-	}, [hydrated, isAuthenticated, user, router]);
+	}, [isHydrated, isAuthenticated, user, router]);
 
-	if (!hydrated || !isAuthenticated) {
+	if (!isHydrated || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

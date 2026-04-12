@@ -139,22 +139,20 @@ export default function UserDashboardLayout({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { isAuthenticated, hydrate } = useAuthStore();
+	const { isAuthenticated, isHydrated, hydrate } = useAuthStore();
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [hydrated, setHydrated] = useState(false);
 
 	useEffect(() => {
 		hydrate();
-		setHydrated(true);
 	}, []);
 
 	useEffect(() => {
-		if (hydrated && !isAuthenticated) {
+		if (isHydrated && !isAuthenticated) {
 			router.push("/login?redirect=" + encodeURIComponent(pathname));
 		}
-	}, [hydrated, isAuthenticated]);
+	}, [isHydrated, isAuthenticated]);
 
-	if (!hydrated || !isAuthenticated) {
+	if (!isHydrated || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

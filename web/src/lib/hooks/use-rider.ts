@@ -6,8 +6,13 @@ import type {
 	RiderPayoutDto,
 	ErrandDto,
 	ReviewDto,
+	ReviewSummaryDto,
 	WalletDto,
 	WalletTransactionDto,
+	NotificationPreferenceDto,
+	UpdateNotificationPreferenceRequest,
+	ValidateBankAccountResult,
+	CreateRiderProfileRequest,
 } from "@/types";
 import { VehicleType, ErrandStatus } from "@/types";
 
@@ -32,15 +37,7 @@ export function useRiderProfile() {
 export function useCreateRiderProfile() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async (data: {
-			vehicleType: VehicleType;
-			licensePlate?: string;
-			nin: string;
-			settlementBankCode: string;
-			settlementBankName: string;
-			settlementAccountNumber: string;
-			settlementAccountName: string;
-		}) =>
+		mutationFn: async (data: CreateRiderProfileRequest) =>
 			ensureSuccess(await api.post<RiderProfileDto>("/rider/profile", data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider-profile"] });
@@ -140,6 +137,9 @@ export interface RiderEarnings {
 	weekEarnings: number;
 	monthEarnings: number;
 	totalEarnings: number;
+	todayTrips: number;
+	weekTrips: number;
+	availableBalance: number;
 	pendingPayout: number;
 	dailyEarnings: { date: string; amount: number; taskCount: number }[];
 }
@@ -226,5 +226,60 @@ export function useRiderReviews(page: number = 1) {
 		queryKey: ["rider-reviews", page],
 		queryFn: () =>
 			api.get<ReviewDto[]>("/reviews/mine", { page, pageSize: 20 }),
+	});
+}
+
+export function useRiderReviewSummary() {
+	return useQuery({
+		queryKey: ["rider-review-summary"],
+		queryFn: () => api.get<ReviewSummaryDto>("/reviews/me/summary"),
+		staleTime: 60_000,
+	});
+}
+
+// ── Notification Preferences ───────────────────────────
+
+export function useNotificationPreferences() {
+	return useQuery({
+		queryKey: ["notification-preferences"],
+		queryFn: () =>
+			api.get<NotificationPreferenceDto>("/notifications/preferences"),
+	});
+}
+
+export function useUpdateNotificationPreferences() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (data: UpdateNotificationPreferenceRequest) =>
+			api.patch<NotificationPreferenceDto>(
+				"/notifications/preferences",
+				data,
+			),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["notification-preferences"],
+			});
+		},
+	});
+}
+
+// ── Onboarding Helpers ─────────────────────────────────
+
+export function useValidateBankAccount() {
+	return useMutation({
+		mutationFn: async (data: { bankCode: string; accountNumber: string }) =>
+			ensureSuccess(
+				await api.post<ValidateBankAccountResult>(
+					"/rider/validate-bank",
+					data,
+				),
+			),
+	});
+}
+
+export function useUploadSelfie() {
+	return useMutation({
+		mutationFn: async (file: File) =>
+			ensureSuccess(await api.upload<string>("/rider/upload-selfie", file)),
 	});
 }

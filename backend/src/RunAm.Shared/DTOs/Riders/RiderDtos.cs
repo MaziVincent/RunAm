@@ -22,10 +22,15 @@ public record CreateRiderProfileRequest(
     VehicleType VehicleType,
     string? LicensePlate,
     string Nin,
+    string? SelfieUrl,
+    string Address,
+    string City,
+    string State,
     string SettlementBankCode,
     string SettlementBankName,
     string SettlementAccountNumber,
-    string SettlementAccountName
+    string SettlementAccountName,
+    bool AgreedToTerms
 );
 
 public record UpdateRiderLocationRequest(
@@ -48,6 +53,10 @@ public record LocationPoint(
 );
 
 public record RiderStatusRequest(bool IsOnline);
+
+public record ValidateBankAccountRequest(string BankCode, string AccountNumber);
+
+public record ValidateBankAccountResult(bool Success, string? AccountName, string? Message);
 
 public record ApproveRiderRequest(
     ApprovalStatus Status,

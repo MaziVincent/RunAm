@@ -131,13 +131,36 @@ public record GetErrandPaymentStatusQuery(Guid UserId, Guid ErrandId) : IRequest
 public class GetErrandPaymentStatusQueryHandler : IRequestHandler<GetErrandPaymentStatusQuery, PaymentDto?>
 {
     private readonly IPaymentRepository _paymentRepo;
+    private readonly IMonnifyService _monnify;
+    private readonly IUnitOfWork _uow;
 
-    public GetErrandPaymentStatusQueryHandler(IPaymentRepository paymentRepo) => _paymentRepo = paymentRepo;
+    public GetErrandPaymentStatusQueryHandler(
+        IPaymentRepository paymentRepo,
+        IMonnifyService monnify,
+        IUnitOfWork uow)
+    {
+        _paymentRepo = paymentRepo;
+        _monnify = monnify;
+        _uow = uow;
+    }
 
     public async Task<PaymentDto?> Handle(GetErrandPaymentStatusQuery query, CancellationToken ct)
     {
         var payment = await _paymentRepo.GetByErrandIdAsync(query.ErrandId, ct);
         if (payment is null || payment.PayerId != query.UserId) return null;
+
+        // If still pending and has a gateway ref, verify with Monnify in real-time
+        if (payment.Status == PaymentStatus.Pending && !string.IsNullOrEmpty(payment.PaymentGatewayRef))
+        {
+            var verification = await _monnify.VerifyTransactionAsync(payment.PaymentGatewayRef, ct);
+            if (verification.Paid && verification.Amount >= payment.Amount)
+            {
+                payment.Status = PaymentStatus.Completed;
+                payment.PaymentGatewayRef = verification.TransactionReference ?? payment.PaymentGatewayRef;
+                await _paymentRepo.UpdateAsync(payment, ct);
+                await _uow.SaveChangesAsync(ct);
+            }
+        }
 
         return new PaymentDto(
             payment.Id, payment.ErrandId, payment.PayerId,

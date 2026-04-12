@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/types";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 const BASE_URL =
 	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
@@ -25,7 +26,53 @@ function buildUrl(
 
 function getToken(): string | null {
 	if (typeof window === "undefined") return null;
-	return localStorage.getItem("access_token");
+	return useAuthStore.getState().token;
+}
+
+// Prevent multiple simultaneous refresh attempts
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshToken(): Promise<boolean> {
+	if (refreshPromise) return refreshPromise;
+
+	refreshPromise = (async () => {
+		try {
+			const expiredToken = getToken() ?? "";
+			const response = await fetch(buildUrl("/auth/refresh-token"), {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({
+					accessToken: expiredToken,
+					refreshToken: "",
+				}),
+			});
+
+			if (!response.ok) return false;
+
+			const data = (await response.json()) as ApiResponse<{
+				accessToken: string;
+				user: { role: number };
+			}>;
+			if (data.success && data.data) {
+				// Store the new access token in memory only
+				useAuthStore.getState().setToken(data.data.accessToken);
+				return true;
+			}
+			return false;
+		} catch {
+			return false;
+		} finally {
+			refreshPromise = null;
+		}
+	})();
+
+	return refreshPromise;
+}
+
+function clearAuth() {
+	if (typeof window === "undefined") return;
+	useAuthStore.getState().logout();
 }
 
 async function request<T>(
@@ -47,16 +94,48 @@ async function request<T>(
 	const response = await fetch(buildUrl(path, params), {
 		...rest,
 		headers,
+		credentials: "include",
 		body: body ? JSON.stringify(body) : undefined,
 	});
 
 	if (response.status === 401) {
+		// Try silent refresh (skip if this was already an auth request)
+		if (!path.startsWith("/auth/")) {
+			const refreshed = await tryRefreshToken();
+			if (refreshed) {
+				// Retry the original request with the new token
+				const newToken = getToken();
+				if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
+				const retryResponse = await fetch(buildUrl(path, params), {
+					...rest,
+					headers,
+					credentials: "include",
+					body: body ? JSON.stringify(body) : undefined,
+				});
+
+				if (retryResponse.ok) {
+					if (retryResponse.status === 204) {
+						return { success: true } as ApiResponse<T>;
+					}
+					return retryResponse.json() as Promise<ApiResponse<T>>;
+				}
+
+				if (retryResponse.status !== 401) {
+					const error = await retryResponse.json().catch(() => ({
+						success: false,
+						error: {
+							code: "NETWORK_ERROR",
+							message: retryResponse.statusText,
+						},
+					}));
+					return error as ApiResponse<T>;
+				}
+			}
+		}
+
+		// Refresh failed or was an auth request — force re-login
+		clearAuth();
 		if (typeof window !== "undefined") {
-			localStorage.removeItem("access_token");
-			localStorage.removeItem("refresh_token");
-			localStorage.removeItem("user");
-			document.cookie = "has_session=; path=/; max-age=0";
-			document.cookie = "user_role=; path=/; max-age=0";
 			window.location.href = "/login";
 		}
 		throw new Error("Unauthorized");
@@ -107,7 +186,7 @@ export const api = {
 		file: File,
 		fieldName = "file",
 	): Promise<ApiResponse<T>> {
-		const token = getToken();
+		const token = useAuthStore.getState().token;
 		const formData = new FormData();
 		formData.append(fieldName, file);
 
@@ -117,6 +196,7 @@ export const api = {
 		const response = await fetch(buildUrl(path), {
 			method: "POST",
 			headers,
+			credentials: "include",
 			body: formData,
 		});
 

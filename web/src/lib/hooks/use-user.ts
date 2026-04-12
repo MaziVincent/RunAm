@@ -226,7 +226,7 @@ export function useCreateAddress() {
 			latitude: number;
 			longitude: number;
 			isDefault?: boolean;
-		}) => api.post("/users/me/addresses", data),
+		}) => api.post<UserAddressDto>("/users/me/addresses", data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["addresses"] });
 		},

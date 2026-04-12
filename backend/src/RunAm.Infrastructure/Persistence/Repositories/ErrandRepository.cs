@@ -18,6 +18,7 @@ public class ErrandRepository : IErrandRepository
         => await _db.Errands
             .Include(e => e.Customer)
             .Include(e => e.Rider)
+            .Include(e => e.Vendor)
             .Include(e => e.StatusHistory.OrderBy(s => s.CreatedAt))
             .Include(e => e.Stops.OrderBy(s => s.StopOrder))
             .FirstOrDefaultAsync(e => e.Id == id, ct);
@@ -62,7 +63,7 @@ public class ErrandRepository : IErrandRepository
 
     public async Task<(IReadOnlyList<Errand> Items, int TotalCount)> GetAllAsync(int page, int pageSize, string? search = null, int? status = null, CancellationToken ct = default)
     {
-        var query = _db.Errands.Include(e => e.Customer).Include(e => e.Vendor).AsQueryable();
+        var query = _db.Errands.Include(e => e.Customer).Include(e => e.Rider).Include(e => e.Vendor).AsQueryable();
 
         if (status.HasValue)
             query = query.Where(e => (int)e.Status == status.Value);

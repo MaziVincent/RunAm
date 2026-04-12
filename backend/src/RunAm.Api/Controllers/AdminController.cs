@@ -74,6 +74,91 @@ public class AdminController : BaseApiController
         return Ok(ApiResponse<DashboardStatsDto>.Ok(stats));
     }
 
+    /// <summary>Get all users (admin, paginated)</summary>
+    [HttpGet("users")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<UserDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] int? role = null)
+    {
+        var query = _userManager.Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(u =>
+                u.FirstName.ToLower().Contains(s) ||
+                u.LastName.ToLower().Contains(s) ||
+                (u.Email != null && u.Email.ToLower().Contains(s)));
+        }
+
+        if (role.HasValue)
+            query = query.Where(u => (int)u.Role == role.Value);
+
+        var totalCount = await query.CountAsync();
+
+        var users = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserDto(
+                u.Id, u.Email ?? "", u.PhoneNumber ?? "", u.FirstName, u.LastName,
+                u.ProfileImageUrl, u.Role, u.Status, u.IsPhoneVerified, u.IsEmailVerified, u.CreatedAt))
+            .ToListAsync();
+
+        return Ok(ApiResponse<IReadOnlyList<UserDto>>.Ok(users, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
+    }
+
+    /// <summary>Get all riders (admin, paginated)</summary>
+    [HttpGet("riders")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RiderProfileDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRiders(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] int? approvalStatus = null)
+    {
+        var query = _db.RiderProfiles.Include(r => r.User).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(r =>
+                r.User.FirstName.ToLower().Contains(s) ||
+                r.User.LastName.ToLower().Contains(s));
+        }
+
+        if (approvalStatus.HasValue)
+            query = query.Where(r => (int)r.ApprovalStatus == approvalStatus.Value);
+
+        var totalCount = await query.CountAsync();
+
+        var riders = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new RiderProfileDto(
+                r.Id, r.UserId, r.User.FirstName + " " + r.User.LastName,
+                r.VehicleType, r.LicensePlate, r.ApprovalStatus, r.Rating,
+                r.TotalCompletedTasks, r.IsOnline, r.CurrentLatitude, r.CurrentLongitude,
+                r.LastLocationUpdate, r.CreatedAt))
+            .ToListAsync();
+
+        return Ok(ApiResponse<IReadOnlyList<RiderProfileDto>>.Ok(riders, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
+    }
+
     /// <summary>Get pending rider approvals</summary>
     [HttpGet("riders/pending")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RiderProfileDto>>), StatusCodes.Status200OK)]
@@ -183,7 +268,7 @@ public class AdminController : BaseApiController
     {
         var (errands, totalCount) = await _errandRepo.GetAllAsync(page, pageSize, search, status);
         var dtos = errands.Select(e => new ErrandDto(
-            e.Id, e.CustomerId, e.Customer?.FullName ?? "", e.RiderId, null,
+            e.Id, e.CustomerId, e.Customer?.FullName ?? "", e.RiderId, e.Rider?.FullName,
             e.Category, e.Status, e.Description, e.SpecialInstructions,
             e.Priority, e.ScheduledAt, e.PickupAddress, e.PickupLatitude, e.PickupLongitude,
             e.DropoffAddress, e.DropoffLatitude, e.DropoffLongitude,
@@ -208,6 +293,8 @@ public class AdminController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<FinanceStatsDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFinanceStats()
     {
+        var today = DateTime.UtcNow.Date;
+
         var totalRevenue = await _db.Payments
             .Where(p => p.Status == PaymentStatus.Completed)
             .SumAsync(p => (decimal?)p.Amount) ?? 0m;
@@ -216,7 +303,94 @@ public class AdminController : BaseApiController
             .Where(e => e.Status == ErrandStatus.Delivered)
             .SumAsync(e => (decimal?)e.CommissionAmount) ?? 0m;
 
-        return Ok(ApiResponse<FinanceStatsDto>.Ok(new FinanceStatsDto(totalRevenue, commissionEarned)));
+        var pendingPayments = await _db.Payments
+            .Where(p => p.Status == PaymentStatus.Pending)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+        var todayRevenue = await _db.Payments
+            .Where(p => p.Status == PaymentStatus.Completed && p.CreatedAt >= today)
+            .SumAsync(p => (decimal?)p.Amount) ?? 0m;
+
+        var totalTransactions = await _db.Payments.CountAsync();
+
+        return Ok(ApiResponse<FinanceStatsDto>.Ok(new FinanceStatsDto(
+            totalRevenue, commissionEarned, pendingPayments, todayRevenue, totalTransactions)));
+    }
+
+    /// <summary>Get all payments (admin)</summary>
+    [HttpGet("payments")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<AdminPaymentDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPayments(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] int? status = null)
+    {
+        var query = _db.Payments.Include(p => p.Payer).AsQueryable();
+
+        if (status.HasValue)
+            query = query.Where(p => (int)p.Status == status.Value);
+
+        var totalCount = await query.CountAsync();
+
+        var payments = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new AdminPaymentDto(
+                p.Id,
+                p.ErrandId,
+                p.Payer.FullName,
+                p.Amount,
+                p.Currency,
+                (int)p.PaymentMethod,
+                p.PaymentGatewayRef,
+                (int)p.Status,
+                p.CreatedAt))
+            .ToListAsync();
+
+        return Ok(ApiResponse<IReadOnlyList<AdminPaymentDto>>.Ok(payments, new PaginationMeta
+        {
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        }));
+    }
+
+    /// <summary>Get payment detail</summary>
+    [HttpGet("payments/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<AdminPaymentDetailDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentDetail(Guid id)
+    {
+        var payment = await _db.Payments
+            .Include(p => p.Payer)
+            .Include(p => p.Errand)
+                .ThenInclude(e => e.Rider)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (payment is null) return NotFound();
+
+        var dto = new AdminPaymentDetailDto(
+            payment.Id,
+            payment.ErrandId,
+            payment.PayerId,
+            payment.Payer.FullName,
+            payment.Payer.Email ?? "",
+            payment.Amount,
+            payment.Currency,
+            (int)payment.PaymentMethod,
+            payment.PaymentGatewayRef,
+            (int)payment.Status,
+            payment.CreatedAt,
+            payment.Errand?.Description,
+            payment.Errand != null ? (int)payment.Errand.Status : 0,
+            payment.Errand?.PickupAddress,
+            payment.Errand?.DropoffAddress,
+            payment.Errand?.Rider?.FullName,
+            payment.Errand?.TotalAmount,
+            payment.Errand?.CommissionAmount
+        );
+
+        return Ok(ApiResponse<AdminPaymentDetailDto>.Ok(dto));
     }
 
     /// <summary>Get all promo codes</summary>

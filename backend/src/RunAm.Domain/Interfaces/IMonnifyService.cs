@@ -16,6 +16,9 @@ public interface IMonnifyService
 
     /// <summary>Verify a transaction by reference.</summary>
     Task<MonnifyTransactionStatus> VerifyTransactionAsync(string transactionReference, CancellationToken ct = default);
+
+    /// <summary>Validate a bank account number and return the resolved account name.</summary>
+    Task<MonnifyBankAccountInfo> ValidateBankAccountAsync(string bankCode, string accountNumber, CancellationToken ct = default);
 }
 
 public record MonnifyReservedAccount(
@@ -46,6 +49,13 @@ public record MonnifyTransactionStatus(
     string? PaymentReference,
     string? TransactionReference,
     string? AccountReference
+);
+
+public record MonnifyBankAccountInfo(
+    bool Success,
+    string? AccountNumber,
+    string? AccountName,
+    string? BankCode
 );
 
 public record MonnifyInitTransactionResult(

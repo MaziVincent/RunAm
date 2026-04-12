@@ -69,7 +69,7 @@ function LoginForm() {
 		try {
 			const res = await api.post<AuthResponse>("/auth/login", data);
 			if (res.success && res.data) {
-				loginUser(res.data.accessToken, res.data.refreshToken, res.data.user);
+				loginUser(res.data.accessToken, res.data.user);
 				const redirect = searchParams.get("redirect");
 				router.push(redirect ?? getDashboardPath(res.data.user.role));
 			} else {

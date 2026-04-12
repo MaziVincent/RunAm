@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRiderPerformance, useRiderProfile } from "@/lib/hooks";
+import { useRiderPerformance, useRiderProfile, useRiderReviewSummary } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
 function MetricCard({
@@ -57,10 +57,15 @@ function MetricCard({
 	);
 }
 
-function RatingBreakdown({ rating }: { rating: number }) {
+function RatingBreakdown({
+	rating,
+	distribution,
+}: {
+	rating: number;
+	distribution: { 5: number; 4: number; 3: number; 2: number; 1: number };
+}) {
 	const stars = [5, 4, 3, 2, 1];
-	// Mock distribution; in a real app this comes from the API
-	const distribution = { 5: 65, 4: 20, 3: 10, 2: 3, 1: 2 };
+	const total = Object.values(distribution).reduce((a, b) => a + b, 0);
 
 	return (
 		<Card>
@@ -84,28 +89,33 @@ function RatingBreakdown({ rating }: { rating: number }) {
 								/>
 							))}
 						</div>
-						<p className="mt-1 text-xs text-muted-foreground">Average</p>
+						<p className="mt-1 text-xs text-muted-foreground">
+							{total} review{total !== 1 ? "s" : ""}
+						</p>
 					</div>
 					<div className="flex-1 space-y-1.5">
-						{stars.map((star) => (
-							<div key={star} className="flex items-center gap-2">
-								<span className="w-3 text-xs text-muted-foreground">
-									{star}
-								</span>
-								<Star className="h-3 w-3 text-amber-400" />
-								<div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
-									<div
-										className="absolute inset-y-0 left-0 rounded-full bg-amber-400"
-										style={{
-											width: `${distribution[star as keyof typeof distribution]}%`,
-										}}
-									/>
+						{stars.map((star) => {
+							const count =
+								distribution[star as keyof typeof distribution];
+							const pct = total > 0 ? (count / total) * 100 : 0;
+							return (
+								<div key={star} className="flex items-center gap-2">
+									<span className="w-3 text-xs text-muted-foreground">
+										{star}
+									</span>
+									<Star className="h-3 w-3 text-amber-400" />
+									<div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted">
+										<div
+											className="absolute inset-y-0 left-0 rounded-full bg-amber-400"
+											style={{ width: `${pct}%` }}
+										/>
+									</div>
+									<span className="w-8 text-right text-[10px] text-muted-foreground">
+										{Math.round(pct)}%
+									</span>
 								</div>
-								<span className="w-8 text-right text-[10px] text-muted-foreground">
-									{distribution[star as keyof typeof distribution]}%
-								</span>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				</div>
 			</CardContent>
@@ -243,8 +253,10 @@ function BadgesSection({
 export default function RiderPerformancePage() {
 	const { data, isLoading } = useRiderPerformance();
 	const { data: profileData } = useRiderProfile();
+	const { data: reviewSummaryData } = useRiderReviewSummary();
 	const perf = data?.data;
 	const profile = profileData?.data;
+	const summary = reviewSummaryData?.data;
 
 	if (isLoading) {
 		return (
@@ -354,7 +366,16 @@ export default function RiderPerformancePage() {
 			</Card>
 
 			{/* Rating breakdown */}
-			<RatingBreakdown rating={perf?.averageRating ?? 0} />
+			<RatingBreakdown
+				rating={perf?.averageRating ?? 0}
+				distribution={{
+					5: summary?.fiveStarCount ?? 0,
+					4: summary?.fourStarCount ?? 0,
+					3: summary?.threeStarCount ?? 0,
+					2: summary?.twoStarCount ?? 0,
+					1: summary?.oneStarCount ?? 0,
+				}}
+			/>
 
 			{/* Badges */}
 			<BadgesSection

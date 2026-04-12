@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { useRiderProfile, useUpdateRiderStatus } from "@/lib/hooks";
-import { UserRole } from "@/types";
+import { UserRole, ApprovalStatus } from "@/types";
 
 const NAV_ITEMS = [
 	{ href: "/rider", label: "Dashboard", icon: LayoutDashboard },
@@ -147,32 +147,67 @@ export default function RiderDashboardLayout({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { isAuthenticated, hydrate } = useAuthStore();
+	const { isAuthenticated, isHydrated, hydrate, user } = useAuthStore();
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const [hydrated, setHydrated] = useState(false);
+	const { data: profileData } = useRiderProfile();
+	const profile = profileData?.data;
 
 	useEffect(() => {
 		hydrate();
-		setHydrated(true);
 	}, []);
 
 	useEffect(() => {
-		if (hydrated && !isAuthenticated) {
+		if (isHydrated && !isAuthenticated) {
 			router.push("/login?role=rider&redirect=" + encodeURIComponent(pathname));
 		}
-	}, [hydrated, isAuthenticated]);
+	}, [isHydrated, isAuthenticated]);
 
-	const { user } = useAuthStore();
 	useEffect(() => {
-		if (hydrated && isAuthenticated && user && user.role !== UserRole.Rider) {
+		if (isHydrated && isAuthenticated && user && user.role !== UserRole.Rider) {
 			router.push("/dashboard");
 		}
-	}, [hydrated, isAuthenticated, user]);
+	}, [isHydrated, isAuthenticated, user]);
 
-	if (!hydrated || !isAuthenticated) {
+	// Restrict sub-pages unless profile is approved (allow /rider and /rider/onboarding)
+	const isOnboarding = pathname === "/rider/onboarding";
+	const isDashboardRoot = pathname === "/rider";
+	useEffect(() => {
+		if (
+			isHydrated &&
+			isAuthenticated &&
+			!isOnboarding &&
+			!isDashboardRoot &&
+			profile &&
+			profile.approvalStatus !== ApprovalStatus.Approved
+		) {
+			router.replace("/rider");
+		}
+	}, [isHydrated, isAuthenticated, isOnboarding, isDashboardRoot, profile]);
+
+	if (!isHydrated || !isAuthenticated) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+			</div>
+		);
+	}
+
+	// Onboarding: no sidebar, minimal header
+	if (isOnboarding) {
+		return (
+			<div className="min-h-screen bg-muted/30">
+				<header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-4">
+					<Link href="/rider" className="flex items-center gap-2">
+						<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-bold text-white text-sm">
+							R
+						</div>
+						<span className="text-lg font-bold">RunAm</span>
+						<Badge variant="secondary" className="text-[10px]">
+							Rider
+						</Badge>
+					</Link>
+				</header>
+				<main className="flex-1 p-4 md:p-6">{children}</main>
 			</div>
 		);
 	}

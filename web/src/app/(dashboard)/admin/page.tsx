@@ -127,7 +127,7 @@ export default function DashboardPage() {
 						Recent Errands
 					</h2>
 					<a
-						href="/errands"
+						href="/admin/errands"
 						className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">
 						View all <ArrowUpRight className="h-3.5 w-3.5" />
 					</a>

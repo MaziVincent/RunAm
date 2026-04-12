@@ -74,5 +74,10 @@ export {
 	useRiderPayouts,
 	useRequestPayout,
 	useRiderReviews,
+	useRiderReviewSummary,
+	useNotificationPreferences,
+	useUpdateNotificationPreferences,
+	useValidateBankAccount,
+	useUploadSelfie,
 } from "./use-rider";
 export type { RiderEarnings, RiderPerformance } from "./use-rider";

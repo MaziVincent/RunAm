@@ -14,6 +14,11 @@ public class RiderProfile : BaseEntity
     public string? IdDocumentUrl { get; set; }
     public string? SelfieUrl { get; set; }
     public string? BackgroundCheckStatus { get; set; }
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public bool AgreedToTerms { get; set; }
+    public DateTime? AgreedAt { get; set; }
     public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
     public decimal Rating { get; set; }
     public int TotalCompletedTasks { get; set; }

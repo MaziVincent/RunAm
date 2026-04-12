@@ -1,11 +1,12 @@
 import * as signalR from "@microsoft/signalr";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 const HUB_BASE_URL =
 	process.env.NEXT_PUBLIC_HUB_URL ?? "http://localhost:5001/hubs";
 
 function getToken(): string | null {
 	if (typeof window === "undefined") return null;
-	return localStorage.getItem("access_token");
+	return useAuthStore.getState().token;
 }
 
 function createConnection(hubPath: string): signalR.HubConnection {
