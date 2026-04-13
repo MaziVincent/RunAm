@@ -156,7 +156,9 @@ export default function RiderOnboardingPage() {
 
 	// Clean up on unmount
 	useEffect(() => {
-		return () => { stopCamera(); };
+		return () => {
+			stopCamera();
+		};
 	}, [stopCamera]);
 
 	async function openCamera() {
@@ -171,7 +173,11 @@ export default function RiderOnboardingPage() {
 
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+				video: {
+					facingMode: "user",
+					width: { ideal: 640 },
+					height: { ideal: 640 },
+				},
 				audio: false,
 			});
 			streamRef.current = stream;
@@ -186,7 +192,10 @@ export default function RiderOnboardingPage() {
 			const name = err instanceof DOMException ? err.name : "";
 			if (name === "NotFoundError" || name === "DevicesNotFoundError") {
 				setCameraError("No camera found on this device.");
-			} else if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+			} else if (
+				name === "NotAllowedError" ||
+				name === "PermissionDeniedError"
+			) {
 				setCameraError(
 					"Camera access was blocked. Please allow camera access in your browser settings and reload the page.",
 				);
@@ -195,7 +204,9 @@ export default function RiderOnboardingPage() {
 					"Camera is in use by another application. Close it and try again.",
 				);
 			} else {
-				setCameraError(`Camera error: ${err instanceof Error ? err.message : "Unknown error"}`);
+				setCameraError(
+					`Camera error: ${err instanceof Error ? err.message : "Unknown error"}`,
+				);
 			}
 		}
 	}
@@ -222,20 +233,27 @@ export default function RiderOnboardingPage() {
 		setSelfiePreview(dataUrl);
 
 		// Convert to File and upload
-		canvas.toBlob(async (blob) => {
-			if (!blob) { toast.error("Failed to capture photo"); return; }
-			const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
-			try {
-				const result = await uploadSelfie.mutateAsync(file);
-				if (result.data) {
-					setSelfieUrl(result.data);
-					toast.success("Photo captured successfully");
+		canvas.toBlob(
+			async (blob) => {
+				if (!blob) {
+					toast.error("Failed to capture photo");
+					return;
 				}
-			} catch {
-				setSelfiePreview(null);
-				toast.error("Failed to upload photo");
-			}
-		}, "image/jpeg", 0.85);
+				const file = new File([blob], "selfie.jpg", { type: "image/jpeg" });
+				try {
+					const result = await uploadSelfie.mutateAsync(file);
+					if (result.data) {
+						setSelfieUrl(result.data);
+						toast.success("Photo captured successfully");
+					}
+				} catch {
+					setSelfiePreview(null);
+					toast.error("Failed to upload photo");
+				}
+			},
+			"image/jpeg",
+			0.85,
+		);
 	}
 
 	function retakePhoto() {
@@ -508,7 +526,10 @@ export default function RiderOnboardingPage() {
 											)}
 											<button
 												type="button"
-												onClick={() => { setSelfiePreview(null); setSelfieUrl(""); }}
+												onClick={() => {
+													setSelfiePreview(null);
+													setSelfieUrl("");
+												}}
 												className="absolute -top-1 -left-1 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white">
 												<X className="h-3 w-3" />
 											</button>
@@ -521,35 +542,51 @@ export default function RiderOnboardingPage() {
 											onClick={openCamera}
 											className="flex h-48 w-48 flex-col items-center justify-center gap-2 rounded-full border-2 border-dashed border-muted-foreground/30 transition-colors hover:border-primary/50 hover:bg-muted/50">
 											<Camera className="h-10 w-10 text-muted-foreground" />
-											<span className="text-xs text-muted-foreground">Open Camera</span>
+											<span className="text-xs text-muted-foreground">
+												Open Camera
+											</span>
 										</button>
 									)}
 
 									{cameraError && (
-										<p className="text-sm text-destructive text-center">{cameraError}</p>
+										<p className="text-sm text-destructive text-center">
+											{cameraError}
+										</p>
 									)}
 
 									{cameraOpen && !selfiePreview && (
 										<div className="flex gap-2">
-											<Button type="button" onClick={capturePhoto} className="gap-2">
+											<Button
+												type="button"
+												onClick={capturePhoto}
+												className="gap-2">
 												<Camera className="h-4 w-4" />
 												Capture
 											</Button>
-											<Button type="button" variant="outline" onClick={stopCamera}>
+											<Button
+												type="button"
+												variant="outline"
+												onClick={stopCamera}>
 												Cancel
 											</Button>
 										</div>
 									)}
 
 									{selfiePreview && !uploadSelfie.isPending && (
-										<Button type="button" variant="outline" size="sm" onClick={retakePhoto} className="gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											onClick={retakePhoto}
+											className="gap-2">
 											<Camera className="h-4 w-4" />
 											Retake Photo
 										</Button>
 									)}
 								</div>
 								<p className="text-center text-xs text-muted-foreground">
-									Position your face in the circle and take a clear, well-lit passport photograph
+									Position your face in the circle and take a clear, well-lit
+									passport photograph
 								</p>
 							</div>
 						</div>

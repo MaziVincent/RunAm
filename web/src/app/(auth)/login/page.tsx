@@ -77,7 +77,9 @@ function LoginForm() {
 			}
 		} catch (err) {
 			if (err instanceof TypeError && err.message.includes("fetch")) {
-				setError("Cannot connect to server. Please check that the backend is running.");
+				setError(
+					"Cannot connect to server. Please check that the backend is running.",
+				);
 			} else {
 				setError("An unexpected error occurred. Please try again.");
 			}
