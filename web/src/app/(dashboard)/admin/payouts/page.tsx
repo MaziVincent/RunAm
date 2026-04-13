@@ -37,8 +37,7 @@ export default function PayoutsPage() {
 
 	const processPayoutMutation = useMutation({
 		mutationFn: (id: string) => api.post(`/admin/payouts/${id}/process`),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: ["payouts"] }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payouts"] }),
 	});
 
 	const allPayouts = res?.data ?? [];

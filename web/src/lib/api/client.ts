@@ -99,41 +99,48 @@ async function request<T>(
 	});
 
 	if (response.status === 401) {
-		// Try silent refresh (skip if this was already an auth request)
-		if (!path.startsWith("/auth/")) {
-			const refreshed = await tryRefreshToken();
-			if (refreshed) {
-				// Retry the original request with the new token
-				const newToken = getToken();
-				if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
-				const retryResponse = await fetch(buildUrl(path, params), {
-					...rest,
-					headers,
-					credentials: "include",
-					body: body ? JSON.stringify(body) : undefined,
-				});
+		// Auth requests (login, etc.) — return the error response directly, don't redirect
+		if (path.startsWith("/auth/")) {
+			const error = await response.json().catch(() => ({
+				success: false,
+				error: { code: "UNAUTHORIZED", message: "Invalid email or password." },
+			}));
+			return error as ApiResponse<T>;
+		}
 
-				if (retryResponse.ok) {
-					if (retryResponse.status === 204) {
-						return { success: true } as ApiResponse<T>;
-					}
-					return retryResponse.json() as Promise<ApiResponse<T>>;
-				}
+		// Try silent refresh
+		const refreshed = await tryRefreshToken();
+		if (refreshed) {
+			// Retry the original request with the new token
+			const newToken = getToken();
+			if (newToken) headers["Authorization"] = `Bearer ${newToken}`;
+			const retryResponse = await fetch(buildUrl(path, params), {
+				...rest,
+				headers,
+				credentials: "include",
+				body: body ? JSON.stringify(body) : undefined,
+			});
 
-				if (retryResponse.status !== 401) {
-					const error = await retryResponse.json().catch(() => ({
-						success: false,
-						error: {
-							code: "NETWORK_ERROR",
-							message: retryResponse.statusText,
-						},
-					}));
-					return error as ApiResponse<T>;
+			if (retryResponse.ok) {
+				if (retryResponse.status === 204) {
+					return { success: true } as ApiResponse<T>;
 				}
+				return retryResponse.json() as Promise<ApiResponse<T>>;
+			}
+
+			if (retryResponse.status !== 401) {
+				const error = await retryResponse.json().catch(() => ({
+					success: false,
+					error: {
+						code: "NETWORK_ERROR",
+						message: retryResponse.statusText,
+					},
+				}));
+				return error as ApiResponse<T>;
 			}
 		}
 
-		// Refresh failed or was an auth request — force re-login
+		// Refresh failed — force re-login
 		clearAuth();
 		if (typeof window !== "undefined") {
 			window.location.href = "/login";

@@ -58,10 +58,16 @@ export default function RiderSettingsPage() {
 	const updatePrefs = useUpdateNotificationPreferences();
 	const prefs = prefsData?.data;
 
-	function togglePref(key: "pushEnabled" | "errandUpdates" | "chatMessages" | "paymentAlerts", value: boolean) {
-		updatePrefs.mutate({ [key]: value }, {
-			onError: () => toast.error("Failed to update preference"),
-		});
+	function togglePref(
+		key: "pushEnabled" | "errandUpdates" | "chatMessages" | "paymentAlerts",
+		value: boolean,
+	) {
+		updatePrefs.mutate(
+			{ [key]: value },
+			{
+				onError: () => toast.error("Failed to update preference"),
+			},
+		);
 	}
 
 	if (isLoading) {

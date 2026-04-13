@@ -64,7 +64,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 		if (get().isHydrated) return;
 
 		// No session cookie → definitely not logged in
-		if (typeof document === "undefined" || !document.cookie.includes("has_session=1")) {
+		if (
+			typeof document === "undefined" ||
+			!document.cookie.includes("has_session=1")
+		) {
 			set({ isHydrated: true });
 			return;
 		}

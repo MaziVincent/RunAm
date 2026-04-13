@@ -75,8 +75,12 @@ function LoginForm() {
 			} else {
 				setError(res.error?.message ?? "Login failed. Please try again.");
 			}
-		} catch {
-			setError("An unexpected error occurred.");
+		} catch (err) {
+			if (err instanceof TypeError && err.message.includes("fetch")) {
+				setError("Cannot connect to server. Please check that the backend is running.");
+			} else {
+				setError("An unexpected error occurred. Please try again.");
+			}
 		}
 	};
 

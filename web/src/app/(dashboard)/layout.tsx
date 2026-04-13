@@ -48,8 +48,7 @@ export default function DashboardLayout({
 }) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { user, isAuthenticated, isHydrated, hydrate, logout } =
-		useAuthStore();
+	const { user, isAuthenticated, isHydrated, hydrate, logout } = useAuthStore();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	useEffect(() => {

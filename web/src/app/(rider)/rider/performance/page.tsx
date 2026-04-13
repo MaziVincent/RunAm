@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRiderPerformance, useRiderProfile, useRiderReviewSummary } from "@/lib/hooks";
+import {
+	useRiderPerformance,
+	useRiderProfile,
+	useRiderReviewSummary,
+} from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
 function MetricCard({
@@ -95,8 +99,7 @@ function RatingBreakdown({
 					</div>
 					<div className="flex-1 space-y-1.5">
 						{stars.map((star) => {
-							const count =
-								distribution[star as keyof typeof distribution];
+							const count = distribution[star as keyof typeof distribution];
 							const pct = total > 0 ? (count / total) * 100 : 0;
 							return (
 								<div key={star} className="flex items-center gap-2">

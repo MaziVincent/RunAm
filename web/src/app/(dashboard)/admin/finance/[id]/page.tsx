@@ -194,10 +194,7 @@ export default function PaymentDetailPage() {
 							value={errandStatusLabel[payment.errandStatus] ?? "Unknown"}
 						/>
 						{payment.errandDescription && (
-							<InfoRow
-								label="Description"
-								value={payment.errandDescription}
-							/>
+							<InfoRow label="Description" value={payment.errandDescription} />
 						)}
 						{payment.errandTotalAmount != null && (
 							<InfoRow

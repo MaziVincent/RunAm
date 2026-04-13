@@ -251,10 +251,7 @@ export function useUpdateNotificationPreferences() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (data: UpdateNotificationPreferenceRequest) =>
-			api.patch<NotificationPreferenceDto>(
-				"/notifications/preferences",
-				data,
-			),
+			api.patch<NotificationPreferenceDto>("/notifications/preferences", data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({
 				queryKey: ["notification-preferences"],
@@ -269,10 +266,7 @@ export function useValidateBankAccount() {
 	return useMutation({
 		mutationFn: async (data: { bankCode: string; accountNumber: string }) =>
 			ensureSuccess(
-				await api.post<ValidateBankAccountResult>(
-					"/rider/validate-bank",
-					data,
-				),
+				await api.post<ValidateBankAccountResult>("/rider/validate-bank", data),
 			),
 	});
 }

@@ -184,6 +184,8 @@ if (!app.Environment.IsDevelopment())
 // CORS — must be before everything else so preflight requests get headers
 app.UseCors("AllowAll");
 
+app.UseSerilogRequestLogging();
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 // Security headers
@@ -193,7 +195,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)";
+    context.Response.Headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(self)";
     await next();
 });
 
@@ -208,7 +210,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseSerilogRequestLogging();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
