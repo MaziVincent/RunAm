@@ -70,7 +70,23 @@ public class GoogleMapsGeocodingService : IGeocodingService
         }
 
         var url = $"maps/api/geocode/json?place_id={Uri.EscapeDataString(placeId)}&key={_apiKey}";
+        return await ExecuteGeocodeAsync(url, ct);
+    }
 
+    public async Task<GeocodeResult?> GeocodeAddressAsync(string address, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+        {
+            _logger.LogWarning("Google Maps API key is not configured");
+            return null;
+        }
+
+        var url = $"maps/api/geocode/json?address={Uri.EscapeDataString(address)}&components=country:NG&key={_apiKey}";
+        return await ExecuteGeocodeAsync(url, ct);
+    }
+
+    private async Task<GeocodeResult?> ExecuteGeocodeAsync(string url, CancellationToken ct)
+    {
         var response = await _httpClient.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 

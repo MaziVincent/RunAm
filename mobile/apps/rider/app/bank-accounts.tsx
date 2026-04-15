@@ -21,6 +21,7 @@ import {
 	addRiderBankAccount,
 	deleteRiderBankAccount,
 	setDefaultBankAccount,
+	validateRiderBankAccount,
 } from "@runam/shared/api/rider";
 import type { BankAccount, AddBankAccountRequest } from "@runam/shared/types";
 
@@ -31,6 +32,7 @@ export default function BankAccountsScreen() {
 	const [bankCode, setBankCode] = useState("");
 	const [accountNumber, setAccountNumber] = useState("");
 	const [accountName, setAccountName] = useState("");
+	const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
 	const router = useRouter();
 	const queryClient = useQueryClient();
 
@@ -75,26 +77,51 @@ export default function BankAccountsScreen() {
 		setRefreshing(false);
 	}, [refetch]);
 
-	const handleAdd = () => {
+	const handleAdd = async () => {
 		if (
 			!bankName.trim() ||
 			!bankCode.trim() ||
-			!accountNumber.trim() ||
-			!accountName.trim()
+			!accountNumber.trim()
 		) {
-			Alert.alert("Error", "Fill in all fields");
+			Alert.alert("Error", "Fill in the bank name, bank code, and account number");
 			return;
 		}
 		if (accountNumber.length < 10) {
 			Alert.alert("Error", "Enter a valid account number");
 			return;
 		}
-		addMutation.mutate({
-			bankName: bankName.trim(),
-			bankCode: bankCode.trim(),
-			accountNumber: accountNumber.trim(),
-			accountName: accountName.trim(),
-		});
+
+		setIsVerifyingAccount(true);
+		try {
+			const validation = await validateRiderBankAccount(
+				bankCode.trim(),
+				accountNumber.trim(),
+			);
+
+			if (!validation.success || !validation.accountName) {
+				Alert.alert(
+					"Validation Failed",
+					validation.message ||
+						"Could not verify this bank account. Please check the details and try again.",
+				);
+				return;
+			}
+
+			setAccountName(validation.accountName);
+			addMutation.mutate({
+				bankName: bankName.trim(),
+				bankCode: bankCode.trim(),
+				accountNumber: accountNumber.trim(),
+				accountName: validation.accountName,
+			});
+		} catch (error: any) {
+			Alert.alert(
+				"Validation Failed",
+				error?.message || "Could not verify this bank account.",
+			);
+		} finally {
+			setIsVerifyingAccount(false);
+		}
 	};
 
 	const handleDelete = (account: BankAccount) => {
@@ -262,12 +289,18 @@ export default function BankAccountsScreen() {
 							<TouchableOpacity
 								style={[
 									styles.confirmBtn,
-									addMutation.isPending && { opacity: 0.6 },
+									(addMutation.isPending || isVerifyingAccount) && {
+										opacity: 0.6,
+									},
 								]}
 								onPress={handleAdd}
-								disabled={addMutation.isPending}>
+								disabled={addMutation.isPending || isVerifyingAccount}>
 								<Text style={styles.confirmText}>
-									{addMutation.isPending ? "Adding..." : "Add Account"}
+									{isVerifyingAccount
+										? "Verifying..."
+										: addMutation.isPending
+											? "Adding..."
+											: "Add Account"}
 								</Text>
 							</TouchableOpacity>
 						</View>

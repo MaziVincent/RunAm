@@ -8,10 +8,16 @@ import {
 	ScrollView,
 	Alert,
 	ActivityIndicator,
+	Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { onboardRider } from "@runam/shared/api/rider";
+import * as ImagePicker from "expo-image-picker";
+import {
+	onboardRider,
+	uploadRiderSelfie,
+	validateRiderBankAccount,
+} from "@runam/shared/api/rider";
 import type { VehicleType, RiderOnboardingRequest } from "@runam/shared/types";
 
 const vehicleOptions: { type: VehicleType; icon: string; label: string }[] = [
@@ -26,11 +32,110 @@ export default function RiderOnboardingScreen() {
 	const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
 	const [licensePlate, setLicensePlate] = useState("");
 	const [nin, setNin] = useState("");
+	const [selfiePreviewUri, setSelfiePreviewUri] = useState("");
+	const [selfieUrl, setSelfieUrl] = useState("");
+	const [address, setAddress] = useState("");
+	const [city, setCity] = useState("");
+	const [state, setState] = useState("");
 	const [settlementBankName, setSettlementBankName] = useState("");
 	const [settlementBankCode, setSettlementBankCode] = useState("");
 	const [settlementAccountNumber, setSettlementAccountNumber] = useState("");
 	const [settlementAccountName, setSettlementAccountName] = useState("");
+	const [bankVerified, setBankVerified] = useState(false);
+	const [agreedToTerms, setAgreedToTerms] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isUploadingSelfie, setIsUploadingSelfie] = useState(false);
+	const [isVerifyingBank, setIsVerifyingBank] = useState(false);
+
+	const handleUploadSelfie = async () => {
+		const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+		if (status !== "granted") {
+			Alert.alert(
+				"Permission Required",
+				"Please allow photo library access to upload your passport photograph.",
+			);
+			return;
+		}
+
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ["images"],
+			allowsEditing: true,
+			aspect: [1, 1],
+			quality: 0.8,
+		});
+
+		if (result.canceled || !result.assets[0]) {
+			return;
+		}
+
+		const asset = result.assets[0];
+		const extension = asset.uri.split(".").pop()?.toLowerCase() || "jpg";
+		const mimeType =
+			extension === "png"
+				? "image/png"
+				: extension === "webp"
+					? "image/webp"
+					: "image/jpeg";
+
+		setSelfiePreviewUri(asset.uri);
+		setIsUploadingSelfie(true);
+		try {
+			const uploadedUrl = await uploadRiderSelfie({
+				uri: asset.uri,
+				name: `rider-selfie-${Date.now()}.${extension}`,
+				type: mimeType,
+			});
+			setSelfieUrl(uploadedUrl);
+		} catch (error: any) {
+			setSelfiePreviewUri("");
+			setSelfieUrl("");
+			Alert.alert(
+				"Upload Failed",
+				error?.message || "Failed to upload your passport photograph.",
+			);
+		} finally {
+			setIsUploadingSelfie(false);
+		}
+	};
+
+	const handleVerifyBank = async () => {
+		if (!settlementBankCode.trim() || settlementAccountNumber.trim().length < 10) {
+			Alert.alert(
+				"Verify Account",
+				"Enter a valid bank code and 10-digit account number first.",
+			);
+			return;
+		}
+
+		setIsVerifyingBank(true);
+		try {
+			const result = await validateRiderBankAccount(
+				settlementBankCode.trim(),
+				settlementAccountNumber.trim(),
+			);
+
+			if (!result.success || !result.accountName) {
+				setBankVerified(false);
+				Alert.alert(
+					"Verification Failed",
+					result.message ||
+						"Could not verify this bank account. Check the details and try again.",
+				);
+				return;
+			}
+
+			setSettlementAccountName(result.accountName);
+			setBankVerified(true);
+		} catch (error: any) {
+			setBankVerified(false);
+			Alert.alert(
+				"Verification Failed",
+				error?.message || "Could not verify this bank account.",
+			);
+		} finally {
+			setIsVerifyingBank(false);
+		}
+	};
 
 	const handleSubmit = async () => {
 		if (!vehicleType) {
@@ -48,6 +153,16 @@ export default function RiderOnboardingScreen() {
 			return;
 		}
 
+		if (!selfieUrl) {
+			Alert.alert("Error", "Please upload your passport photograph.");
+			return;
+		}
+
+		if (!address.trim() || !city.trim() || !state.trim()) {
+			Alert.alert("Error", "Please enter your address, city, and state.");
+			return;
+		}
+
 		if (
 			!settlementBankName.trim() ||
 			!settlementBankCode.trim() ||
@@ -58,17 +173,37 @@ export default function RiderOnboardingScreen() {
 			return;
 		}
 
+		if (!bankVerified) {
+			Alert.alert(
+				"Error",
+				"Please verify your settlement account before submitting.",
+			);
+			return;
+		}
+
+		if (!agreedToTerms) {
+			Alert.alert(
+				"Error",
+				"You must agree to the rider terms before submitting.",
+			);
+			return;
+		}
+
 		setIsLoading(true);
 		try {
 			const body: RiderOnboardingRequest = {
 				vehicleType,
 				licensePlate: licensePlate.trim() || undefined,
 				nin: nin.replace(/\D/g, ""),
+				selfieUrl,
+				address: address.trim(),
+				city: city.trim(),
+				state: state.trim(),
 				settlementBankCode: settlementBankCode.trim(),
 				settlementBankName: settlementBankName.trim(),
 				settlementAccountNumber: settlementAccountNumber.trim(),
 				settlementAccountName: settlementAccountName.trim(),
-				documentUrls: [],
+				agreedToTerms: true,
 			};
 
 			await onboardRider(body);
@@ -146,20 +281,70 @@ export default function RiderOnboardingScreen() {
 					maxLength={11}
 				/>
 
+				<Text style={styles.sectionLabel}>Passport Photograph</Text>
+				<TouchableOpacity
+					style={styles.uploadCard}
+					onPress={handleUploadSelfie}
+					disabled={isUploadingSelfie}
+					activeOpacity={0.7}>
+					{isUploadingSelfie ? (
+						<ActivityIndicator color="#2F8F4E" />
+					) : selfiePreviewUri ? (
+						<Image source={{ uri: selfiePreviewUri }} style={styles.selfiePreview} />
+					) : (
+						<Text style={styles.uploadIcon}>📷</Text>
+					)}
+					<View style={styles.uploadInfo}>
+						<Text style={styles.uploadTitle}>Upload a clear passport photo</Text>
+						<Text style={styles.uploadSubtitle}>
+							JPEG, PNG, or WebP. This is used for identity verification.
+						</Text>
+					</View>
+				</TouchableOpacity>
+
+				<Text style={styles.sectionLabel}>Address</Text>
+				<TextInput
+					style={styles.input}
+					placeholder="Street address"
+					placeholderTextColor="#9CA3AF"
+					value={address}
+					onChangeText={setAddress}
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="City"
+					placeholderTextColor="#9CA3AF"
+					value={city}
+					onChangeText={setCity}
+				/>
+				<TextInput
+					style={styles.input}
+					placeholder="State"
+					placeholderTextColor="#9CA3AF"
+					value={state}
+					onChangeText={setState}
+				/>
+
 				<Text style={styles.sectionLabel}>Settlement Account</Text>
 				<TextInput
 					style={styles.input}
 					placeholder="Bank name"
 					placeholderTextColor="#9CA3AF"
 					value={settlementBankName}
-					onChangeText={setSettlementBankName}
+					onChangeText={(value) => {
+						setSettlementBankName(value);
+						setBankVerified(false);
+					}}
 				/>
 				<TextInput
 					style={styles.input}
 					placeholder="Bank code"
 					placeholderTextColor="#9CA3AF"
 					value={settlementBankCode}
-					onChangeText={setSettlementBankCode}
+					onChangeText={(value) => {
+						setSettlementBankCode(value);
+						setBankVerified(false);
+					}}
 				/>
 				<TextInput
 					style={styles.input}
@@ -167,10 +352,25 @@ export default function RiderOnboardingScreen() {
 					placeholderTextColor="#9CA3AF"
 					value={settlementAccountNumber}
 					onChangeText={(value) =>
-						setSettlementAccountNumber(value.replace(/\D/g, ""))
+						{
+							setSettlementAccountNumber(value.replace(/\D/g, ""));
+							setBankVerified(false);
+						}
 					}
 					keyboardType="number-pad"
+					maxLength={10}
 				/>
+				<TouchableOpacity
+					style={styles.secondaryButton}
+					onPress={handleVerifyBank}
+					disabled={isVerifyingBank}
+					activeOpacity={0.8}>
+					{isVerifyingBank ? (
+						<ActivityIndicator color="#2F8F4E" />
+					) : (
+						<Text style={styles.secondaryButtonText}>Verify Account</Text>
+					)}
+				</TouchableOpacity>
 				<TextInput
 					style={styles.input}
 					placeholder="Account name"
@@ -178,28 +378,27 @@ export default function RiderOnboardingScreen() {
 					value={settlementAccountName}
 					onChangeText={setSettlementAccountName}
 				/>
+				<Text style={[styles.helperText, bankVerified && styles.helperTextSuccess]}>
+					{bankVerified
+						? `Verified account name: ${settlementAccountName}`
+						: "Verify the account before you submit your application."}
+				</Text>
 
-				{/* Document Upload Placeholder */}
-				<Text style={styles.sectionLabel}>Required Documents</Text>
-				<View style={styles.documentSection}>
-					{["Government ID", "Driver's License", "Vehicle Registration"].map(
-						(doc, idx) => (
-							<TouchableOpacity
-								key={idx}
-								style={styles.documentCard}
-								activeOpacity={0.7}>
-								<View style={styles.documentIcon}>
-									<Text style={styles.documentIconText}>📎</Text>
-								</View>
-								<View style={styles.documentInfo}>
-									<Text style={styles.documentName}>{doc}</Text>
-									<Text style={styles.documentStatus}>Tap to upload</Text>
-								</View>
-								<Text style={styles.uploadArrow}>↑</Text>
-							</TouchableOpacity>
-						),
-					)}
-				</View>
+				<TouchableOpacity
+					style={styles.checkboxRow}
+					onPress={() => setAgreedToTerms((value) => !value)}
+					activeOpacity={0.8}>
+					<View
+						style={[
+							styles.checkbox,
+							agreedToTerms && styles.checkboxChecked,
+						]}>
+						{agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
+					</View>
+					<Text style={styles.checkboxLabel}>
+						I agree to the rider terms, verification checks, and payout policy.
+					</Text>
+				</TouchableOpacity>
 
 				<Text style={styles.disclaimer}>
 					By submitting, you agree to our Terms of Service and confirm that the
@@ -293,13 +492,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		fontSize: 16,
 		color: "#111827",
-		marginBottom: 24,
+		marginBottom: 16,
 	},
-	documentSection: {
-		gap: 10,
-		marginBottom: 24,
-	},
-	documentCard: {
+	uploadCard: {
 		flexDirection: "row",
 		alignItems: "center",
 		backgroundColor: "#F9FAFB",
@@ -307,37 +502,82 @@ const styles = StyleSheet.create({
 		padding: 14,
 		borderWidth: 1,
 		borderColor: "#E5E7EB",
-		borderStyle: "dashed",
+		marginBottom: 24,
 	},
-	documentIcon: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: "#F0FDF4",
+	selfiePreview: {
+		width: 56,
+		height: 56,
+		borderRadius: 28,
+		marginRight: 14,
+	},
+	uploadIcon: {
+		fontSize: 28,
+		marginRight: 14,
+	},
+	uploadInfo: {
+		flex: 1,
+	},
+	uploadTitle: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#374151",
+	},
+	uploadSubtitle: {
+		fontSize: 12,
+		color: "#6B7280",
+		marginTop: 4,
+		lineHeight: 18,
+	},
+	secondaryButton: {
+		borderWidth: 1,
+		borderColor: "#2F8F4E",
+		borderRadius: 12,
+		paddingVertical: 14,
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	secondaryButtonText: {
+		fontSize: 15,
+		fontWeight: "700",
+		color: "#2F8F4E",
+	},
+	helperText: {
+		fontSize: 12,
+		color: "#6B7280",
+		marginBottom: 24,
+	},
+	helperTextSuccess: {
+		color: "#15803D",
+	},
+	checkboxRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 20,
+	},
+	checkbox: {
+		width: 24,
+		height: 24,
+		borderRadius: 6,
+		borderWidth: 2,
+		borderColor: "#D1D5DB",
 		alignItems: "center",
 		justifyContent: "center",
 		marginRight: 14,
 	},
-	documentIconText: {
-		fontSize: 18,
+	checkboxChecked: {
+		backgroundColor: "#2F8F4E",
+		borderColor: "#2F8F4E",
 	},
-	documentInfo: {
-		flex: 1,
-	},
-	documentName: {
+	checkboxMark: {
+		color: "#FFFFFF",
 		fontSize: 14,
-		fontWeight: "600",
-		color: "#374151",
-	},
-	documentStatus: {
-		fontSize: 12,
-		color: "#9CA3AF",
-		marginTop: 2,
-	},
-	uploadArrow: {
-		fontSize: 18,
-		color: "#2F8F4E",
 		fontWeight: "700",
+	},
+	checkboxLabel: {
+		flex: 1,
+		fontSize: 14,
+		color: "#374151",
+		lineHeight: 20,
 	},
 	disclaimer: {
 		fontSize: 13,

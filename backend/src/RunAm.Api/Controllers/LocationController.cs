@@ -37,4 +37,19 @@ public class LocationController : BaseApiController
 
         return Ok(ApiResponse<GeocodeResult>.Ok(result));
     }
+
+    /// <summary>Geocode a freeform address to get address details and coordinates</summary>
+    [HttpGet("geocode-address")]
+    [Authorize]
+    public async Task<IActionResult> GeocodeAddress([FromQuery] string address, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+            return BadRequest(ApiResponse<object>.Fail("Address is required"));
+
+        var result = await _geocodingService.GeocodeAddressAsync(address, ct);
+        if (result is null)
+            return NotFound(ApiResponse<object>.Fail("Address could not be geocoded"));
+
+        return Ok(ApiResponse<GeocodeResult>.Ok(result));
+    }
 }

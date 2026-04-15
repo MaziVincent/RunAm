@@ -71,12 +71,17 @@ export function ShopNavbar() {
 	const { isAuthenticated, user } = useAuthStore();
 	const itemCount = useCartStore((s) => s.getItemCount());
 
+	const [hasMounted, setHasMounted] = useState(false);
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 	const debouncedQuery = useDebounce(searchQuery, 400);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const { lat, lng, loading: geoLoading } = useGeolocation();
 	const { name: locationName, loading: locationLoading } = useLocationName(lat, lng);
+
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
 
 	// Navigate on debounced search
 	useEffect(() => {
@@ -107,13 +112,14 @@ export function ShopNavbar() {
 				) : (
 					<Link href="/" className="flex shrink-0 items-center gap-2">
 						<Image
-												src="/logo.svg"
-												alt="RunAm"
-												width={120}
-												height={36}
-												className={cn("h-9 w-auto")}
-												priority
-											/>
+							src="/logo.svg"
+							alt="RunAm"
+							width={120}
+							height={36}
+							className={cn("h-9 w-auto")}
+							style={{ width: "auto" }}
+							priority
+						/>
 						
 					</Link>
 				)}
@@ -173,7 +179,7 @@ export function ShopNavbar() {
 					<Link href="/shop/cart">
 						<ShoppingCart className="h-4 w-4" />
 						<span className="hidden sm:inline">Cart</span>
-						{itemCount > 0 && (
+						{hasMounted && itemCount > 0 && (
 							<Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full p-0 text-[10px]">
 								{itemCount > 99 ? "99+" : itemCount}
 							</Badge>

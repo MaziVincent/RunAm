@@ -107,6 +107,36 @@ const NIGERIAN_STATES = [
 	"Zamfara",
 ];
 
+const NIGERIAN_BANKS = [
+	{ name: "Access Bank", code: "044" },
+	{ name: "Citibank Nigeria", code: "023" },
+	{ name: "Ecobank Nigeria", code: "050" },
+	{ name: "Fidelity Bank", code: "070" },
+	{ name: "First Bank of Nigeria", code: "011" },
+	{ name: "First City Monument Bank", code: "214" },
+	{ name: "Globus Bank", code: "103" },
+	{ name: "Guaranty Trust Bank", code: "058" },
+	{ name: "Jaiz Bank", code: "301" },
+	{ name: "Keystone Bank", code: "082" },
+	{ name: "Kuda Bank", code: "50211" },
+	{ name: "Moniepoint MFB", code: "50515" },
+	{ name: "Opay", code: "999992" },
+	{ name: "PalmPay", code: "100033" },
+	{ name: "Parallex Bank", code: "104" },
+	{ name: "Polaris Bank", code: "076" },
+	{ name: "Providus Bank", code: "101" },
+	{ name: "Stanbic IBTC Bank", code: "221" },
+	{ name: "Standard Chartered Bank", code: "068" },
+	{ name: "Sterling Bank", code: "232" },
+	{ name: "SunTrust Bank", code: "100" },
+	{ name: "Titan Trust Bank", code: "102" },
+	{ name: "Union Bank", code: "032" },
+	{ name: "United Bank for Africa", code: "033" },
+	{ name: "Unity Bank", code: "215" },
+	{ name: "Wema Bank", code: "035" },
+	{ name: "Zenith Bank", code: "057" },
+];
+
 export default function RiderOnboardingPage() {
 	const [step, setStep] = useState(0);
 	const [vehicleType, setVehicleType] = useState<VehicleType | null>(null);
@@ -264,7 +294,7 @@ export default function RiderOnboardingPage() {
 
 	async function handleBankVerification() {
 		if (!settlementBankCode || settlementAccountNumber.length < 10) {
-			toast.error("Enter a valid bank code and 10-digit account number");
+			toast.error("Select your bank and enter a valid 10-digit account number");
 			return;
 		}
 		try {
@@ -645,25 +675,34 @@ export default function RiderOnboardingPage() {
 							<div className="grid gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label>Bank Name</Label>
-									<Input
+									<select
 										value={settlementBankName}
 										onChange={(e) => {
-											setSettlementBankName(e.target.value);
+											const selected = NIGERIAN_BANKS.find(
+												(bank) => bank.name === e.target.value,
+											);
+											setSettlementBankName(selected?.name ?? "");
+											setSettlementBankCode(selected?.code ?? "");
 											setBankVerified(false);
+											setSettlementAccountName("");
 										}}
-										placeholder="e.g. Moniepoint"
-									/>
+										className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+										<option value="">Select your bank</option>
+										{NIGERIAN_BANKS.map((bank) => (
+											<option key={bank.code} value={bank.name}>
+												{bank.name}
+											</option>
+										))}
+									</select>
+									<p className="text-xs text-muted-foreground">
+										Choose from major Nigerian banks. The bank code will be filled automatically.
+									</p>
 								</div>
 								<div className="space-y-2">
-									<Label>Bank Code</Label>
-									<Input
-										value={settlementBankCode}
-										onChange={(e) => {
-											setSettlementBankCode(e.target.value);
-											setBankVerified(false);
-										}}
-										placeholder="e.g. 50515"
-									/>
+									<Label>Selected Bank Code</Label>
+									<div className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+										{settlementBankCode || "Choose a bank to fill its code automatically"}
+									</div>
 								</div>
 							</div>
 							<div className="space-y-2">

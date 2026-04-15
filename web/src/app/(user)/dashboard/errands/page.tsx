@@ -125,7 +125,7 @@ export default function ErrandsPage() {
 					</p>
 				</div>
 				<Button asChild className="gap-2">
-					<Link href="/dashboard/errands/new">
+					<Link href="/errands/new">
 						<Plus className="h-4 w-4" />
 						<span className="hidden sm:inline">New Errand</span>
 					</Link>
@@ -165,7 +165,7 @@ export default function ErrandsPage() {
 							: `No ${activeTab} errands`}
 					</p>
 					<Button asChild className="mt-4 gap-2">
-						<Link href="/dashboard/errands/new">
+						<Link href="/errands/new">
 							<Plus className="h-4 w-4" />
 							Create Errand
 						</Link>

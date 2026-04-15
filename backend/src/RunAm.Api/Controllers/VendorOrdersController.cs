@@ -19,15 +19,24 @@ public class VendorOrdersController : BaseApiController
     /// <summary>Get incoming orders for my vendor</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<VendorOrderDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? status = null)
     {
-        var (orders, totalCount) = await _mediator.Send(new GetVendorOrdersQuery(GetUserId(), page, pageSize));
+        var (orders, totalCount) = await _mediator.Send(new GetVendorOrdersQuery(GetUserId(), page, pageSize, status));
         return Ok(ApiResponse<IReadOnlyList<VendorOrderDto>>.Ok(orders, new PaginationMeta
         {
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount
         }));
+    }
+
+    /// <summary>Get a single order for my vendor</summary>
+    [HttpGet("{errandId:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<RunAm.Shared.DTOs.Errands.ErrandDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOrderDetail(Guid errandId)
+    {
+        var result = await _mediator.Send(new GetVendorOrderDetailQuery(GetUserId(), errandId));
+        return Ok(ApiResponse<RunAm.Shared.DTOs.Errands.ErrandDto>.Ok(result));
     }
 
     /// <summary>Confirm an order</summary>

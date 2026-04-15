@@ -112,18 +112,21 @@ export interface PriceEstimate {
 
 // ── Rider ────────────────────────────────────────────────────
 export type VehicleType = "Bicycle" | "Motorcycle" | "Car" | "Van";
+export type RiderApprovalStatus = "Pending" | "Approved" | "Rejected";
 
 export interface RiderProfile {
 	id: string;
 	userId: string;
 	firstName: string;
 	lastName: string;
+	riderName?: string;
 	phoneNumber: string;
 	profilePictureUrl?: string;
 	vehicleType: VehicleType;
 	licensePlate?: string;
 	isOnline: boolean;
 	isVerified: boolean;
+	approvalStatus?: RiderApprovalStatus;
 	rating: number;
 	totalCompletedTasks: number;
 	currentLatitude?: number;
@@ -134,11 +137,21 @@ export interface RiderOnboardingRequest {
 	vehicleType: VehicleType;
 	licensePlate?: string;
 	nin: string;
+	selfieUrl?: string;
+	address: string;
+	city: string;
+	state: string;
 	settlementBankCode: string;
 	settlementBankName: string;
 	settlementAccountNumber: string;
 	settlementAccountName: string;
-	documentUrls?: string[];
+	agreedToTerms: boolean;
+}
+
+export interface ValidateBankAccountResult {
+	success: boolean;
+	accountName: string | null;
+	message: string | null;
 }
 
 export interface RiderEarnings {

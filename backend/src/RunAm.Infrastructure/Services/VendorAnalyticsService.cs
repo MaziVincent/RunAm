@@ -25,7 +25,9 @@ public class VendorAnalyticsService : IVendorAnalyticsService
 
         // Pending orders
         var pendingOrders = await vendorErrands
-            .Where(e => e.VendorOrderStatus == Domain.Enums.VendorOrderStatus.Received)
+            .Where(e => e.VendorOrderStatus == Domain.Enums.VendorOrderStatus.Received
+                     || e.VendorOrderStatus == Domain.Enums.VendorOrderStatus.Confirmed
+                     || e.VendorOrderStatus == Domain.Enums.VendorOrderStatus.Preparing)
             .CountAsync(ct);
 
         // Weekly revenue (last 7 days) – use DateOnly-safe approach for PostgreSQL

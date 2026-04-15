@@ -25,11 +25,25 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
     {
         var request = command.Request;
 
-        var (isValid, userId) = _jwtTokenService.ValidateAccessToken(request.AccessToken);
-        if (!isValid)
-            throw new UnauthorizedAccessException("Invalid access token.");
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
 
-        var user = await _userManager.FindByIdAsync(userId.ToString());
+        ApplicationUser? user;
+
+        if (!string.IsNullOrWhiteSpace(request.AccessToken))
+        {
+            var (isValid, userId) = _jwtTokenService.ValidateAccessToken(request.AccessToken);
+            if (!isValid)
+                throw new UnauthorizedAccessException("Invalid access token.");
+
+            user = await _userManager.FindByIdAsync(userId.ToString());
+        }
+        else
+        {
+            user = _userManager.Users
+                .SingleOrDefault(u => u.RefreshToken == request.RefreshToken);
+        }
+
         if (user == null || user.RefreshToken != request.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
             throw new UnauthorizedAccessException("Invalid or expired refresh token.");
 

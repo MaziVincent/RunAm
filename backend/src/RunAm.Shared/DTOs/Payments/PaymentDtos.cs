@@ -57,7 +57,8 @@ public record PaymentDto(
     PaymentMethod PaymentMethod,
     string? PaymentGatewayRef,
     PaymentStatus Status,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string? CheckoutUrl = null
 );
 
 public record ProcessPaymentRequest(

@@ -211,35 +211,63 @@ public class AdminController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<ErrandDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AssignRider(Guid id, [FromBody] AssignRiderRequest request)
     {
-        var errand = await _errandRepo.GetByIdWithDetailsAsync(id);
+        var errand = await _db.Errands
+            .AsNoTracking()
+            .Where(e => e.Id == id)
+            .Select(e => new { e.Id, e.Status })
+            .FirstOrDefaultAsync();
         if (errand is null) return NotFound();
 
-        var rider = await _riderRepo.GetByIdAsync(request.RiderId);
+        var rider = await _db.RiderProfiles
+            .AsNoTracking()
+            .Where(r => r.Id == request.RiderId || r.UserId == request.RiderId)
+            .Select(r => new { r.UserId, r.ApprovalStatus })
+            .FirstOrDefaultAsync();
         if (rider is null) return BadRequest(ApiResponse<object>.Fail("Rider not found"));
 
-        errand.RiderId = rider.UserId;
-        if (errand.Status == ErrandStatus.Pending)
+        if (rider.ApprovalStatus != ApprovalStatus.Approved)
+            return BadRequest(ApiResponse<object>.Fail("Rider must be approved before assignment."));
+
+        var now = DateTime.UtcNow;
+        var shouldAccept = errand.Status == ErrandStatus.Pending;
+
+        var affectedRows = await _db.Errands
+            .Where(e => e.Id == id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(e => e.RiderId, rider.UserId)
+                .SetProperty(e => e.UpdatedAt, now)
+                .SetProperty(e => e.Status, shouldAccept ? ErrandStatus.Accepted : errand.Status)
+                .SetProperty(e => e.AcceptedAt, e => shouldAccept ? now : e.AcceptedAt));
+
+        if (affectedRows == 0)
+            return Conflict(ApiResponse<object>.Fail("Errand could not be assigned. Please refresh and try again."));
+
+        if (shouldAccept)
         {
-            errand.TransitionTo(ErrandStatus.Accepted);
+            await _db.ErrandStatusHistory.AddAsync(new ErrandStatusHistory
+            {
+                ErrandId = id,
+                Status = ErrandStatus.Accepted,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+            await _uow.SaveChangesAsync();
         }
 
-        await _errandRepo.UpdateAsync(errand);
-        await _uow.SaveChangesAsync();
-
         // Reload with details
-        errand = await _errandRepo.GetByIdWithDetailsAsync(id);
+        var updatedErrand = await _errandRepo.GetByIdWithDetailsAsync(id);
         var dto = new ErrandDto(
-            errand!.Id, errand.CustomerId, errand.Customer?.FullName ?? "", errand.RiderId, errand.Rider?.FullName,
-            errand.Category, errand.Status, errand.Description, errand.SpecialInstructions,
-            errand.Priority, errand.ScheduledAt, errand.PickupAddress, errand.PickupLatitude, errand.PickupLongitude,
-            errand.DropoffAddress, errand.DropoffLatitude, errand.DropoffLongitude,
-            errand.EstimatedDistance, errand.EstimatedDuration, errand.PackageSize, errand.PackageWeight,
-            errand.IsFragile, errand.RequiresPhotoProof, errand.RecipientName, errand.RecipientPhone,
-            errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
-            errand.CancellationReason, errand.CreatedAt,
-            errand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
-            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
-            errand.VendorId, errand.Vendor?.BusinessName, errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
+            updatedErrand!.Id, updatedErrand.CustomerId, updatedErrand.Customer?.FullName ?? "", updatedErrand.RiderId, updatedErrand.Rider?.FullName,
+            updatedErrand.Category, updatedErrand.Status, updatedErrand.Description, updatedErrand.SpecialInstructions,
+            updatedErrand.Priority, updatedErrand.ScheduledAt, updatedErrand.PickupAddress, updatedErrand.PickupLatitude, updatedErrand.PickupLongitude,
+            updatedErrand.DropoffAddress, updatedErrand.DropoffLatitude, updatedErrand.DropoffLongitude,
+            updatedErrand.EstimatedDistance, updatedErrand.EstimatedDuration, updatedErrand.PackageSize, updatedErrand.PackageWeight,
+            updatedErrand.IsFragile, updatedErrand.RequiresPhotoProof, updatedErrand.RecipientName, updatedErrand.RecipientPhone,
+            updatedErrand.TotalAmount, updatedErrand.AcceptedAt, updatedErrand.PickedUpAt, updatedErrand.DeliveredAt, updatedErrand.CancelledAt,
+            updatedErrand.CancellationReason, updatedErrand.CreatedAt,
+            updatedErrand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
+            updatedErrand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
+            updatedErrand.VendorId, updatedErrand.Vendor?.BusinessName, updatedErrand.VendorOrderStatus != null ? (int)updatedErrand.VendorOrderStatus : null
         );
         return Ok(ApiResponse<ErrandDto>.Ok(dto));
     }

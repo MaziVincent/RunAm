@@ -37,10 +37,20 @@ public record GetAvailableTasksQuery(Guid UserId) : IRequest<IReadOnlyList<Erran
 public class GetAvailableTasksQueryHandler : IRequestHandler<GetAvailableTasksQuery, IReadOnlyList<ErrandDto>>
 {
     private readonly IErrandRepository _errandRepo;
-    public GetAvailableTasksQueryHandler(IErrandRepository errandRepo) => _errandRepo = errandRepo;
+    private readonly IRiderRepository _riderRepo;
+
+    public GetAvailableTasksQueryHandler(IErrandRepository errandRepo, IRiderRepository riderRepo)
+    {
+        _errandRepo = errandRepo;
+        _riderRepo = riderRepo;
+    }
 
     public async Task<IReadOnlyList<ErrandDto>> Handle(GetAvailableTasksQuery query, CancellationToken ct)
     {
+        var profile = await _riderRepo.GetByUserIdAsync(query.UserId, ct);
+        if (profile is null || profile.ApprovalStatus != ApprovalStatus.Approved)
+            return Array.Empty<ErrandDto>();
+
         var errands = await _errandRepo.GetPendingErrandsAsync(ct);
 
         return errands.Select(e => new ErrandDto(
@@ -74,13 +84,14 @@ public class GetActiveRiderTasksQueryHandler : IRequestHandler<GetActiveRiderTas
         var profile = await _riderRepo.GetByUserIdAsync(query.UserId, ct);
         if (profile is null) return Array.Empty<ErrandDto>();
 
-        // Get rider's errands and filter to active (not terminal) statuses
-        var errands = await _errandRepo.GetByRiderIdAsync(profile.UserId, 1, 50, ct);
+        // Get rider's errands and filter to non-terminal statuses. Pending is
+        // included so manually assigned tasks are visible before the rider
+        // performs the first status transition.
+        var errands = await _errandRepo.GetByRiderIdAsync(profile.UserId, 1, 50, null, ct);
         var active = errands.Where(e =>
             e.Status != ErrandStatus.Delivered &&
             e.Status != ErrandStatus.Cancelled &&
-            e.Status != ErrandStatus.Failed &&
-            e.Status != ErrandStatus.Pending).ToList();
+            e.Status != ErrandStatus.Failed).ToList();
 
         return active.Select(e => new ErrandDto(
             e.Id, e.CustomerId, e.Customer?.FullName ?? "", e.RiderId, null,
@@ -114,11 +125,12 @@ public class GetRiderTaskHistoryQueryHandler : IRequestHandler<GetRiderTaskHisto
         var profile = await _riderRepo.GetByUserIdAsync(query.UserId, ct);
         if (profile is null) return Array.Empty<ErrandDto>();
 
-        var errands = await _errandRepo.GetByRiderIdAsync(profile.UserId, query.Page, query.PageSize, ct);
-        var history = errands.Where(e =>
-            e.Status == ErrandStatus.Delivered ||
-            e.Status == ErrandStatus.Cancelled ||
-            e.Status == ErrandStatus.Failed).ToList();
+        var history = await _errandRepo.GetByRiderIdAsync(
+            profile.UserId,
+            query.Page,
+            query.PageSize,
+            "history",
+            ct);
 
         return history.Select(e => new ErrandDto(
             e.Id, e.CustomerId, e.Customer?.FullName ?? "", e.RiderId, null,
@@ -165,7 +177,7 @@ public class GetRiderPerformanceQueryHandler : IRequestHandler<GetRiderPerforman
         var averageRating = profile.Rating;
 
         // Get recent errands for this rider to compute rates
-        var recentErrands = await _errandRepo.GetByRiderIdAsync(profile.UserId, 1, 200, ct);
+        var recentErrands = await _errandRepo.GetByRiderIdAsync(profile.UserId, 1, 200, null, ct);
         var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var monthlyDeliveries = recentErrands.Count(e =>
             e.Status == ErrandStatus.Delivered && e.DeliveredAt >= monthStart);

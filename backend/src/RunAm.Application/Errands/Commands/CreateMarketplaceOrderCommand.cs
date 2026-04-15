@@ -146,7 +146,11 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
         var distanceKm = CalculateDistance(
             vendor.Latitude, vendor.Longitude,
             req.DropoffLatitude, req.DropoffLongitude);
-        var deliveryFee = vendor.DeliveryFee > 0 ? vendor.DeliveryFee : (decimal)distanceKm * AppConstants.Pricing.PerKmRate + AppConstants.Pricing.BaseFare;
+        var deliveryFee = req.DeliveryFeeOverride is >= 0
+            ? req.DeliveryFeeOverride.Value
+            : vendor.DeliveryFee > 0
+                ? vendor.DeliveryFee
+                : (decimal)distanceKm * AppConstants.Pricing.PerKmRate + AppConstants.Pricing.BaseFare;
         var preDiscountTotal = itemsTotal + deliveryFee;
         var discountAmount = 0m;
 
@@ -173,7 +177,7 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
             VendorId = vendor.Id,
             Category = ErrandCategory.FoodDelivery, // Default for marketplace
             Status = ErrandStatus.Pending,
-            VendorOrderStatus = VendorOrderStatus.Received,
+            VendorOrderStatus = VendorOrderStatus.Confirmed,
             Description = $"Order from {vendor.BusinessName}",
             SpecialInstructions = req.SpecialInstructions,
             Priority = ErrandPriority.Standard,

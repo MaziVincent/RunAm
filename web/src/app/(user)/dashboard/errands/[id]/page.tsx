@@ -277,7 +277,7 @@ export default function ErrandDetailPage() {
 			{/* Actions */}
 			{errand.status === ErrandStatus.Delivered && (
 				<Button asChild className="w-full gap-2">
-					<Link href={`/dashboard/errands/new?reorder=${errand.id}`}>
+					<Link href={`/errands/new?reorder=${errand.id}`}>
 						<Package className="h-4 w-4" />
 						Reorder
 					</Link>

@@ -33,7 +33,10 @@ public class GetErrandByIdQueryHandler : IRequestHandler<GetErrandByIdQuery, Err
             errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
             errand.CancellationReason, errand.CreatedAt,
             errand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
-            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList()
+            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
+            errand.VendorId,
+            errand.Vendor?.BusinessName,
+            errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
         );
     }
 }

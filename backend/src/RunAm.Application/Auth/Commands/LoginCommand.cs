@@ -38,6 +38,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponse>
         if (user.Status == Domain.Enums.UserStatus.PendingVerification)
             throw new UnauthorizedAccessException("Please verify your phone number before logging in.");
 
+        if (await _userManager.IsLockedOutAsync(user))
+            throw new UnauthorizedAccessException("Account locked due to multiple failed login attempts. Try again later.");
+
         var isValidPassword = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isValidPassword)
         {

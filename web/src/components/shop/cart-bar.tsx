@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,18 @@ import { formatCurrency } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function CartBar() {
-	const { vendorName, getItemCount, getSubtotal } = useCartStore();
+	const [hasMounted, setHasMounted] = useState(false);
+	const { getItemCount, getSubtotal, getVendorCount } = useCartStore();
+
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
+
+	if (!hasMounted) return null;
+
 	const itemCount = getItemCount();
 	const subtotal = getSubtotal();
+	const vendorCount = getVendorCount();
 
 	if (itemCount === 0) return null;
 
@@ -32,7 +42,9 @@ export function CartBar() {
 							</div>
 							<div className="text-left">
 								<p className="text-sm font-semibold">View Cart</p>
-								<p className="text-xs opacity-80">{vendorName}</p>
+								<p className="text-xs opacity-80">
+									{vendorCount === 1 ? "1 vendor" : `${vendorCount} vendors`}
+								</p>
 							</div>
 						</div>
 						<div className="flex items-center gap-1">

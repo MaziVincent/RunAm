@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using RunAm.Domain.Entities;
 using RunAm.Domain.Enums;
 using RunAm.Domain.Exceptions;
@@ -188,6 +189,8 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
     private readonly IWalletRepository _walletRepo;
     private readonly IErrandRepository _errandRepo;
     private readonly IMonnifyService _monnify;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IConfiguration _config;
     private readonly IUnitOfWork _uow;
 
     public ProcessPaymentCommandHandler(
@@ -195,12 +198,16 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
         IWalletRepository walletRepo,
         IErrandRepository errandRepo,
         IMonnifyService monnify,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration config,
         IUnitOfWork uow)
     {
         _paymentRepo = paymentRepo;
         _walletRepo = walletRepo;
         _errandRepo = errandRepo;
         _monnify = monnify;
+        _userManager = userManager;
+        _config = config;
         _uow = uow;
     }
 
@@ -213,14 +220,17 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
         if (existingErrandPayment?.Status == PaymentStatus.Completed)
             throw new InvalidOperationException("This errand has already been paid.");
 
-        var payment = new Payment
+        var payment = existingErrandPayment ?? new Payment
         {
             ErrandId = errand.Id,
             PayerId = command.PayerId,
             Amount = errand.TotalAmount,
-            PaymentMethod = command.Request.PaymentMethod,
-            PaymentGatewayRef = command.Request.PaymentReference
         };
+
+        payment.Amount = errand.TotalAmount;
+        payment.PaymentMethod = command.Request.PaymentMethod;
+
+        string? checkoutUrl = null;
 
         // If paying with wallet, debit immediately
         if (command.Request.PaymentMethod == PaymentMethod.Wallet)
@@ -247,35 +257,57 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
             }, ct);
 
             payment.Status = PaymentStatus.Completed;
+            payment.PaymentGatewayRef = null;
+        }
+        else if (command.Request.PaymentMethod == PaymentMethod.Cash)
+        {
+            payment.Status = PaymentStatus.Pending;
+            payment.PaymentGatewayRef = null;
+        }
+        else if (command.Request.PaymentMethod == PaymentMethod.BankTransfer || command.Request.PaymentMethod == PaymentMethod.Card)
+        {
+            var user = await _userManager.FindByIdAsync(command.PayerId.ToString())
+                ?? throw new NotFoundException("User", command.PayerId);
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+                throw new InvalidOperationException("A verified email is required to initialize payment.");
+
+            var paymentReference = $"ERRAND-{errand.Id.ToString()[..8]}-{Guid.NewGuid().ToString()[..4]}".ToUpperInvariant();
+            var frontendBaseUrl = _config["Frontend:BaseUrl"] ?? "http://localhost:3000";
+            var redirectUrl = $"{frontendBaseUrl}/errands/payment-callback/{errand.Id}";
+            var initResult = await _monnify.InitializeTransactionAsync(
+                Math.Round(errand.TotalAmount, 2),
+                user.FullName,
+                user.Email,
+                paymentReference,
+                $"Payment for errand #{errand.Id.ToString()[..8]}",
+                redirectUrl,
+                ct);
+
+            if (!initResult.Success || string.IsNullOrWhiteSpace(initResult.CheckoutUrl))
+                throw new InvalidOperationException(initResult.Message ?? "Failed to initialize payment gateway.");
+
+            payment.Status = PaymentStatus.Pending;
+            payment.PaymentGatewayRef = initResult.TransactionReference ?? paymentReference;
+            checkoutUrl = initResult.CheckoutUrl;
         }
         else
         {
-            if (string.IsNullOrWhiteSpace(command.Request.PaymentReference))
-            {
-                payment.Status = PaymentStatus.Pending;
-            }
-            else
-            {
-                var existingGatewayPayment = await _paymentRepo.GetByPaymentGatewayRefAsync(command.Request.PaymentReference, ct);
-                if (existingGatewayPayment is not null && existingGatewayPayment.ErrandId != errand.Id)
-                    throw new InvalidOperationException("This payment reference has already been used.");
-
-                var verification = await _monnify.VerifyTransactionAsync(command.Request.PaymentReference, ct);
-                if (!verification.Paid || verification.Amount < errand.TotalAmount)
-                    throw new InvalidOperationException("Payment reference could not be verified.");
-
-                payment.Status = PaymentStatus.Completed;
-                payment.PaymentGatewayRef = verification.PaymentReference ?? command.Request.PaymentReference;
-            }
+            throw new InvalidOperationException("Supported payment methods: Wallet, Bank Transfer, Card, or Cash.");
         }
 
-        await _paymentRepo.AddAsync(payment, ct);
+        if (existingErrandPayment is null)
+            await _paymentRepo.AddAsync(payment, ct);
+        else
+            await _paymentRepo.UpdateAsync(payment, ct);
+
         await _uow.SaveChangesAsync(ct);
 
         return new PaymentDto(
             payment.Id, payment.ErrandId, payment.PayerId,
             payment.Amount, payment.Currency, payment.PaymentMethod,
-            payment.PaymentGatewayRef, payment.Status, payment.CreatedAt
+            payment.PaymentGatewayRef, payment.Status, payment.CreatedAt,
+            checkoutUrl
         );
     }
 }

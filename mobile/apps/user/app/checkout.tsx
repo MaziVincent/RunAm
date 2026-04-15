@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
 	View,
 	Text,
@@ -18,12 +18,16 @@ import {
 	createMarketplaceOrder,
 	getDeliveryEstimate,
 } from "@runam/shared/api/errands";
+import { getPaymentMethods } from "@runam/shared/api/payments";
 import { getVendorById } from "@runam/shared/api/vendors";
+import { getWallet } from "@runam/shared/api/wallet";
 import type {
 	Address,
 	CreateMarketplaceOrderRequest,
 	CreateOrderItemRequest,
 	CartItem,
+	PaymentMethod,
+	Wallet,
 } from "@runam/shared/types";
 
 function getItemUnitPrice(item: CartItem): number {
@@ -72,6 +76,16 @@ export default function CheckoutScreen() {
 		enabled: !!vendorId,
 	});
 
+	const { data: wallet } = useQuery<Wallet | null>({
+		queryKey: ["wallet"],
+		queryFn: getWallet,
+	});
+
+	const { data: savedPaymentMethods = [] } = useQuery<PaymentMethod[]>({
+		queryKey: ["payment-methods"],
+		queryFn: getPaymentMethods,
+	});
+
 	// Auto-select default address
 	const selectedAddress = useMemo(() => {
 		if (!addresses || addresses.length === 0) return null;
@@ -108,6 +122,14 @@ export default function CheckoutScreen() {
 	const total = subtotal + deliveryFee;
 	const belowMinimum = vendor ? subtotal < vendor.minimumOrderAmount : false;
 	const vendorClosed = vendor ? !vendor.isOpen : false;
+	const walletUnavailable = paymentMethod === 0 && wallet?.isActive !== true;
+	const insufficientWalletBalance =
+		paymentMethod === 0 &&
+		wallet?.isActive === true &&
+		wallet.balance < total;
+	const missingSavedCard =
+		paymentMethod === 1 &&
+		!savedPaymentMethods.some((method) => method.type === "Card");
 
 	const orderMutation = useMutation({
 		mutationFn: createMarketplaceOrder,
@@ -132,6 +154,14 @@ export default function CheckoutScreen() {
 			Alert.alert(title, message);
 		},
 	});
+	const cannotPlaceOrder =
+		orderMutation.isPending ||
+		!selectedAddress ||
+		vendorClosed ||
+		belowMinimum ||
+		walletUnavailable ||
+		insufficientWalletBalance ||
+		missingSavedCard;
 
 	const handlePlaceOrder = () => {
 		if (!vendorId || items.length === 0) return;
@@ -154,6 +184,38 @@ export default function CheckoutScreen() {
 
 		if (!selectedAddress) {
 			Alert.alert("No Address", "Please select a delivery address.");
+			return;
+		}
+
+		if (walletUnavailable) {
+			Alert.alert(
+				"Wallet Required",
+				"Create and fund your wallet before paying with wallet balance.",
+			);
+			return;
+		}
+
+		if (insufficientWalletBalance) {
+			Alert.alert(
+				"Insufficient Balance",
+				"Your wallet balance is too low for this order. Please top up and try again.",
+			);
+			return;
+		}
+
+		if (missingSavedCard) {
+			Alert.alert(
+				"No Saved Card",
+				"Add a card in Payment Methods before using card checkout.",
+				[
+					{ text: "Cancel", style: "cancel" },
+					{
+						text: "Add Card",
+						onPress: () =>
+							router.push("/settings/payment-methods" as never),
+					},
+				],
+			);
 			return;
 		}
 
@@ -369,6 +431,28 @@ export default function CheckoutScreen() {
 							);
 						})}
 					</View>
+					{walletUnavailable && (
+						<Text style={styles.warningText}>
+							Create your wallet from the Wallet tab before using wallet payment.
+						</Text>
+					)}
+					{insufficientWalletBalance && (
+						<Text style={styles.warningText}>
+							Wallet balance: ₦{wallet?.balance?.toLocaleString() ?? "0"}. Top up
+							 before placing this order.
+						</Text>
+					)}
+					{missingSavedCard && (
+						<View>
+							<Text style={styles.warningText}>
+								Add a saved card before using card payment.
+							</Text>
+							<TouchableOpacity
+								onPress={() => router.push("/settings/payment-methods" as never)}>
+								<Text style={styles.linkText}>Open payment methods</Text>
+							</TouchableOpacity>
+						</View>
+					)}
 				</View>
 
 				{/* Order Summary */}
@@ -431,19 +515,11 @@ export default function CheckoutScreen() {
 				<TouchableOpacity
 					style={[
 						styles.placeOrderBtn,
-						(orderMutation.isPending ||
-							!selectedAddress ||
-							vendorClosed ||
-							belowMinimum) &&
+						cannotPlaceOrder &&
 							styles.placeOrderBtnDisabled,
 					]}
 					activeOpacity={0.8}
-					disabled={
-						orderMutation.isPending ||
-						!selectedAddress ||
-						vendorClosed ||
-						belowMinimum
-					}
+					disabled={cannotPlaceOrder}
 					onPress={handlePlaceOrder}>
 					<Text style={styles.placeOrderBtnText}>
 						{orderMutation.isPending

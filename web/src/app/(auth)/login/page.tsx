@@ -11,6 +11,10 @@ import { api } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { UserRole } from "@/types";
 import type { AuthResponse } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
+import { AuthShell } from "@/components/shared/auth-shell";
 
 function getDashboardPath(role: UserRole): string {
 	switch (role) {
@@ -87,84 +91,70 @@ function LoginForm() {
 	};
 
 	return (
-		<>
-			{/* Branding */}
-			<div className="mb-8 text-center">
-				<h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-					Run<span className="text-blue-600">Am</span>
-				</h1>
-				<p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-					{config.subtitle}
+		<AuthShell
+			title="Welcome back"
+			subtitle={config.subtitle}
+			footer={
+				<p className="text-center text-sm text-muted-foreground">
+					Don&apos;t have an account?{" "}
+					<Link
+						href={role ? `/register?role=${role}` : "/register"}
+						className="font-semibold text-primary transition-colors hover:text-primary/80">
+						Create one
+					</Link>
 				</p>
-			</div>
-
-			{/* Error */}
+			}>
 			{error && (
-				<div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+				<div className="mb-4 rounded-2xl border border-red-200 bg-red-50/90 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
 					{error}
 				</div>
 			)}
 
-			{/* Form */}
 			<form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-				<div>
-					<label
-						htmlFor="email"
-						className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+				<div className="space-y-2">
+					<label htmlFor="email" className="block text-sm font-medium text-foreground">
 						Email
 					</label>
-					<input
+					<Input
 						id="email"
 						type="email"
 						autoComplete="email"
 						{...register("email")}
-						className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
 						placeholder={config.placeholder}
+						className="h-11 rounded-xl border-border/80 bg-background/70"
 					/>
 					{errors.email && (
-						<p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+						<p className="text-xs text-red-600">{errors.email.message}</p>
 					)}
 				</div>
 
-				<div>
-					<label
-						htmlFor="password"
-						className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-						Password
-					</label>
-					<input
+				<div className="space-y-2">
+					<div className="flex items-center justify-between gap-3">
+						<label htmlFor="password" className="block text-sm font-medium text-foreground">
+							Password
+						</label>
+						<Link href="/forgot-password" className="text-xs font-medium text-primary hover:text-primary/80">
+							Forgot password?
+						</Link>
+					</div>
+					<PasswordInput
 						id="password"
-						type="password"
 						autoComplete="current-password"
 						{...register("password")}
-						className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
 						placeholder="••••••••"
+						className="h-11 rounded-xl border-border/80 bg-background/70"
 					/>
 					{errors.password && (
-						<p className="mt-1 text-xs text-red-600">
-							{errors.password.message}
-						</p>
+						<p className="text-xs text-red-600">{errors.password.message}</p>
 					)}
 				</div>
 
-				<button
-					type="submit"
-					disabled={isSubmitting}
-					className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-60">
+				<Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl text-sm font-semibold shadow-sm shadow-primary/20">
 					{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
 					Sign in
-				</button>
+				</Button>
 			</form>
-
-			<p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-				Don&apos;t have an account?{" "}
-				<Link
-					href={role ? `/register?role=${role}` : "/register"}
-					className="font-medium text-blue-600 hover:text-blue-500">
-					Register
-				</Link>
-			</p>
-		</>
+		</AuthShell>
 	);
 }
 

@@ -78,9 +78,12 @@ function RejectedStatus() {
 function StatsCards() {
 	const { data: earningsData, isLoading: earningsLoading } = useRiderEarnings();
 	const { data: perfData, isLoading: perfLoading } = useRiderPerformance();
+	const { data: activeTasksData, isLoading: activeTasksLoading } =
+		useActiveTasks();
 	const earnings = earningsData?.data;
 	const perf = perfData?.data;
-	const isLoading = earningsLoading || perfLoading;
+	const activeTasks = activeTasksData?.data ?? [];
+	const isLoading = earningsLoading || perfLoading || activeTasksLoading;
 
 	const stats = [
 		{
@@ -91,7 +94,7 @@ function StatsCards() {
 		},
 		{
 			label: "Active Tasks",
-			value: "—",
+			value: String(activeTasks.length),
 			icon: Truck,
 			color: "text-blue-600 bg-blue-50 dark:bg-blue-950/50",
 			href: "/rider/tasks",

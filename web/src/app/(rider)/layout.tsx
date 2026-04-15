@@ -149,7 +149,7 @@ export default function RiderDashboardLayout({
 	const router = useRouter();
 	const { isAuthenticated, isHydrated, hydrate, user } = useAuthStore();
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const { data: profileData } = useRiderProfile();
+	const { data: profileData, isLoading: profileLoading } = useRiderProfile();
 	const profile = profileData?.data;
 
 	useEffect(() => {
@@ -171,20 +171,35 @@ export default function RiderDashboardLayout({
 	// Restrict sub-pages unless profile is approved (allow /rider and /rider/onboarding)
 	const isOnboarding = pathname === "/rider/onboarding";
 	const isDashboardRoot = pathname === "/rider";
+	const isRestrictedSubpage = !isOnboarding && !isDashboardRoot;
 	useEffect(() => {
 		if (
 			isHydrated &&
 			isAuthenticated &&
-			!isOnboarding &&
-			!isDashboardRoot &&
-			profile &&
-			profile.approvalStatus !== ApprovalStatus.Approved
+			!profileLoading &&
+			isRestrictedSubpage &&
+			(!profile || profile.approvalStatus !== ApprovalStatus.Approved)
 		) {
 			router.replace("/rider");
 		}
-	}, [isHydrated, isAuthenticated, isOnboarding, isDashboardRoot, profile]);
+	}, [
+		isHydrated,
+		isAuthenticated,
+		profileLoading,
+		isRestrictedSubpage,
+		profile,
+		router,
+	]);
 
 	if (!isHydrated || !isAuthenticated) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+			</div>
+		);
+	}
+
+	if (isRestrictedSubpage && profileLoading) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

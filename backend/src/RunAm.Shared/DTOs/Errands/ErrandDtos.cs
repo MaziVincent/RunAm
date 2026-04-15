@@ -116,7 +116,8 @@ public record PriceEstimateRequest(
     double DropoffLongitude,
     PackageSize? PackageSize,
     decimal? PackageWeight,
-    ErrandPriority Priority
+    ErrandPriority Priority,
+    List<CreateErrandStopRequest>? Stops = null
 );
 
 public record PriceEstimateResponse(
@@ -136,6 +137,7 @@ public record CreateMarketplaceOrderRequest(
     string DropoffAddress,
     double DropoffLatitude,
     double DropoffLongitude,
+    decimal? DeliveryFeeOverride,
     string? RecipientName,
     string? RecipientPhone,
     string? SpecialInstructions,

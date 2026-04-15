@@ -41,7 +41,9 @@ public class CancelErrandCommandHandler : IRequestHandler<CancelErrandCommand, E
             errand.EstimatedDistance, errand.EstimatedDuration, errand.PackageSize, errand.PackageWeight,
             errand.IsFragile, errand.RequiresPhotoProof, errand.RecipientName, errand.RecipientPhone,
             errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
-            errand.CancellationReason, errand.CreatedAt, null, null
+            errand.CancellationReason, errand.CreatedAt, null, null,
+            errand.VendorId, errand.Vendor?.BusinessName,
+            errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
         );
     }
 }

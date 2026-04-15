@@ -5,9 +5,9 @@ import type {
 	VendorDetailDto,
 	ProductDto,
 	ProductCategoryDto,
-	OrderItemDto,
 	ErrandDto,
 	ReviewDto,
+	VendorOrderDto,
 } from "@/types";
 
 // ── Vendor Profile (current vendor) ────────────────────
@@ -95,7 +95,7 @@ export function useToggleVendorOpen() {
 
 export function useVendorOrders(
 	params: {
-		status?: string;
+		status?: string | number;
 		page?: number;
 		pageSize?: number;
 	} = {},
@@ -103,7 +103,7 @@ export function useVendorOrders(
 	return useQuery({
 		queryKey: ["vendor-orders", params],
 		queryFn: () =>
-			api.get<ErrandDto[]>("/vendors/me/orders", {
+			api.get<VendorOrderDto[]>("/vendors/me/orders", {
 				page: params.page ?? 1,
 				pageSize: params.pageSize ?? 20,
 				status: params.status,
@@ -120,33 +120,11 @@ export function useVendorOrderDetail(id: string) {
 	});
 }
 
-export function useConfirmVendorOrder() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (data: { orderId: string; estimatedPrepMinutes?: number }) =>
-			api.post(`/vendors/me/orders/${data.orderId}/confirm`, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
-		},
-	});
-}
-
-export function useRejectVendorOrder() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (data: { orderId: string; reason: string }) =>
-			api.post(`/vendors/me/orders/${data.orderId}/reject`, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
-		},
-	});
-}
-
 export function useMarkOrderReady() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (orderId: string) =>
-			api.post(`/vendors/me/orders/${orderId}/ready`),
+			api.put(`/vendors/me/orders/${orderId}/ready`, {}),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
 		},

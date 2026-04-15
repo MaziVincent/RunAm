@@ -9,10 +9,12 @@ export {
 export type { VendorQueryParams } from "./use-shop";
 export {
 	useCurrentUser,
+	useChangePassword,
 	useUpdateProfile,
 	useMyErrands,
 	useErrandDetail,
 	useCreateErrand,
+	useProcessErrandPayment,
 	useWallet,
 	useWalletTransactions,
 	useCreateWallet,
@@ -24,6 +26,7 @@ export {
 	useMyReviews,
 	usePlaceOrder,
 	useDeliveryEstimate,
+	useGeocodeAddress,
 } from "./use-user";
 export type { PlaceOrderPayload } from "./use-user";
 export { useGeolocation } from "./use-geolocation";
@@ -41,8 +44,6 @@ export {
 	useToggleVendorOpen,
 	useVendorOrders,
 	useVendorOrderDetail,
-	useConfirmVendorOrder,
-	useRejectVendorOrder,
 	useMarkOrderReady,
 	useMyProducts,
 	useCreateProduct,

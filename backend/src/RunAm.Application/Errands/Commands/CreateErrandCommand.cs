@@ -90,7 +90,7 @@ public class CreateErrandCommandHandler : IRequestHandler<CreateErrandCommand, E
 
     private static PriceEstimateResponse CalculatePrice(CreateErrandRequest req)
     {
-        var distanceKm = CalculateDistance(req.PickupLatitude, req.PickupLongitude, req.DropoffLatitude, req.DropoffLongitude);
+        var distanceKm = CalculateRouteDistance(req);
         var durationMinutes = (int)Math.Ceiling(distanceKm * 3); // Rough estimate: 3 min per km
 
         var baseFare = AppConstants.Pricing.BaseFare;
@@ -126,6 +126,35 @@ public class CreateErrandCommandHandler : IRequestHandler<CreateErrandCommand, E
             EstimatedDistanceKm: Math.Round(distanceKm, 2),
             EstimatedDurationMinutes: durationMinutes
         );
+    }
+
+    private static double CalculateRouteDistance(CreateErrandRequest req)
+    {
+        var points = new List<(double Latitude, double Longitude)>
+        {
+            (req.PickupLatitude, req.PickupLongitude)
+        };
+
+        if (req.Stops?.Any() == true)
+        {
+            points.AddRange(req.Stops
+                .OrderBy(stop => stop.StopOrder)
+                .Select(stop => (stop.Latitude, stop.Longitude)));
+        }
+
+        points.Add((req.DropoffLatitude, req.DropoffLongitude));
+
+        double totalDistance = 0;
+        for (var i = 0; i < points.Count - 1; i++)
+        {
+            totalDistance += CalculateDistance(
+                points[i].Latitude,
+                points[i].Longitude,
+                points[i + 1].Latitude,
+                points[i + 1].Longitude);
+        }
+
+        return totalDistance;
     }
 
     private static double CalculateDistance(double lat1, double lon1, double lat2, double lon2)

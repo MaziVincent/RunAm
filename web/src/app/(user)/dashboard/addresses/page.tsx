@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
 	MapPin,
 	Plus,
@@ -42,13 +42,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useAddresses, useCreateAddress } from "@/lib/hooks";
+import { useAddresses, useCreateAddress, useGeocodeAddress } from "@/lib/hooks";
 import { UserAddressDto } from "@/types";
 import { toast } from "sonner";
 
 type AddressType = "Home" | "Work" | "Other";
 
-const ADDRESS_ICONS: Record<AddressType, React.ReactNode> = {
+const ADDRESS_ICONS: Record<AddressType, ReactNode> = {
 	Home: <Home className="h-4 w-4" />,
 	Work: <Briefcase className="h-4 w-4" />,
 	Other: <MapPin className="h-4 w-4" />,
@@ -83,8 +83,13 @@ function AddressFormDialog({
 }) {
 	const [form, setForm] = useState<AddressFormData>(initial ?? emptyForm);
 	const createAddress = useCreateAddress();
+	const geocodeAddress = useGeocodeAddress();
 
 	const isEdit = !!initial;
+
+	useEffect(() => {
+		setForm(initial ?? emptyForm);
+	}, [initial, open]);
 
 	function update(key: keyof AddressFormData, value: string | boolean) {
 		setForm((prev) => ({ ...prev, [key]: value }));
@@ -96,18 +101,26 @@ function AddressFormDialog({
 			return;
 		}
 		try {
+			const fullAddress = `${form.address}, ${form.city}, ${form.state}`;
+			const geocodeResult = await geocodeAddress.mutateAsync(fullAddress);
+			const resolvedAddress = geocodeResult.data;
+
+			if (!resolvedAddress) {
+				throw new Error("We could not locate that address.");
+			}
+
 			await createAddress.mutateAsync({
 				label: form.label,
-				address: `${form.address}, ${form.city}, ${form.state}`,
-				latitude: 0,
-				longitude: 0,
+				address: resolvedAddress.address,
+				latitude: resolvedAddress.latitude,
+				longitude: resolvedAddress.longitude,
 				isDefault: form.isDefault,
 			});
 			toast.success(isEdit ? "Address updated" : "Address added");
 			onOpenChange(false);
 			setForm(emptyForm);
-		} catch {
-			toast.error("Failed to save address");
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to save address");
 		}
 	}
 
@@ -186,8 +199,8 @@ function AddressFormDialog({
 					<Button
 						className="w-full"
 						onClick={handleSave}
-						disabled={createAddress.isPending}>
-						{createAddress.isPending && (
+						disabled={createAddress.isPending || geocodeAddress.isPending}>
+						{(createAddress.isPending || geocodeAddress.isPending) && (
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 						)}
 						{isEdit ? "Update Address" : "Add Address"}

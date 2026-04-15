@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
 	User,
 	Bike,
@@ -9,23 +10,35 @@ import {
 	LogOut,
 	Loader2,
 	PersonStanding,
-	Save,
+	Mail,
+	MessageSquare,
+	Gift,
+	BadgeAlert,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { PasswordInput } from "@/components/ui/password-input";
+import {
 	useRiderProfile,
 	useNotificationPreferences,
 	useUpdateNotificationPreferences,
+	useChangePassword,
 } from "@/lib/hooks";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { VehicleType, ApprovalStatus } from "@/types";
+import { VehicleType, ApprovalStatus, type NotificationPreferenceDto } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -49,6 +62,64 @@ const approvalStatusColor: Record<number, string> = {
 	[ApprovalStatus.Rejected]: "bg-red-100 text-red-700",
 };
 
+type NotificationPreferenceKey = Exclude<keyof NotificationPreferenceDto, "fcmToken">;
+
+const notificationOptions: Array<{
+	key: NotificationPreferenceKey;
+	title: string;
+	description: string;
+	icon: typeof Bell;
+}> = [
+	{
+		key: "pushEnabled",
+		title: "Push Notifications",
+		description: "Receive notifications for new tasks and live updates.",
+		icon: Bell,
+	},
+	{
+		key: "emailEnabled",
+		title: "Email Notifications",
+		description: "Get account and delivery updates by email.",
+		icon: Mail,
+	},
+	{
+		key: "smsEnabled",
+		title: "SMS Notifications",
+		description: "Receive urgent updates by text message.",
+		icon: MessageSquare,
+	},
+	{
+		key: "errandUpdates",
+		title: "Errand Updates",
+		description: "Status changes for your deliveries.",
+		icon: Bike,
+	},
+	{
+		key: "chatMessages",
+		title: "Chat Messages",
+		description: "Notifications for new chat messages.",
+		icon: MessageSquare,
+	},
+	{
+		key: "paymentAlerts",
+		title: "Payment Alerts",
+		description: "Earnings, payouts, and wallet activity.",
+		icon: Bell,
+	},
+	{
+		key: "promotions",
+		title: "Promotions",
+		description: "Campaigns, incentives, and rider offers.",
+		icon: Gift,
+	},
+	{
+		key: "systemAlerts",
+		title: "System Alerts",
+		description: "Platform notices and important service updates.",
+		icon: BadgeAlert,
+	},
+];
+
 export default function RiderSettingsPage() {
 	const { data, isLoading } = useRiderProfile();
 	const { user, logout } = useAuthStore();
@@ -56,18 +127,58 @@ export default function RiderSettingsPage() {
 	const { data: prefsData, isLoading: prefsLoading } =
 		useNotificationPreferences();
 	const updatePrefs = useUpdateNotificationPreferences();
+	const changePassword = useChangePassword();
 	const prefs = prefsData?.data;
+	const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+	const [passwordForm, setPasswordForm] = useState({
+		currentPassword: "",
+		newPassword: "",
+		confirmPassword: "",
+	});
 
-	function togglePref(
-		key: "pushEnabled" | "errandUpdates" | "chatMessages" | "paymentAlerts",
-		value: boolean,
-	) {
+	function togglePref(key: NotificationPreferenceKey, value: boolean) {
 		updatePrefs.mutate(
 			{ [key]: value },
 			{
 				onError: () => toast.error("Failed to update preference"),
+				onSuccess: () => toast.success("Preference updated"),
 			},
 		);
+	}
+
+	async function handlePasswordChange() {
+		if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+			toast.error("Enter your current and new password");
+			return;
+		}
+
+		if (passwordForm.newPassword.length < 8) {
+			toast.error("Password must be at least 8 characters");
+			return;
+		}
+
+		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+			toast.error("New passwords do not match");
+			return;
+		}
+
+		try {
+			await changePassword.mutateAsync({
+				currentPassword: passwordForm.currentPassword,
+				newPassword: passwordForm.newPassword,
+			});
+			toast.success("Password changed successfully");
+			setPasswordDialogOpen(false);
+			setPasswordForm({
+				currentPassword: "",
+				newPassword: "",
+				confirmPassword: "",
+			});
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Failed to change password",
+			);
+		}
 	}
 
 	if (isLoading) {
@@ -91,6 +202,75 @@ export default function RiderSettingsPage() {
 
 	return (
 		<div className="space-y-6">
+			<Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Change Password</DialogTitle>
+						<DialogDescription>
+							Update your rider account password.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="current-password">Current Password</Label>
+							<PasswordInput
+								id="current-password"
+								value={passwordForm.currentPassword}
+								onChange={(e) =>
+									setPasswordForm((current) => ({
+										...current,
+										currentPassword: e.target.value,
+									}))
+								}
+								placeholder="Enter your current password"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="new-password">New Password</Label>
+							<PasswordInput
+								id="new-password"
+								value={passwordForm.newPassword}
+								onChange={(e) =>
+									setPasswordForm((current) => ({
+										...current,
+										newPassword: e.target.value,
+									}))
+								}
+								placeholder="Minimum 8 characters"
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="confirm-password">Confirm New Password</Label>
+							<PasswordInput
+								id="confirm-password"
+								value={passwordForm.confirmPassword}
+								onChange={(e) =>
+									setPasswordForm((current) => ({
+										...current,
+										confirmPassword: e.target.value,
+									}))
+								}
+								placeholder="Repeat your new password"
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setPasswordDialogOpen(false)}
+							disabled={changePassword.isPending}>
+							Cancel
+						</Button>
+						<Button onClick={handlePasswordChange} disabled={changePassword.isPending}>
+							{changePassword.isPending && (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							)}
+							Update Password
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 			<div>
 				<h1 className="text-2xl font-bold">Settings</h1>
 				<p className="text-sm text-muted-foreground">
@@ -193,67 +373,38 @@ export default function RiderSettingsPage() {
 				<CardContent className="space-y-4">
 					{prefsLoading ? (
 						<div className="space-y-3">
-							{[1, 2, 3, 4].map((i) => (
+							{[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
 								<Skeleton key={i} className="h-10" />
 							))}
 						</div>
 					) : (
 						<>
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">Push Notifications</p>
-									<p className="text-xs text-muted-foreground">
-										Receive notifications for new tasks and updates
-									</p>
-								</div>
-								<Switch
-									checked={prefs?.pushEnabled ?? true}
-									disabled={updatePrefs.isPending}
-									onCheckedChange={(v) => togglePref("pushEnabled", v)}
-								/>
-							</div>
-							<Separator />
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">Errand Updates</p>
-									<p className="text-xs text-muted-foreground">
-										Status changes for your deliveries
-									</p>
-								</div>
-								<Switch
-									checked={prefs?.errandUpdates ?? true}
-									disabled={updatePrefs.isPending}
-									onCheckedChange={(v) => togglePref("errandUpdates", v)}
-								/>
-							</div>
-							<Separator />
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">Chat Messages</p>
-									<p className="text-xs text-muted-foreground">
-										Notifications for new chat messages
-									</p>
-								</div>
-								<Switch
-									checked={prefs?.chatMessages ?? true}
-									disabled={updatePrefs.isPending}
-									onCheckedChange={(v) => togglePref("chatMessages", v)}
-								/>
-							</div>
-							<Separator />
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">Payment Alerts</p>
-									<p className="text-xs text-muted-foreground">
-										Earnings, payouts, and wallet activity
-									</p>
-								</div>
-								<Switch
-									checked={prefs?.paymentAlerts ?? true}
-									disabled={updatePrefs.isPending}
-									onCheckedChange={(v) => togglePref("paymentAlerts", v)}
-								/>
-							</div>
+							{notificationOptions.map((option, index) => {
+								const Icon = option.icon;
+								return (
+									<div key={option.key}>
+										<div className="flex items-center justify-between gap-4">
+											<div className="flex items-start gap-3">
+												<div className="rounded-lg bg-muted p-2">
+													<Icon className="h-4 w-4 text-muted-foreground" />
+												</div>
+												<div>
+													<p className="text-sm font-medium">{option.title}</p>
+													<p className="text-xs text-muted-foreground">
+														{option.description}
+													</p>
+												</div>
+											</div>
+											<Switch
+												checked={prefs?.[option.key] ?? true}
+												disabled={updatePrefs.isPending}
+												onCheckedChange={(value) => togglePref(option.key, value)}
+											/>
+										</div>
+										{index < notificationOptions.length - 1 && <Separator className="mt-4" />}
+									</div>
+								);
+							})}
 						</>
 					)}
 				</CardContent>
@@ -275,7 +426,10 @@ export default function RiderSettingsPage() {
 								Update your account password
 							</p>
 						</div>
-						<Button variant="outline" size="sm">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setPasswordDialogOpen(true)}>
 							Change
 						</Button>
 					</div>

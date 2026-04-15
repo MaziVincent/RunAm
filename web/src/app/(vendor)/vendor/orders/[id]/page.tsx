@@ -1,67 +1,43 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import {
+	AlertCircle,
 	ArrowLeft,
 	CheckCircle,
 	Clock,
+	MapPin,
 	Package,
 	User,
-	MapPin,
-	Phone,
-	Loader2,
-	AlertCircle,
 } from "lucide-react";
+
+import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-	useVendorOrderDetail,
-	useConfirmVendorOrder,
-	useRejectVendorOrder,
-	useMarkOrderReady,
-} from "@/lib/hooks";
-import {
-	formatCurrency,
-	cn,
-	vendorOrderStatusLabel,
-	vendorOrderStatusColor,
-} from "@/lib/utils";
+import { useMarkOrderReady, useVendorOrderDetail } from "@/lib/hooks";
+import { formatCurrency } from "@/lib/utils";
 import { VendorOrderStatus } from "@/types";
 import { toast } from "sonner";
 
-const STATUS_TIMELINE = [
-	{ status: VendorOrderStatus.Received, label: "Order Received", icon: Clock },
-	{
-		status: VendorOrderStatus.Confirmed,
-		label: "Confirmed",
-		icon: Package,
-	},
-	{
-		status: VendorOrderStatus.Preparing,
-		label: "Preparing",
-		icon: Package,
-	},
-	{
-		status: VendorOrderStatus.ReadyForPickup,
-		label: "Ready for Pickup",
-		icon: CheckCircle,
-	},
-];
+const ACTIVE_VENDOR_STATUSES = new Set<VendorOrderStatus>([
+	VendorOrderStatus.Received,
+	VendorOrderStatus.Confirmed,
+	VendorOrderStatus.Preparing,
+]);
 
 export default function VendorOrderDetailPage() {
 	const params = useParams();
 	const router = useRouter();
 	const orderId = params.id as string;
 	const { data, isLoading } = useVendorOrderDetail(orderId);
-	const confirmOrder = useConfirmVendorOrder();
-	const rejectOrder = useRejectVendorOrder();
 	const markReady = useMarkOrderReady();
 
 	const order = data?.data;
+	const vendorStatus = order?.vendorOrderStatus ?? VendorOrderStatus.Confirmed;
+	const canMarkReady = ACTIVE_VENDOR_STATUSES.has(vendorStatus);
 
 	if (isLoading) {
 		return (
@@ -86,14 +62,8 @@ export default function VendorOrderDetailPage() {
 		);
 	}
 
-	const currentStatus = order.vendorOrderStatus ?? order.status ?? 0;
-	const currentIdx = STATUS_TIMELINE.findIndex(
-		(s) => s.status === currentStatus,
-	);
-
 	return (
 		<div className="space-y-6">
-			{/* Header */}
 			<div className="flex items-center gap-3">
 				<Button variant="ghost" size="icon" onClick={() => router.back()}>
 					<ArrowLeft className="h-4 w-4" />
@@ -104,115 +74,39 @@ export default function VendorOrderDetailPage() {
 						{new Date(order.createdAt).toLocaleString("en-NG")}
 					</p>
 				</div>
-				<Badge className={cn("text-xs", vendorOrderStatusColor[currentStatus])}>
-					{vendorOrderStatusLabel[currentStatus]}
-				</Badge>
+				<StatusBadge status={vendorStatus} kind="vendorOrder" className="rounded-full px-3 py-1" />
 			</div>
 
-			{/* Status Timeline */}
-			<Card>
-				<CardContent className="p-4">
-					<div className="flex items-center justify-between">
-						{STATUS_TIMELINE.map((step, i) => {
-							const isComplete = i <= currentIdx;
-							const isCurrent = i === currentIdx;
-							return (
-								<div key={i} className="flex flex-1 items-center">
-									<div className="flex flex-col items-center">
-										<div
-											className={cn(
-												"flex h-8 w-8 items-center justify-center rounded-full border-2",
-												isComplete
-													? "border-primary bg-primary text-primary-foreground"
-													: "border-muted text-muted-foreground",
-											)}>
-											<step.icon className="h-4 w-4" />
-										</div>
-										<span
-											className={cn(
-												"mt-1 text-[10px]",
-												isCurrent ? "font-semibold" : "text-muted-foreground",
-											)}>
-											{step.label}
-										</span>
-									</div>
-									{i < STATUS_TIMELINE.length - 1 && (
-										<div
-											className={cn(
-												"mx-1 h-0.5 flex-1",
-												i < currentIdx ? "bg-primary" : "bg-muted",
-											)}
-										/>
-									)}
-								</div>
-							);
-						})}
-					</div>
-				</CardContent>
-			</Card>
-
-			{/* Actions */}
-			{currentStatus === VendorOrderStatus.Received && (
-				<div className="flex gap-3">
-					<Button
-						className="flex-1 gap-2"
-						onClick={async () => {
-							try {
-								await confirmOrder.mutateAsync({ orderId });
-								toast.success("Order accepted");
-							} catch {
-								toast.error("Failed");
-							}
-						}}
-						disabled={confirmOrder.isPending}>
-						{confirmOrder.isPending && (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						)}
-						Accept Order
-					</Button>
-					<Button
-						variant="destructive"
-						onClick={async () => {
-							try {
-								await rejectOrder.mutateAsync({
-									orderId,
-									reason: "Vendor rejected",
-								});
-								toast.success("Order rejected");
-								router.push("/vendor/orders");
-							} catch {
-								toast.error("Failed");
-							}
-						}}
-						disabled={rejectOrder.isPending}>
-						Reject
-					</Button>
-				</div>
-			)}
-			{currentStatus === VendorOrderStatus.Confirmed && (
+			{canMarkReady && (
 				<Button
 					className="w-full gap-2"
 					onClick={async () => {
 						try {
 							await markReady.mutateAsync(orderId);
-							toast.success("Marked as ready for pickup");
+							toast.success("Marked ready for pickup");
 						} catch {
-							toast.error("Failed");
+							toast.error("Failed to update order");
 						}
 					}}
 					disabled={markReady.isPending}>
-					{markReady.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
 					<CheckCircle className="h-4 w-4" />
 					Mark Ready for Pickup
 				</Button>
 			)}
 
-			{/* Order Summary */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="text-base">Order Summary</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
+					<div>
+						<p className="text-xs text-muted-foreground">Pickup</p>
+						<p className="text-sm">{order.pickupAddress}</p>
+					</div>
+					<div>
+						<p className="text-xs text-muted-foreground">Drop-off</p>
+						<p className="text-sm">{order.dropoffAddress}</p>
+					</div>
 					{order.description && (
 						<div>
 							<p className="text-xs text-muted-foreground">Description</p>
@@ -221,48 +115,41 @@ export default function VendorOrderDetailPage() {
 					)}
 					{order.specialInstructions && (
 						<div>
-							<p className="text-xs text-muted-foreground">
-								Special Instructions
-							</p>
-							<p className="text-sm text-amber-600 dark:text-amber-400">
-								{order.specialInstructions}
-							</p>
+							<p className="text-xs text-muted-foreground">Special Instructions</p>
+							<p className="text-sm text-amber-600 dark:text-amber-400">{order.specialInstructions}</p>
 						</div>
 					)}
 					<Separator />
 					<div className="flex justify-between text-sm">
 						<span className="text-muted-foreground">Total</span>
-						<span className="font-semibold">
-							{formatCurrency(order.totalAmount ?? 0)}
-						</span>
+						<span className="font-semibold">{formatCurrency(order.totalAmount)}</span>
 					</div>
 				</CardContent>
 			</Card>
 
-			{/* Customer & Delivery */}
 			<Card>
 				<CardHeader>
 					<CardTitle className="text-base">Delivery Details</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-3">
-					{order.customerName && (
-						<div className="flex items-center gap-3">
-							<User className="h-4 w-4 text-muted-foreground" />
-							<span className="text-sm">{order.customerName}</span>
-						</div>
-					)}
-					{order.dropoffAddress && (
-						<div className="flex items-start gap-3">
-							<MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
-							<span className="text-sm">{order.dropoffAddress}</span>
-						</div>
-					)}
-					{order.riderName && (
-						<div className="flex items-center gap-3">
-							<Package className="h-4 w-4 text-muted-foreground" />
-							<span className="text-sm">Rider: {order.riderName}</span>
-						</div>
-					)}
+					<div className="flex items-center gap-3">
+						<User className="h-4 w-4 text-muted-foreground" />
+						<span className="text-sm">{order.customerName || "Customer"}</span>
+					</div>
+					<div className="flex items-start gap-3">
+						<MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" />
+						<span className="text-sm">{order.dropoffAddress}</span>
+					</div>
+					<div className="flex items-center gap-3">
+						<Package className="h-4 w-4 text-muted-foreground" />
+						<span className="text-sm">Rider: {order.riderName || "Waiting for rider assignment"}</span>
+					</div>
+					<div className="flex items-center gap-3">
+						<Clock className="h-4 w-4 text-muted-foreground" />
+						<span className="text-sm">
+							Placed {new Date(order.createdAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
+						</span>
+					</div>
 				</CardContent>
 			</Card>
 		</div>

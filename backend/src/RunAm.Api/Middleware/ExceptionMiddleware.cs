@@ -25,7 +25,14 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            var log = ex switch
+            {
+                ValidationException or UnauthorizedAccessException or NotFoundException or InvalidOperationException or DomainException
+                    => LogLevel.Warning,
+                _ => LogLevel.Error
+            };
+
+            _logger.Log(log, ex, "Request failed: {Message}", ex.Message);
             await HandleExceptionAsync(context, ex);
         }
     }

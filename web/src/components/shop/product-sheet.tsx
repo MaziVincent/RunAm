@@ -23,7 +23,6 @@ import {
 } from "@/lib/stores/cart-store";
 import { formatCurrency, cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { VendorSwitchDialog } from "@/components/shop/vendor-switch-dialog";
 import type { ProductDto } from "@/types";
 
 /* ------------------------------------------------------------------ */
@@ -77,16 +76,12 @@ interface ProductSheetProps {
 
 export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 	const addItem = useCartStore((s) => s.addItem);
-	const cartVendorId = useCartStore((s) => s.vendorId);
-	const cartVendorName = useCartStore((s) => s.vendorName);
-	const cartItemCount = useCartStore((s) => s.getItemCount());
 
 	// Local state resets when product changes
 	const [quantity, setQuantity] = useState(1);
 	const [selectedVariant, setSelectedVariant] = useState<string>("");
 	const [selectedExtras, setSelectedExtras] = useState<Set<string>>(new Set());
 	const [notes, setNotes] = useState("");
-	const [showVendorSwitch, setShowVendorSwitch] = useState(false);
 
 	// Reset when product changes
 	useEffect(() => {
@@ -172,13 +167,6 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 
 	function handleAddToCart() {
 		if (!canAdd) return;
-
-		// Check if switching vendors
-		if (cartVendorId && cartVendorId !== vendor.id && cartItemCount > 0) {
-			setShowVendorSwitch(true);
-			return;
-		}
-
 		doAddToCart();
 	}
 
@@ -364,18 +352,6 @@ export function ProductSheet({ product, vendor, onClose }: ProductSheetProps) {
 					)}
 				</div>
 			</SheetContent>
-
-			{/* Vendor switch confirmation */}
-			<VendorSwitchDialog
-				open={showVendorSwitch}
-				currentVendor={cartVendorName}
-				newVendor={vendor.name}
-				onConfirm={() => {
-					setShowVendorSwitch(false);
-					doAddToCart();
-				}}
-				onCancel={() => setShowVendorSwitch(false)}
-			/>
 		</Sheet>
 	);
 }

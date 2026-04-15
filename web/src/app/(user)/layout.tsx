@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
 	LayoutDashboard,
+	PlusCircle,
 	Package,
 	Wallet,
 	MapPin,
@@ -29,6 +30,7 @@ import { useUnreadNotificationCount } from "@/lib/hooks";
 import { UserRole } from "@/types";
 
 const NAV_ITEMS = [
+	{ href: "/errands/new", label: "Request Errand", icon: PlusCircle },
 	{ href: "/dashboard", label: "Overview", icon: LayoutDashboard },
 	{ href: "/dashboard/errands", label: "My Errands", icon: Package },
 	{ href: "/dashboard/wallet", label: "Wallet", icon: Wallet },

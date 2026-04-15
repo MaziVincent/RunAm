@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Location from "expo-location";
 import { getErrandById } from "@runam/shared/api/errands";
 import { updateTaskStatus } from "@runam/shared/api/rider";
 
@@ -56,6 +57,26 @@ const statusLabels: Record<string, string> = {
 	Delivered: "Delivered",
 };
 
+async function getCurrentCoordinates() {
+	try {
+		const { status } = await Location.requestForegroundPermissionsAsync();
+		if (status !== "granted") {
+			return null;
+		}
+
+		const position = await Location.getCurrentPositionAsync({
+			accuracy: Location.Accuracy.Balanced,
+		});
+
+		return {
+			latitude: position.coords.latitude,
+			longitude: position.coords.longitude,
+		};
+	} catch {
+		return null;
+	}
+}
+
 export default function RiderActiveErrandScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
@@ -70,8 +91,15 @@ export default function RiderActiveErrandScreen() {
 	const currentStatusIdx = statusFlow.indexOf(errandData?.status ?? "");
 
 	const updateStatusMutation = useMutation({
-		mutationFn: (newStatus: string) =>
-			updateTaskStatus(id!, { status: newStatus }),
+		mutationFn: ({
+			status,
+			latitude,
+			longitude,
+		}: {
+			status: string;
+			latitude?: number;
+			longitude?: number;
+		}) => updateTaskStatus(id!, { status, latitude, longitude }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider-errand", id] });
 		},
@@ -88,7 +116,14 @@ export default function RiderActiveErrandScreen() {
 			{ text: "Cancel", style: "cancel" },
 			{
 				text: "Confirm",
-				onPress: () => updateStatusMutation.mutate(nextStatus),
+				onPress: async () => {
+					const coordinates = await getCurrentCoordinates();
+					updateStatusMutation.mutate({
+						status: nextStatus,
+						latitude: coordinates?.latitude,
+						longitude: coordinates?.longitude,
+					});
+				},
 			},
 		]);
 	};

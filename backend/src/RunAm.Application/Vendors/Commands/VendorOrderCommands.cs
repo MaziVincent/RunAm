@@ -87,7 +87,7 @@ public class MarkOrderReadyCommandHandler : IRequestHandler<MarkOrderReadyComman
         if (errand.VendorId != vendor.Id)
             throw new UnauthorizedAccessException("This order doesn't belong to your vendor.");
 
-        if (errand.VendorOrderStatus is not (VendorOrderStatus.Confirmed or VendorOrderStatus.Preparing))
+        if (errand.VendorOrderStatus is not (VendorOrderStatus.Received or VendorOrderStatus.Confirmed or VendorOrderStatus.Preparing))
             throw new InvalidOperationException($"Cannot mark order as ready in status {errand.VendorOrderStatus}.");
 
         errand.VendorOrderStatus = VendorOrderStatus.ReadyForPickup;

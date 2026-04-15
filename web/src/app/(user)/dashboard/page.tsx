@@ -183,7 +183,7 @@ function QuickActions() {
 		{
 			label: "Send Package",
 			icon: Package,
-			href: "/dashboard/errands/new?category=package",
+			href: "/errands/new?category=package",
 			color: "bg-blue-50 dark:bg-blue-950/50",
 			iconColor: "text-blue-500",
 		},
@@ -204,7 +204,7 @@ function QuickActions() {
 		{
 			label: "Send Document",
 			icon: FileText,
-			href: "/dashboard/errands/new?category=document",
+			href: "/errands/new?category=document",
 			color: "bg-purple-50 dark:bg-purple-950/50",
 			iconColor: "text-purple-500",
 		},

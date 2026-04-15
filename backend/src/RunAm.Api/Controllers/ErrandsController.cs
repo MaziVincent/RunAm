@@ -75,4 +75,14 @@ public class ErrandsController : BaseApiController
         var result = await _mediator.Send(new GetPriceEstimateQuery(request));
         return Ok(ApiResponse<PriceEstimateResponse>.Ok(result));
     }
+
+    /// <summary>Get price estimate for an errand with structured payload support</summary>
+    [HttpPost("estimate")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PriceEstimateResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PostEstimate([FromBody] PriceEstimateRequest request)
+    {
+        var result = await _mediator.Send(new GetPriceEstimateQuery(request));
+        return Ok(ApiResponse<PriceEstimateResponse>.Ok(result));
+    }
 }

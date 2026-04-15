@@ -2,6 +2,7 @@ import apiClient, { type PaginatedResult } from "./client";
 import type {
 	RiderProfile,
 	RiderOnboardingRequest,
+	RiderApprovalStatus,
 	Errand,
 	RiderEarnings,
 	WeeklyEarningsChart,
@@ -10,13 +11,52 @@ import type {
 	BankAccount,
 	AddBankAccountRequest,
 	Leaderboard,
+	ValidateBankAccountResult,
 	VehicleType,
 } from "../types";
+
+interface RiderProfileDto {
+	id: string;
+	userId: string;
+	riderName: string;
+	vehicleType: VehicleType;
+	licensePlate?: string;
+	approvalStatus: RiderApprovalStatus;
+	rating: number;
+	totalCompletedTasks: number;
+	isOnline: boolean;
+	currentLatitude?: number;
+	currentLongitude?: number;
+}
+
+function mapRiderProfile(profile: RiderProfileDto): RiderProfile {
+	const [firstName = "", ...lastNameParts] = profile.riderName.split(" ");
+
+	return {
+		id: profile.id,
+		userId: profile.userId,
+		firstName,
+		lastName: lastNameParts.join(" "),
+		riderName: profile.riderName,
+		phoneNumber: "",
+		vehicleType: profile.vehicleType,
+		licensePlate: profile.licensePlate,
+		isOnline: profile.isOnline,
+		isVerified: profile.approvalStatus === "Approved",
+		approvalStatus: profile.approvalStatus,
+		rating: profile.rating,
+		totalCompletedTasks: profile.totalCompletedTasks,
+		currentLatitude: profile.currentLatitude,
+		currentLongitude: profile.currentLongitude,
+	};
+}
 
 // ── Get Rider Profile ────────────────────────────────────────
 
 export function getRiderProfile(): Promise<RiderProfile> {
-	return apiClient.get<RiderProfile>("/rider/profile");
+	return apiClient
+		.get<RiderProfileDto>("/rider/profile")
+		.then(mapRiderProfile);
 }
 
 // ── Onboard Rider ────────────────────────────────────────────
@@ -24,7 +64,9 @@ export function getRiderProfile(): Promise<RiderProfile> {
 export function onboardRider(
 	data: RiderOnboardingRequest,
 ): Promise<RiderProfile> {
-	return apiClient.post<RiderProfile>("/rider/profile", data);
+	return apiClient
+		.post<RiderProfileDto>("/rider/profile", data)
+		.then(mapRiderProfile);
 }
 
 // ── Update Status (Online/Offline) ───────────────────────────
@@ -36,13 +78,13 @@ export function updateRiderStatus(isOnline: boolean): Promise<void> {
 // ── Available Tasks ──────────────────────────────────────────
 
 export function getAvailableTasks(): Promise<Errand[]> {
-	return apiClient.get<Errand[]>("/rider/available-tasks");
+	return apiClient.get<Errand[]>("/rider/tasks/available");
 }
 
 // ── Active Tasks ─────────────────────────────────────────────
 
 export function getActiveTasks(): Promise<Errand[]> {
-	return apiClient.get<Errand[]>("/rider/active-tasks");
+	return apiClient.get<Errand[]>("/rider/tasks/active");
 }
 
 // ── Accept Task ──────────────────────────────────────────────
@@ -124,6 +166,16 @@ export function addRiderBankAccount(
 	return apiClient.post<BankAccount>("/rider/bank-accounts", data);
 }
 
+export function validateRiderBankAccount(
+	bankCode: string,
+	accountNumber: string,
+): Promise<ValidateBankAccountResult> {
+	return apiClient.post<ValidateBankAccountResult>("/rider/validate-bank", {
+		bankCode,
+		accountNumber,
+	});
+}
+
 export function deleteRiderBankAccount(id: string): Promise<void> {
 	return apiClient.delete<void>(`/rider/bank-accounts/${id}`);
 }
@@ -148,7 +200,23 @@ export interface UpdateVehicleRequest {
 export function updateVehicleInfo(
 	data: UpdateVehicleRequest,
 ): Promise<RiderProfile> {
-	return apiClient.patch<RiderProfile>("/rider/vehicle", data);
+	return apiClient
+		.patch<RiderProfileDto>("/rider/vehicle", data)
+		.then(mapRiderProfile);
+}
+
+export function uploadRiderSelfie(file: {
+	uri: string;
+	name: string;
+	type: string;
+}): Promise<string> {
+	const formData = new FormData();
+	formData.append("file", file as unknown as Blob);
+
+	return apiClient.request<string>("/rider/upload-selfie", {
+		method: "POST",
+		body: formData,
+	});
 }
 
 // ── Register Push Token ──────────────────────────────────────

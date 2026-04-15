@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Location from "expo-location";
 import {
 	getActiveTasks,
 	updateTaskStatus as updateTaskStatusApi,
@@ -64,6 +65,26 @@ function getNextActionLabel(currentStatus: ErrandStatus): string {
 	return labels[currentStatus] || "Update Status";
 }
 
+async function getCurrentCoordinates() {
+	try {
+		const { status } = await Location.requestForegroundPermissionsAsync();
+		if (status !== "granted") {
+			return null;
+		}
+
+		const position = await Location.getCurrentPositionAsync({
+			accuracy: Location.Accuracy.Balanced,
+		});
+
+		return {
+			latitude: position.coords.latitude,
+			longitude: position.coords.longitude,
+		};
+	} catch {
+		return null;
+	}
+}
+
 export default function ActiveTasksScreen() {
 	const queryClient = useQueryClient();
 	const [refreshing, setRefreshing] = useState(false);
@@ -81,10 +102,14 @@ export default function ActiveTasksScreen() {
 		mutationFn: ({
 			errandId,
 			status,
+			latitude,
+			longitude,
 		}: {
 			errandId: string;
 			status: RiderAction;
-		}) => updateTaskStatusApi(errandId, { status }),
+			latitude?: number;
+			longitude?: number;
+		}) => updateTaskStatusApi(errandId, { status, latitude, longitude }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["rider"] });
 		},
@@ -108,8 +133,15 @@ export default function ActiveTasksScreen() {
 			{ text: "Cancel", style: "cancel" },
 			{
 				text: "Confirm",
-				onPress: () =>
-					updateStatus.mutate({ errandId: errand.id, status: nextAction }),
+				onPress: async () => {
+					const coordinates = await getCurrentCoordinates();
+					updateStatus.mutate({
+						errandId: errand.id,
+						status: nextAction,
+						latitude: coordinates?.latitude,
+						longitude: coordinates?.longitude,
+					});
+				},
 			},
 		]);
 	};

@@ -196,6 +196,68 @@ export interface ErrandStopDto {
 	completedAt: string | null;
 }
 
+export interface CreateErrandStopRequest {
+	stopOrder: number;
+	address: string;
+	latitude: number;
+	longitude: number;
+	contactName?: string | null;
+	contactPhone?: string | null;
+	instructions?: string | null;
+}
+
+export interface CreateErrandRequest {
+	category: ErrandCategory;
+	description: string | null;
+	specialInstructions: string | null;
+	priority: ErrandPriority;
+	scheduledAt: string | null;
+	pickupAddress: string;
+	pickupLatitude: number;
+	pickupLongitude: number;
+	dropoffAddress: string;
+	dropoffLatitude: number;
+	dropoffLongitude: number;
+	packageSize: PackageSize | null;
+	packageWeight: number | null;
+	isFragile: boolean;
+	requiresPhotoProof: boolean;
+	recipientName: string | null;
+	recipientPhone: string | null;
+	paymentMethod: PaymentMethod;
+	stops: CreateErrandStopRequest[] | null;
+}
+
+export interface PriceEstimateRequest {
+	category: ErrandCategory;
+	pickupLatitude: number;
+	pickupLongitude: number;
+	dropoffLatitude: number;
+	dropoffLongitude: number;
+	packageSize?: PackageSize | null;
+	packageWeight?: number | null;
+	priority: ErrandPriority;
+	stops?: CreateErrandStopRequest[] | null;
+}
+
+export interface PriceEstimateResponse {
+	estimatedPrice: number;
+	baseFare: number;
+	distanceFare: number;
+	weightSurcharge: number;
+	prioritySurcharge: number;
+	estimatedDistanceKm: number;
+	estimatedDurationMinutes: number;
+}
+
+export interface GeocodeAddressResult {
+	address: string;
+	city: string;
+	state: string;
+	latitude: number;
+	longitude: number;
+}
+
 export interface RiderProfileDto {
 	id: string;
 	userId: string;
@@ -648,6 +710,29 @@ export interface OrderItemDto {
 	status: OrderItemStatus;
 }
 
+export interface VendorOrderItemDto {
+	id: string;
+	productId: string;
+	productName: string;
+	quantity: number;
+	unitPrice: number;
+	totalPrice: number;
+	notes: string | null;
+	selectedVariantJson: string | null;
+	selectedExtrasJson: string | null;
+	status: string;
+}
+
+export interface VendorOrderDto {
+	errandId: string;
+	customerName: string | null;
+	dropoffAddress: string;
+	vendorOrderStatus: string | null;
+	totalAmount: number;
+	items: VendorOrderItemDto[];
+	createdAt: string;
+}
+
 export interface UpdateVendorStatusRequest {
 	status: VendorStatus;
 	reason?: string;
@@ -668,4 +753,5 @@ export interface PaymentDto {
 	paymentGatewayRef: string | null;
 	status: PaymentStatus;
 	createdAt: string;
+	checkoutUrl?: string | null;
 }

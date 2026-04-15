@@ -27,6 +27,7 @@ interface RequestOptions {
 
 class ApiClient {
 	private baseUrl: string;
+	private refreshPromise: Promise<string | null> | null = null;
 
 	constructor(baseUrl: string) {
 		this.baseUrl = baseUrl;
@@ -35,6 +36,14 @@ class ApiClient {
 	private async getToken(): Promise<string | null> {
 		try {
 			return await SecureStore.getItemAsync(TOKEN_KEY);
+		} catch {
+			return null;
+		}
+	}
+
+	private async getRefreshToken(): Promise<string | null> {
+		try {
+			return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 		} catch {
 			return null;
 		}
@@ -68,10 +77,12 @@ class ApiClient {
 		return url.toString();
 	}
 
-	async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+	private async sendRequest(
+		path: string,
+		options: RequestOptions,
+		token: string | null,
+	): Promise<Response> {
 		const { method = "GET", body, headers = {}, params } = options;
-		const token = await this.getToken();
-
 		const isFormData = body instanceof FormData;
 
 		const requestHeaders: Record<string, string> = {
@@ -84,9 +95,7 @@ class ApiClient {
 			requestHeaders["Authorization"] = `Bearer ${token}`;
 		}
 
-		const url = this.buildUrl(path, params);
-
-		const response = await fetch(url, {
+		return fetch(this.buildUrl(path, params), {
 			method,
 			headers: requestHeaders,
 			body: body
@@ -95,10 +104,79 @@ class ApiClient {
 					: JSON.stringify(body)
 				: undefined,
 		});
+	}
+
+	private async refreshAccessToken(): Promise<string | null> {
+		if (this.refreshPromise) {
+			return this.refreshPromise;
+		}
+
+		this.refreshPromise = (async () => {
+			const [accessToken, refreshToken] = await Promise.all([
+				this.getToken(),
+				this.getRefreshToken(),
+			]);
+
+			if (!refreshToken) {
+				return null;
+			}
+
+			const response = await fetch(this.buildUrl("/auth/refresh-token"), {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Accept: "application/json",
+				},
+				body: JSON.stringify({
+					accessToken: accessToken ?? "",
+					refreshToken,
+				}),
+			});
+
+			if (!response.ok) {
+				return null;
+			}
+
+			const json = await response.json().catch(() => null);
+			const payload =
+				json &&
+				typeof json === "object" &&
+				"data" in json &&
+				json.data &&
+				typeof json.data === "object"
+					? (json.data as { token?: string; refreshToken?: string })
+					: (json as { token?: string; refreshToken?: string } | null);
+
+			if (!payload?.token || !payload.refreshToken) {
+				return null;
+			}
+
+			await Promise.all([
+				this.setToken(payload.token),
+				this.setRefreshToken(payload.refreshToken),
+			]);
+
+			return payload.token;
+		})().finally(() => {
+			this.refreshPromise = null;
+		});
+
+		return this.refreshPromise;
+	}
+
+	async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+		const token = await this.getToken();
+		let response = await this.sendRequest(path, options, token);
+
+		if (response.status === 401 && token && path !== "/auth/refresh-token") {
+			const refreshedToken = await this.refreshAccessToken();
+			if (refreshedToken) {
+				response = await this.sendRequest(path, options, refreshedToken);
+			}
+		}
 
 		if (response.status === 401) {
 			await this.clearTokens();
-			// The auth store listener will handle redirect
 			throw new ApiError("Unauthorized", 401);
 		}
 
@@ -146,31 +224,15 @@ class ApiClient {
 			totalPages: number;
 		} | null;
 	}> {
-		const { method = "GET", body, headers = {}, params } = options;
 		const token = await this.getToken();
-		const isFormData = body instanceof FormData;
+		let response = await this.sendRequest(path, options, token);
 
-		const requestHeaders: Record<string, string> = {
-			...(isFormData ? {} : { "Content-Type": "application/json" }),
-			Accept: "application/json",
-			...headers,
-		};
-
-		if (token) {
-			requestHeaders["Authorization"] = `Bearer ${token}`;
+		if (response.status === 401 && token && path !== "/auth/refresh-token") {
+			const refreshedToken = await this.refreshAccessToken();
+			if (refreshedToken) {
+				response = await this.sendRequest(path, options, refreshedToken);
+			}
 		}
-
-		const url = this.buildUrl(path, params);
-
-		const response = await fetch(url, {
-			method,
-			headers: requestHeaders,
-			body: body
-				? isFormData
-					? (body as FormData)
-					: JSON.stringify(body)
-				: undefined,
-		});
 
 		if (response.status === 401) {
 			await this.clearTokens();

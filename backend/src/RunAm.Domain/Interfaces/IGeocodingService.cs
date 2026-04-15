@@ -8,4 +8,5 @@ public interface IGeocodingService
 {
     Task<IReadOnlyList<PlaceSuggestion>> AutocompleteAsync(string input, CancellationToken ct = default);
     Task<GeocodeResult?> GeocodeAsync(string placeId, CancellationToken ct = default);
+    Task<GeocodeResult?> GeocodeAddressAsync(string address, CancellationToken ct = default);
 }

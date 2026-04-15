@@ -35,14 +35,27 @@ export default function AdminErrandDetailPage() {
 	});
 
 	const assignMutation = useMutation({
-		mutationFn: (riderId: string) =>
-			api.patch(`/admin/errands/${id}/assign-rider`, { riderId }),
+		mutationFn: async (riderId: string) => {
+			const response = await api.patch<ErrandDto>(
+				`/admin/errands/${id}/assign-rider`,
+				{ riderId },
+			);
+
+			if (!response.success) {
+				throw new Error(response.error?.message ?? "Failed to assign rider");
+			}
+
+			return response.data;
+		},
 		onSuccess: () => {
 			toast.success("Rider assigned successfully");
 			queryClient.invalidateQueries({ queryKey: ["admin-errand", id] });
 			setShowAssign(false);
 		},
-		onError: () => toast.error("Failed to assign rider"),
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to assign rider",
+			),
 	});
 
 	const errand = errandRes?.data;
@@ -250,7 +263,7 @@ export default function AdminErrandDetailPage() {
 										{riders.map((rider) => (
 											<button
 												key={rider.id}
-												onClick={() => assignMutation.mutate(rider.id)}
+												onClick={() => assignMutation.mutate(rider.userId)}
 												disabled={assignMutation.isPending}
 												className="flex w-full items-center justify-between rounded-lg border border-slate-200 p-3 text-left hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800">
 												<div>

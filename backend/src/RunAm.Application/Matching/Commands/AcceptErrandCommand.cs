@@ -29,6 +29,9 @@ public class AcceptErrandCommandHandler : IRequestHandler<AcceptErrandCommand, E
         if (errand.Status != ErrandStatus.Pending)
             throw new InvalidOperationException("This errand is no longer available.");
 
+        if (errand.VendorId.HasValue && errand.VendorOrderStatus != VendorOrderStatus.ReadyForPickup)
+            throw new InvalidOperationException("This marketplace order is not ready for pickup yet.");
+
         var rider = await _riderRepo.GetByUserIdAsync(command.RiderId, cancellationToken)
             ?? throw new NotFoundException("RiderProfile", command.RiderId);
 
@@ -51,7 +54,9 @@ public class AcceptErrandCommandHandler : IRequestHandler<AcceptErrandCommand, E
             errand.TotalAmount, errand.AcceptedAt, errand.PickedUpAt, errand.DeliveredAt, errand.CancelledAt,
             errand.CancellationReason, errand.CreatedAt,
             errand.StatusHistory.Select(s => new ErrandStatusHistoryDto(s.Id, s.Status, s.Latitude, s.Longitude, s.Notes, s.ImageUrl, s.CreatedAt)).ToList(),
-            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList()
+            errand.Stops.Select(s => new ErrandStopDto(s.Id, s.StopOrder, s.Address, s.Latitude, s.Longitude, s.ContactName, s.ContactPhone, s.Instructions, s.Status, s.ArrivedAt, s.CompletedAt)).ToList(),
+            errand.VendorId, errand.Vendor?.BusinessName,
+            errand.VendorOrderStatus != null ? (int)errand.VendorOrderStatus : null
         );
     }
 }

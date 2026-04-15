@@ -9,7 +9,6 @@ import {
 	Package,
 	ChevronRight,
 	AlertCircle,
-	Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +20,26 @@ import {
 	useToggleVendorOpen,
 	useVendorOrders,
 	useVendorAnalytics,
-	useConfirmVendorOrder,
-	useRejectVendorOrder,
 } from "@/lib/hooks";
 import { formatCurrency, cn, vendorOrderStatusLabel } from "@/lib/utils";
 import { VendorStatus, VendorOrderStatus } from "@/types";
 import { toast } from "sonner";
+
+function parseVendorOrderStatus(status: string | null | undefined): VendorOrderStatus {
+	switch (status) {
+		case "Confirmed":
+			return VendorOrderStatus.Confirmed;
+		case "Preparing":
+			return VendorOrderStatus.Preparing;
+		case "ReadyForPickup":
+			return VendorOrderStatus.ReadyForPickup;
+		case "Cancelled":
+			return VendorOrderStatus.Cancelled;
+		case "Received":
+		default:
+			return VendorOrderStatus.Received;
+	}
+}
 
 function StoreToggle() {
 	const { data: vendorData } = useMyVendor();
@@ -125,10 +138,9 @@ function StatsCards() {
 
 function NewOrders() {
 	const { data, isLoading } = useVendorOrders({
-		status: String(VendorOrderStatus.Received),
+		status: "open",
+		pageSize: 5,
 	});
-	const confirmOrder = useConfirmVendorOrder();
-	const rejectOrder = useRejectVendorOrder();
 	const orders = data?.data ?? [];
 
 	return (
@@ -159,22 +171,25 @@ function NewOrders() {
 					<div className="flex flex-col items-center py-8 text-center">
 						<ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
 						<p className="mt-2 text-sm text-muted-foreground">
-							No pending orders
+							No open orders
 						</p>
 					</div>
 				) : (
 					<div className="space-y-3">
 						{orders.slice(0, 5).map((order) => (
 							<div
-								key={order.id}
+								key={order.errandId}
 								className="rounded-lg border bg-amber-50/50 p-3 dark:bg-amber-950/20">
 								<div className="flex items-start justify-between">
 									<div>
 										<p className="text-sm font-semibold">
-											Order #{order.id?.slice(-6)}
+											Order #{order.errandId.slice(-6)}
 										</p>
 										<p className="text-xs text-muted-foreground">
 											{formatCurrency(order.totalAmount ?? 0)}
+										</p>
+										<p className="mt-1 text-xs text-muted-foreground">
+											{order.customerName || "Customer"}
 										</p>
 										<p className="mt-1 text-xs text-muted-foreground">
 											{new Date(order.createdAt).toLocaleTimeString("en-NG", {
@@ -183,49 +198,18 @@ function NewOrders() {
 											})}
 										</p>
 									</div>
+									<Badge variant="outline">
+										{vendorOrderStatusLabel[parseVendorOrderStatus(order.vendorOrderStatus)]}
+									</Badge>
 								</div>
-								{/* Description preview */}
-								{order.description && (
-									<p className="mt-2 truncate text-xs text-muted-foreground">
-										{order.description}
-									</p>
-								)}
-								{/* Actions */}
-								<div className="mt-3 flex gap-2">
-									<Button
-										size="sm"
-										className="flex-1"
-										onClick={async () => {
-											try {
-												await confirmOrder.mutateAsync({ orderId: order.id });
-												toast.success("Order accepted");
-											} catch {
-												toast.error("Failed to accept");
-											}
-										}}
-										disabled={confirmOrder.isPending}>
-										{confirmOrder.isPending ? (
-											<Loader2 className="h-4 w-4 animate-spin" />
-										) : (
-											"Accept"
-										)}
-									</Button>
-									<Button
-										size="sm"
-										variant="outline"
-										onClick={async () => {
-											try {
-												await rejectOrder.mutateAsync({
-													orderId: order.id,
-													reason: "Vendor rejected",
-												});
-												toast.success("Order rejected");
-											} catch {
-												toast.error("Failed to reject");
-											}
-										}}
-										disabled={rejectOrder.isPending}>
-										Reject
+								<p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+									{order.dropoffAddress}
+								</p>
+								<div className="mt-3 flex justify-end">
+									<Button asChild size="sm" variant="outline">
+										<Link href={`/vendor/orders/${order.errandId}`}>
+											View order
+										</Link>
 									</Button>
 								</div>
 							</div>

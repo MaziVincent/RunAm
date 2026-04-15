@@ -2,8 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api/client";
 import type {
 	ApiResponse,
+	CreateErrandRequest,
 	ErrandDto,
+	GeocodeAddressResult,
 	MarketplaceOrderResult,
+	PaymentDto,
+	PriceEstimateRequest,
+	PriceEstimateResponse,
 	PromoCodeValidationResult,
 	WalletDto,
 	WalletTransactionDto,
@@ -45,6 +50,16 @@ export function useUpdateProfile() {
 	});
 }
 
+export function useChangePassword() {
+	return useMutation({
+		mutationFn: async (data: {
+			currentPassword: string;
+			newPassword: string;
+		}) =>
+			ensureSuccess(await api.post<string>("/auth/change-password", data)),
+	});
+}
+
 // ── Errands ────────────────────────────────────────────
 
 export function useMyErrands(
@@ -76,7 +91,7 @@ export function useErrandDetail(id: string) {
 export function useCreateErrand() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: async (data: Record<string, unknown>) =>
+		mutationFn: async (data: CreateErrandRequest) =>
 			ensureSuccess(await api.post<ErrandDto>("/errands", data)),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["my-errands"] });
@@ -131,44 +146,49 @@ export function useValidatePromoCode() {
 
 // ── Delivery Estimate ──────────────────────────────────
 
-interface PriceEstimateResponse {
-	estimatedPrice: number;
-	baseFare: number;
-	distanceFare: number;
-	weightSurcharge: number;
-	prioritySurcharge: number;
-	estimatedDistanceKm: number;
-	estimatedDurationMinutes: number;
-}
-
-export function useDeliveryEstimate(params: {
-	pickupLatitude: number;
-	pickupLongitude: number;
-	dropoffLatitude: number;
-	dropoffLongitude: number;
-	enabled: boolean;
-}) {
-	const {
-		pickupLatitude,
-		pickupLongitude,
-		dropoffLatitude,
-		dropoffLongitude,
-		enabled,
-	} = params;
+export function useDeliveryEstimate(
+	request: PriceEstimateRequest,
+	enabled: boolean,
+) {
 	return useQuery({
 		queryKey: [
 			"delivery-estimate",
-			pickupLatitude,
-			pickupLongitude,
-			dropoffLatitude,
-			dropoffLongitude,
+			request,
 		],
-		queryFn: () =>
-			api.get<PriceEstimateResponse>(
-				`/errands/estimate?Category=0&PickupLatitude=${pickupLatitude}&PickupLongitude=${pickupLongitude}&DropoffLatitude=${dropoffLatitude}&DropoffLongitude=${dropoffLongitude}&Priority=0`,
-			),
-		enabled: enabled && pickupLatitude !== 0 && dropoffLatitude !== 0,
+		queryFn: () => api.post<PriceEstimateResponse>("/errands/estimate", request),
+		enabled:
+			enabled &&
+			request.pickupLatitude !== 0 &&
+			request.pickupLongitude !== 0 &&
+			request.dropoffLatitude !== 0 &&
+			request.dropoffLongitude !== 0,
 		staleTime: 5 * 60_000, // 5 minutes
+	});
+}
+
+export function useGeocodeAddress() {
+	return useMutation({
+		mutationFn: async (address: string) =>
+			ensureSuccess(
+				await api.get<GeocodeAddressResult>("/location/geocode-address", {
+					address,
+				}),
+			),
+	});
+}
+
+export function useProcessErrandPayment() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: async (data: {
+			errandId: string;
+			paymentMethod: number;
+			paymentReference?: string | null;
+		}) => ensureSuccess(await api.post<PaymentDto>("/payments", data)),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["wallet"] });
+			queryClient.invalidateQueries({ queryKey: ["my-errands"] });
+		},
 	});
 }
 
@@ -179,6 +199,7 @@ export interface PlaceOrderPayload {
 	dropoffAddress: string;
 	dropoffLatitude: number;
 	dropoffLongitude: number;
+	deliveryFeeOverride?: number;
 	recipientName: string | null;
 	recipientPhone: string | null;
 	specialInstructions: string | null;
