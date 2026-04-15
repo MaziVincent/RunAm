@@ -19,8 +19,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Map environment variables → Configuration sections
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
-    // Database
+    // Database — prefer DATABASE_URL (production) over individual vars (local dev)
     ["ConnectionStrings:DefaultConnection"] =
+        E("DATABASE_URL") ??
         $"Host={E("DATABASE_HOST")};Port={E("DATABASE_PORT")};Database={E("DATABASE_NAME")};Username={E("DATABASE_USER")};Password={E("DATABASE_PASSWORD")}",
     ["ConnectionStrings:Redis"] = E("REDIS_CONNECTION"),
 
