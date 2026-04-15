@@ -12,10 +12,10 @@ import {
 	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, useRouter } from "expo-router";
-import { useAuthStore } from "@runam/shared/stores/auth-store";
-import apiClient from "@runam/shared/api/client";
-import type { AuthResponse, RegisterRequest } from "@runam/shared/types";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { register as registerApi } from "@runam/shared/api/auth";
+import { ApiError } from "@runam/shared/api/client";
+import type { RegisterRequest } from "@runam/shared/types";
 
 export default function RegisterScreen() {
 	const [firstName, setFirstName] = useState("");
@@ -23,9 +23,18 @@ export default function RegisterScreen() {
 	const [email, setEmail] = useState("");
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [password, setPassword] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
-	const { login } = useAuthStore();
+	const [errorMessage, setErrorMessage] = useState("");
 	const router = useRouter();
+	const params = useLocalSearchParams<{ redirect?: string }>();
+	const loginHref =
+		typeof params.redirect === "string"
+			? {
+					pathname: "/(auth)/login" as const,
+					params: { redirect: params.redirect },
+				}
+			: "/(auth)/login";
 
 	const handleRegister = async () => {
 		if (
@@ -40,6 +49,7 @@ export default function RegisterScreen() {
 		}
 
 		setIsLoading(true);
+		setErrorMessage("");
 		try {
 			const body: RegisterRequest = {
 				firstName: firstName.trim(),
@@ -48,15 +58,25 @@ export default function RegisterScreen() {
 				phoneNumber: phoneNumber.trim(),
 				password,
 			};
-			const response = await apiClient.post<AuthResponse>(
-				"/auth/register",
-				body,
-			);
-			await login(response);
-		} catch (error: any) {
-			const errorMessages = error?.errors
-				? Object.values(error.errors).flat().join("\n")
-				: error?.message || "Registration failed. Please try again.";
+			const response = await registerApi(body);
+			const redirectPath =
+				typeof params.redirect === "string" ? params.redirect : "/(tabs)";
+			router.replace({
+				pathname: "/(auth)/verify-otp",
+				params: {
+					phoneNumber: response.phoneNumber,
+					redirect: redirectPath,
+				},
+			} as any);
+		} catch (error) {
+			console.error("Registration failed", error);
+			const errorMessages =
+				error instanceof ApiError && error.errors
+					? Object.values(error.errors).flat().join("\n")
+					: error instanceof ApiError
+						? error.message
+						: "Registration failed. Please try again.";
+			setErrorMessage(errorMessages);
 			Alert.alert("Registration Failed", errorMessages);
 		} finally {
 			setIsLoading(false);
@@ -78,6 +98,13 @@ export default function RegisterScreen() {
 					</View>
 
 					<View style={styles.form}>
+						{errorMessage ? (
+							<View style={styles.errorBanner}>
+								<Text style={styles.errorBannerTitle}>Could not create account</Text>
+								<Text style={styles.errorBannerText}>{errorMessage}</Text>
+							</View>
+						) : null}
+
 						<View style={styles.row}>
 							<View style={styles.halfInput}>
 								<Text style={styles.label}>First Name</Text>
@@ -126,14 +153,21 @@ export default function RegisterScreen() {
 						/>
 
 						<Text style={styles.label}>Password</Text>
-						<TextInput
-							style={styles.input}
-							placeholder="Create a password"
-							placeholderTextColor="#9CA3AF"
-							value={password}
-							onChangeText={setPassword}
-							secureTextEntry
-						/>
+						<View style={styles.passwordField}>
+							<TextInput
+								style={styles.passwordInput}
+								placeholder="Create a password"
+								placeholderTextColor="#9CA3AF"
+								value={password}
+								onChangeText={setPassword}
+								secureTextEntry={!showPassword}
+							/>
+							<TouchableOpacity
+								style={styles.eyeButton}
+								onPress={() => setShowPassword((value) => !value)}>
+								<Text style={styles.eyeText}>{showPassword ? "🙈" : "👁"}</Text>
+							</TouchableOpacity>
+						</View>
 
 						<TouchableOpacity
 							style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -149,7 +183,7 @@ export default function RegisterScreen() {
 
 						<View style={styles.footer}>
 							<Text style={styles.footerText}>Already have an account? </Text>
-							<Link href="/(auth)/login" asChild>
+							<Link href={loginHref as any} asChild>
 								<TouchableOpacity>
 									<Text style={styles.linkText}>Log In</Text>
 								</TouchableOpacity>
@@ -194,6 +228,25 @@ const styles = StyleSheet.create({
 	form: {
 		width: "100%",
 	},
+	errorBanner: {
+		backgroundColor: "#FEF2F2",
+		borderRadius: 12,
+		padding: 14,
+		marginBottom: 18,
+		borderWidth: 1,
+		borderColor: "#FECACA",
+	},
+	errorBannerTitle: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#991B1B",
+		marginBottom: 4,
+	},
+	errorBannerText: {
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#B91C1C",
+	},
 	row: {
 		flexDirection: "row",
 		gap: 12,
@@ -217,6 +270,28 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#111827",
 		marginBottom: 16,
+	},
+	passwordField: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#F9FAFB",
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+		borderRadius: 12,
+		marginBottom: 16,
+	},
+	passwordInput: {
+		flex: 1,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+		fontSize: 16,
+		color: "#111827",
+	},
+	eyeButton: {
+		paddingHorizontal: 14,
+	},
+	eyeText: {
+		fontSize: 18,
 	},
 	button: {
 		backgroundColor: "#2F8F4E",

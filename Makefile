@@ -1,4 +1,6 @@
-.PHONY: help infra-up infra-down backend-run backend-test web-dev mobile-user mobile-rider db-migrate db-seed test
+.PHONY: help infra-up infra-down backend-run backend-test web-dev mobile-user mobile-rider mobile-user-dev mobile-user-ios-device db-migrate db-seed test
+
+IOS_DEVICE ?= 00008110-000E30610E63801E
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -62,10 +64,16 @@ mobile-install: ## Install mobile dependencies
 	cd mobile && npm install
 
 mobile-user: ## Start user app
-	cd mobile/apps/user && npx expo start
+	cd mobile/apps/user && npx expo start --go --clear --port 8082
+
+mobile-user-dev: ## Start user app for iOS/Android development build
+	cd mobile/apps/user && npx expo start --dev-client --clear --port 8082
+
+mobile-user-ios-device: ## Build/run user app on physical iOS device (usage: make mobile-user-ios-device IOS_DEVICE=<udid>)
+	cd mobile/apps/user && npx expo run:ios --device $(IOS_DEVICE)
 
 mobile-rider: ## Start rider app
-	cd mobile/apps/rider && npx expo start
+	cd mobile/apps/rider && npx expo start --go --clear --port 8083
 
 # ─── All ──────────────────────────────────────────────────────
 

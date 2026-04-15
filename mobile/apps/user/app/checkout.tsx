@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { useCartStore } from "@runam/shared/stores/cart-store";
 import { getAddresses } from "@runam/shared/api/addresses";
 import {
@@ -29,6 +30,7 @@ import type {
 	PaymentMethod,
 	Wallet,
 } from "@runam/shared/types";
+import AuthRequiredState from "./components/AuthRequiredState";
 
 function getItemUnitPrice(item: CartItem): number {
 	let price = item.product.price;
@@ -52,6 +54,7 @@ const PAYMENT_METHODS = [
 
 export default function CheckoutScreen() {
 	const router = useRouter();
+	const { isAuthenticated } = useAuthStore();
 	const { items, vendorId, vendorName, getSubtotal, clearCart } =
 		useCartStore();
 
@@ -67,23 +70,26 @@ export default function CheckoutScreen() {
 	const { data: addresses, isLoading: loadingAddresses } = useQuery<Address[]>({
 		queryKey: ["addresses"],
 		queryFn: getAddresses,
+		enabled: isAuthenticated,
 	});
 
 	// Fetch vendor details for open status, minimum order, and coordinates
 	const { data: vendor } = useQuery({
 		queryKey: ["vendor", vendorId],
 		queryFn: () => getVendorById(vendorId!),
-		enabled: !!vendorId,
+		enabled: isAuthenticated && !!vendorId,
 	});
 
 	const { data: wallet } = useQuery<Wallet | null>({
 		queryKey: ["wallet"],
 		queryFn: getWallet,
+		enabled: isAuthenticated,
 	});
 
 	const { data: savedPaymentMethods = [] } = useQuery<PaymentMethod[]>({
 		queryKey: ["payment-methods"],
 		queryFn: getPaymentMethods,
+		enabled: isAuthenticated,
 	});
 
 	// Auto-select default address
@@ -152,6 +158,7 @@ export default function CheckoutScreen() {
 			Alert.alert(title, message);
 		},
 	});
+
 	const cannotPlaceOrder =
 		orderMutation.isPending ||
 		!selectedAddress ||
@@ -162,6 +169,10 @@ export default function CheckoutScreen() {
 		missingSavedCard;
 
 	const handlePlaceOrder = () => {
+		if (!isAuthenticated) {
+			return;
+		}
+
 		if (!vendorId || items.length === 0) return;
 
 		if (vendorClosed) {
@@ -261,6 +272,17 @@ export default function CheckoutScreen() {
 		);
 	}
 
+	if (!isAuthenticated) {
+		return (
+			<AuthRequiredState
+				title="Log in to complete your order"
+				description="You can browse vendors and build your cart as a guest. Sign in or create an account to place this order."
+				redirectTo="/checkout"
+				showBack
+			/>
+		);
+	}
+
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
@@ -319,9 +341,20 @@ export default function CheckoutScreen() {
 					) : !addresses || addresses.length === 0 ? (
 						<View style={styles.noAddress}>
 							<Text style={styles.noAddressText}>No saved addresses</Text>
+							<Text style={styles.noAddressHint}>
+								Add an address in settings, then come back to complete this order.
+							</Text>
 							<TouchableOpacity
-								onPress={() => router.push("/settings/payment-methods")}>
-								<Text style={styles.linkText}>Add address</Text>
+								style={styles.addressManageButton}
+								onPress={() =>
+									router.push({
+										pathname: "/settings/addresses",
+										params: { returnTo: "/checkout" },
+									} as never)
+								}>
+								<Text style={styles.addressManageButtonText}>
+									Open Saved Addresses
+								</Text>
 							</TouchableOpacity>
 						</View>
 					) : (
@@ -694,6 +727,27 @@ const styles = StyleSheet.create({
 		paddingVertical: 3,
 		borderRadius: 6,
 		marginLeft: 8,
+	},
+	noAddressHint: {
+		fontSize: 13,
+		lineHeight: 19,
+		color: "#6B7280",
+		textAlign: "center",
+		marginBottom: 14,
+	},
+	addressManageButton: {
+		width: "100%",
+		paddingVertical: 13,
+		borderRadius: 12,
+		alignItems: "center",
+		backgroundColor: "#2F8F4E",
+		borderWidth: 1,
+		borderColor: "#2F8F4E",
+	},
+	addressManageButtonText: {
+		fontSize: 15,
+		fontWeight: "700",
+		color: "#FFFFFF",
 	},
 	defaultBadgeText: {
 		fontSize: 11,

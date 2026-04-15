@@ -7,10 +7,14 @@ const workspaceRoot = path.resolve(projectRoot, "../..");
 const config = getDefaultConfig(projectRoot);
 
 // Watch all files in the monorepo
-config.watchFolders = [workspaceRoot];
+config.watchFolders = [
+	...new Set([...(config.watchFolders || []), workspaceRoot]),
+];
 
-// Let Metro know where to resolve packages from (hoisted node_modules)
+// Resolve the app's own dependencies first, then fall back to hoisted workspace packages.
 config.resolver.nodeModulesPaths = [
+	path.resolve(projectRoot, "node_modules"),
+	...(config.resolver.nodeModulesPaths || []),
 	path.resolve(workspaceRoot, "node_modules"),
 ];
 

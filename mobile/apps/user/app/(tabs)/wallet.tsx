@@ -14,15 +14,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@runam/shared/stores/auth-store";
 import {
 	getWallet,
 	getWalletTransactions,
 	createWallet,
 } from "@runam/shared/api/wallet";
 import type { Wallet, WalletTransaction } from "@runam/shared/types";
+import AuthRequiredState from "../components/AuthRequiredState";
 
 export default function WalletScreen() {
 	const router = useRouter();
+	const { isAuthenticated } = useAuthStore();
 	const queryClient = useQueryClient();
 	const [refreshing, setRefreshing] = useState(false);
 	const [showCreateWallet, setShowCreateWallet] = useState(false);
@@ -31,11 +34,13 @@ export default function WalletScreen() {
 	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet | null>({
 		queryKey: ["wallet"],
 		queryFn: getWallet,
+		enabled: isAuthenticated,
 	});
 
 	const { data: transactionsData, refetch: refetchTransactions } = useQuery({
 		queryKey: ["wallet", "transactions"],
 		queryFn: () => getWalletTransactions({ pageSize: 50 }),
+		enabled: isAuthenticated,
 	});
 
 	const transactions = transactionsData?.items;
@@ -121,6 +126,16 @@ export default function WalletScreen() {
 			</View>
 		);
 	};
+
+	if (!isAuthenticated) {
+		return (
+			<AuthRequiredState
+				title="Sign in to use your wallet"
+				description="Your balance, cards, and transfer details live here. Create an account or log in to continue."
+				redirectTo="/(tabs)/wallet"
+			/>
+		);
+	}
 
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>

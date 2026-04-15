@@ -22,11 +22,11 @@ public class CreateAddressCommandHandler : IRequestHandler<CreateAddressCommand,
     public async Task<UserAddressDto> Handle(CreateAddressCommand command, CancellationToken cancellationToken)
     {
         var request = command.Request;
+        var existing = await _repo.GetByUserIdAsync(command.UserId, cancellationToken);
+        var shouldBeDefault = request.IsDefault || existing.Count == 0;
 
-        // If setting as default, unset other defaults
-        if (request.IsDefault)
+        if (shouldBeDefault)
         {
-            var existing = await _repo.GetByUserIdAsync(command.UserId, cancellationToken);
             foreach (var addr in existing.Where(a => a.IsDefault))
             {
                 addr.IsDefault = false;
@@ -41,7 +41,7 @@ public class CreateAddressCommandHandler : IRequestHandler<CreateAddressCommand,
             Address = request.Address,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
-            IsDefault = request.IsDefault
+            IsDefault = shouldBeDefault
         };
 
         await _repo.AddAsync(address, cancellationToken);

@@ -1,12 +1,47 @@
+import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 
 const TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
 
-// Change this to your backend URL
-const BASE_URL = __DEV__
-	? "http://localhost:5001/api/v1"
-	: "https://api.runam.com/api/v1";
+interface AuthTokenPayload {
+	accessToken?: string;
+	token?: string;
+	refreshToken?: string;
+}
+
+function extractHost(candidate?: string | null): string | null {
+	if (!candidate) return null;
+	const normalized = candidate.replace(/^https?:\/\//, "").split("/")[0];
+	if (!normalized) return null;
+	return normalized.split(":")[0] || null;
+}
+
+function resolveDevBaseUrl(): string {
+	const envBaseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+	if (envBaseUrl) {
+		return envBaseUrl;
+	}
+
+	const hostCandidates = [
+		extractHost((Constants.expoConfig as { hostUri?: string } | null)?.hostUri),
+		extractHost(
+			(Constants as unknown as {
+				manifest2?: { extra?: { expoClient?: { hostUri?: string } } };
+			}).manifest2?.extra?.expoClient?.hostUri,
+		),
+		extractHost(
+			(Constants as unknown as { manifest?: { debuggerHost?: string } }).manifest
+				?.debuggerHost,
+		),
+		extractHost(Constants.linkingUri),
+	].filter((value): value is string => Boolean(value));
+
+	const host = hostCandidates[0] ?? "127.0.0.1";
+	return `http://${host}:5001/api/v1`;
+}
+
+const BASE_URL = __DEV__ ? resolveDevBaseUrl() : "https://api.runam.com/api/v1";
 
 export interface PaginatedResult<T> {
 	items: T[];
@@ -31,6 +66,10 @@ class ApiClient {
 
 	constructor(baseUrl: string) {
 		this.baseUrl = baseUrl;
+	}
+
+	getBaseUrl(): string {
+		return this.baseUrl;
 	}
 
 	private async getToken(): Promise<string | null> {
@@ -144,19 +183,21 @@ class ApiClient {
 				"data" in json &&
 				json.data &&
 				typeof json.data === "object"
-					? (json.data as { token?: string; refreshToken?: string })
-					: (json as { token?: string; refreshToken?: string } | null);
+					? (json.data as AuthTokenPayload)
+					: (json as AuthTokenPayload | null);
 
-			if (!payload?.token || !payload.refreshToken) {
+			const nextAccessToken = payload?.accessToken ?? payload?.token;
+
+			if (!nextAccessToken || !payload?.refreshToken) {
 				return null;
 			}
 
 			await Promise.all([
-				this.setToken(payload.token),
+				this.setToken(nextAccessToken),
 				this.setRefreshToken(payload.refreshToken),
 			]);
 
-			return payload.token;
+			return nextAccessToken;
 		})().finally(() => {
 			this.refreshPromise = null;
 		});
@@ -166,12 +207,32 @@ class ApiClient {
 
 	async request<T>(path: string, options: RequestOptions = {}): Promise<T> {
 		const token = await this.getToken();
-		let response = await this.sendRequest(path, options, token);
+		let response: Response;
+
+		try {
+			response = await this.sendRequest(path, options, token);
+		} catch (error) {
+			throw new ApiError(
+				`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
+				0,
+				undefined,
+				error,
+			);
+		}
 
 		if (response.status === 401 && token && path !== "/auth/refresh-token") {
 			const refreshedToken = await this.refreshAccessToken();
 			if (refreshedToken) {
-				response = await this.sendRequest(path, options, refreshedToken);
+				try {
+					response = await this.sendRequest(path, options, refreshedToken);
+				} catch (error) {
+					throw new ApiError(
+						`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
+						0,
+						undefined,
+						error,
+					);
+				}
 			}
 		}
 
@@ -225,12 +286,32 @@ class ApiClient {
 		} | null;
 	}> {
 		const token = await this.getToken();
-		let response = await this.sendRequest(path, options, token);
+		let response: Response;
+
+		try {
+			response = await this.sendRequest(path, options, token);
+		} catch (error) {
+			throw new ApiError(
+				`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
+				0,
+				undefined,
+				error,
+			);
+		}
 
 		if (response.status === 401 && token && path !== "/auth/refresh-token") {
 			const refreshedToken = await this.refreshAccessToken();
 			if (refreshedToken) {
-				response = await this.sendRequest(path, options, refreshedToken);
+				try {
+					response = await this.sendRequest(path, options, refreshedToken);
+				} catch (error) {
+					throw new ApiError(
+						`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
+						0,
+						undefined,
+						error,
+					);
+				}
 			}
 		}
 
@@ -293,16 +374,19 @@ class ApiClient {
 export class ApiError extends Error {
 	statusCode: number;
 	errors?: Record<string, string[]>;
+	cause?: unknown;
 
 	constructor(
 		message: string,
 		statusCode: number,
 		errors?: Record<string, string[]>,
+		cause?: unknown,
 	) {
 		super(message);
 		this.name = "ApiError";
 		this.statusCode = statusCode;
 		this.errors = errors;
+		this.cause = cause;
 	}
 }
 

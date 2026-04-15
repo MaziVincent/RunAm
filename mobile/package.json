@@ -6,6 +6,11 @@
 		"apps/*",
 		"packages/*"
 	],
+	"overrides": {
+		"react": "19.2.0",
+		"react-dom": "19.2.0",
+		"react-native": "0.83.4"
+	},
 	"scripts": {
 		"user": "cd apps/user && npx expo start",
 		"user:ios": "cd apps/user && npx expo run:ios",
@@ -17,6 +22,10 @@
 		"typecheck": "tsc --noEmit --project apps/user/tsconfig.json && tsc --noEmit --project apps/rider/tsconfig.json"
 	},
 	"devDependencies": {
+		"expo-router": "~55.0.12",
+		"react": "19.2.0",
+		"react-dom": "19.2.0",
+		"react-native": "0.83.4",
 		"@types/react": "~19.2.10",
 		"typescript": "~5.9.2",
 		"eslint": "^8.57.0"

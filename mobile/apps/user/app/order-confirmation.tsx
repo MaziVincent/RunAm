@@ -44,7 +44,7 @@ export default function OrderConfirmationScreen() {
 										pathname: "/errand/tracking",
 										params: { id: params.errandId },
 									})
-								: router.replace("/(tabs)/activity")
+								: router.replace("/(tabs)")
 						}>
 						<Text style={styles.primaryBtnText}>Track Order</Text>
 					</TouchableOpacity>

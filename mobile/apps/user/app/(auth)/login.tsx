@@ -11,16 +11,28 @@ import {
 	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
-import apiClient from "@runam/shared/api/client";
-import type { AuthResponse, LoginRequest } from "@runam/shared/types";
+import { login as loginApi } from "@runam/shared/api/auth";
+import { ApiError } from "@runam/shared/api/client";
+import type { LoginRequest } from "@runam/shared/types";
 
 export default function LoginScreen() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
+	const [errorMessage, setErrorMessage] = useState("");
 	const { login } = useAuthStore();
+	const router = useRouter();
+	const params = useLocalSearchParams<{ redirect?: string }>();
+	const registerHref =
+		typeof params.redirect === "string"
+			? {
+					pathname: "/(auth)/register" as const,
+					params: { redirect: params.redirect },
+				}
+			: "/(auth)/register";
 
 	const handleLogin = async () => {
 		if (!email.trim() || !password.trim()) {
@@ -29,14 +41,24 @@ export default function LoginScreen() {
 		}
 
 		setIsLoading(true);
+		setErrorMessage("");
 		try {
 			const body: LoginRequest = { email: email.trim(), password };
-			const response = await apiClient.post<AuthResponse>("/auth/login", body);
+			const response = await loginApi(body);
 			await login(response);
-		} catch (error: any) {
+			const redirectPath =
+				typeof params.redirect === "string" ? params.redirect : "/(tabs)";
+			router.replace(redirectPath as any);
+		} catch (error) {
+			console.error("Login failed", error);
+			const message =
+				error instanceof ApiError
+					? error.message
+					: "Invalid email or password. Please try again.";
+			setErrorMessage(message);
 			Alert.alert(
 				"Login Failed",
-				error?.message || "Invalid email or password. Please try again.",
+				message,
 			);
 		} finally {
 			setIsLoading(false);
@@ -54,6 +76,18 @@ export default function LoginScreen() {
 				</View>
 
 				<View style={styles.form}>
+					{errorMessage ? (
+						<View style={styles.errorBanner}>
+							<Text style={styles.errorBannerTitle}>Could not log in</Text>
+							<Text style={styles.errorBannerText}>{errorMessage}</Text>
+							{__DEV__ && (
+								<Text style={styles.debugText}>
+									Check the Metro terminal for request logs and make sure the backend is running.
+								</Text>
+							)}
+						</View>
+					) : null}
+
 					<Text style={styles.label}>Email</Text>
 					<TextInput
 						style={styles.input}
@@ -67,14 +101,21 @@ export default function LoginScreen() {
 					/>
 
 					<Text style={styles.label}>Password</Text>
-					<TextInput
-						style={styles.input}
-						placeholder="Enter your password"
-						placeholderTextColor="#9CA3AF"
-						value={password}
-						onChangeText={setPassword}
-						secureTextEntry
-					/>
+					<View style={styles.passwordField}>
+						<TextInput
+							style={styles.passwordInput}
+							placeholder="Enter your password"
+							placeholderTextColor="#9CA3AF"
+							value={password}
+							onChangeText={setPassword}
+							secureTextEntry={!showPassword}
+						/>
+						<TouchableOpacity
+							style={styles.eyeButton}
+							onPress={() => setShowPassword((value) => !value)}>
+							<Text style={styles.eyeText}>{showPassword ? "🙈" : "👁"}</Text>
+						</TouchableOpacity>
+					</View>
 
 					<TouchableOpacity
 						style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -90,7 +131,7 @@ export default function LoginScreen() {
 
 					<View style={styles.footer}>
 						<Text style={styles.footerText}>Don't have an account? </Text>
-						<Link href="/(auth)/register" asChild>
+						<Link href={registerHref as any} asChild>
 							<TouchableOpacity>
 								<Text style={styles.linkText}>Sign Up</Text>
 							</TouchableOpacity>
@@ -130,6 +171,31 @@ const styles = StyleSheet.create({
 	form: {
 		width: "100%",
 	},
+	errorBanner: {
+		backgroundColor: "#FEF2F2",
+		borderRadius: 12,
+		padding: 14,
+		marginBottom: 18,
+		borderWidth: 1,
+		borderColor: "#FECACA",
+	},
+	errorBannerTitle: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#991B1B",
+		marginBottom: 4,
+	},
+	errorBannerText: {
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#B91C1C",
+	},
+	debugText: {
+		fontSize: 12,
+		lineHeight: 17,
+		color: "#7F1D1D",
+		marginTop: 8,
+	},
 	label: {
 		fontSize: 14,
 		fontWeight: "600",
@@ -146,6 +212,28 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#111827",
 		marginBottom: 16,
+	},
+	passwordField: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#F9FAFB",
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+		borderRadius: 12,
+		marginBottom: 16,
+	},
+	passwordInput: {
+		flex: 1,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+		fontSize: 16,
+		color: "#111827",
+	},
+	eyeButton: {
+		paddingHorizontal: 14,
+	},
+	eyeText: {
+		fontSize: 18,
 	},
 	button: {
 		backgroundColor: "#2F8F4E",

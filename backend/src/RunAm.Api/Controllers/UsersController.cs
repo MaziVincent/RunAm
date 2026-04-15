@@ -50,4 +50,31 @@ public class UsersController : BaseApiController
         var result = await _mediator.Send(new CreateAddressCommand(GetUserId(), request));
         return Created("", ApiResponse<UserAddressDto>.Ok(result));
     }
+
+    /// <summary>Update a saved address</summary>
+    [HttpPut("me/addresses/{id:guid}")]
+    [ProducesResponseType(typeof(ApiResponse<UserAddressDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateAddress(Guid id, [FromBody] UpdateAddressRequest request)
+    {
+        var result = await _mediator.Send(new UpdateAddressCommand(GetUserId(), id, request));
+        return Ok(ApiResponse<UserAddressDto>.Ok(result));
+    }
+
+    /// <summary>Set a saved address as default</summary>
+    [HttpPatch("me/addresses/{id:guid}/default")]
+    [ProducesResponseType(typeof(ApiResponse<UserAddressDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SetDefaultAddress(Guid id)
+    {
+        var result = await _mediator.Send(new SetDefaultAddressCommand(GetUserId(), id));
+        return Ok(ApiResponse<UserAddressDto>.Ok(result));
+    }
+
+    /// <summary>Delete a saved address</summary>
+    [HttpDelete("me/addresses/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> DeleteAddress(Guid id)
+    {
+        await _mediator.Send(new DeleteAddressCommand(GetUserId(), id));
+        return NoContent();
+    }
 }

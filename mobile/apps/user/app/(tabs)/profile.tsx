@@ -13,6 +13,7 @@ import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { getAddresses } from "@runam/shared/api/addresses";
 import type { Address } from "@runam/shared/types";
+import AuthRequiredState from "../components/AuthRequiredState";
 
 interface SettingsItem {
 	icon: string;
@@ -22,13 +23,24 @@ interface SettingsItem {
 }
 
 export default function ProfileScreen() {
-	const { user, logout } = useAuthStore();
+	const { user, logout, isAuthenticated } = useAuthStore();
 	const router = useRouter();
 
 	const { data: addresses } = useQuery<Address[]>({
 		queryKey: ["addresses"],
 		queryFn: getAddresses,
+		enabled: isAuthenticated,
 	});
+
+	if (!isAuthenticated) {
+		return (
+			<AuthRequiredState
+				title="Create your RunAm account"
+				description="Save addresses, manage payment methods, and track your deliveries from one place once you sign in."
+				redirectTo="/(tabs)/profile"
+			/>
+		);
+	}
 
 	const handleLogout = () => {
 		Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -44,7 +56,11 @@ export default function ProfileScreen() {
 	};
 
 	const settingsItems: SettingsItem[] = [
-		{ icon: "📍", label: "Saved Addresses", onPress: () => {} },
+		{
+			icon: "📍",
+			label: "Saved Addresses",
+			onPress: () => router.push("/settings/addresses" as any),
+		},
 		{
 			icon: "🔔",
 			label: "Notifications",
@@ -111,7 +127,11 @@ export default function ProfileScreen() {
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>Saved Addresses</Text>
 						{addresses.map((addr) => (
-							<View key={addr.id} style={styles.addressCard}>
+							<TouchableOpacity
+								key={addr.id}
+								style={styles.addressCard}
+								onPress={() => router.push("/settings/addresses" as any)}
+								activeOpacity={0.75}>
 								<View style={styles.addressIcon}>
 									<Text style={styles.addressIconText}>📍</Text>
 								</View>
@@ -126,7 +146,7 @@ export default function ProfileScreen() {
 										{addr.address}
 									</Text>
 								</View>
-							</View>
+							</TouchableOpacity>
 						))}
 					</View>
 				)}

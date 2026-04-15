@@ -23,6 +23,7 @@ export default function ChangePasswordScreen() {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [showCurrent, setShowCurrent] = useState(false);
 	const [showNew, setShowNew] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
 
 	const mutation = useMutation({
 		mutationFn: () =>
@@ -130,20 +131,28 @@ export default function ChangePasswordScreen() {
 					{/* Confirm password */}
 					<View style={styles.fieldGroup}>
 						<Text style={styles.label}>Confirm New Password</Text>
-						<TextInput
+						<View
 							style={[
-								styles.inputFull,
+								styles.inputRow,
 								confirmPassword.length > 0 &&
 									confirmPassword !== newPassword &&
 									styles.inputError,
-							]}
-							placeholder="Re-enter new password"
-							placeholderTextColor="#9CA3AF"
-							value={confirmPassword}
-							onChangeText={setConfirmPassword}
-							secureTextEntry
-							autoCapitalize="none"
-						/>
+							]}>
+							<TextInput
+								style={styles.input}
+								placeholder="Re-enter new password"
+								placeholderTextColor="#9CA3AF"
+								value={confirmPassword}
+								onChangeText={setConfirmPassword}
+								secureTextEntry={!showConfirm}
+								autoCapitalize="none"
+							/>
+							<TouchableOpacity
+								style={styles.eyeBtn}
+								onPress={() => setShowConfirm(!showConfirm)}>
+								<Text style={styles.eyeText}>{showConfirm ? "🙈" : "👁"}</Text>
+							</TouchableOpacity>
+						</View>
 						{confirmPassword.length > 0 && confirmPassword !== newPassword && (
 							<Text style={styles.errorHint}>Passwords do not match</Text>
 						)}

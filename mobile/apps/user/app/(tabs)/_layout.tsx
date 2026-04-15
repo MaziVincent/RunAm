@@ -27,20 +27,23 @@ export default function TabsLayout() {
 				name="index"
 				options={{
 					title: "Home",
+					headerShown: false,
 					tabBarIcon: ({ color, focused }) => (
 						<TabIcon icon="🏠" color={color} focused={focused} />
 					),
 				}}
 			/>
 			<Tabs.Screen
-				name="activity"
+				name="services"
 				options={{
-					title: "Activity",
+					title: "Services",
+					headerShown: false,
 					tabBarIcon: ({ color, focused }) => (
-						<TabIcon icon="📋" color={color} focused={focused} />
+						<TabIcon icon="🧭" color={color} focused={focused} />
 					),
 				}}
 			/>
+			<Tabs.Screen name="activity" options={{ href: null }} />
 			<Tabs.Screen
 				name="wallet"
 				options={{

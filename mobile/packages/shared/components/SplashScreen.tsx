@@ -1,19 +1,16 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
-	useAnimatedStyle,
-	useSharedValue,
-	withTiming,
-	withDelay,
-	withSequence,
-	withSpring,
-	withRepeat,
 	Easing,
 	runOnJS,
-	interpolate,
+	useAnimatedStyle,
+	useSharedValue,
+	withDelay,
+	withRepeat,
+	withSequence,
+	withSpring,
+	withTiming,
 } from "react-native-reanimated";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface SplashScreenProps {
 	onFinish: () => void;
@@ -28,133 +25,57 @@ export default function SplashScreen({
 	tagline = "Errands delivered, fast.",
 	accentColor = "#2F8F4E",
 }: SplashScreenProps) {
-	// Animation values
-	const roadProgress = useSharedValue(0);
-	const riderX = useSharedValue(-100);
-	const riderBounce = useSharedValue(0);
-	const packageScale = useSharedValue(0);
-	const packageRotate = useSharedValue(-15);
-	const logoOpacity = useSharedValue(0);
-	const logoScale = useSharedValue(0.3);
-	const taglineOpacity = useSharedValue(0);
-	const taglineY = useSharedValue(20);
-	const dotOpacity1 = useSharedValue(0);
-	const dotOpacity2 = useSharedValue(0);
-	const dotOpacity3 = useSharedValue(0);
+	const badgeScale = useSharedValue(0.78);
+	const badgeOpacity = useSharedValue(0);
+	const ringScale = useSharedValue(0.86);
+	const ringOpacity = useSharedValue(0);
+	const titleOpacity = useSharedValue(0);
+	const titleY = useSharedValue(18);
+	const routeProgress = useSharedValue(0);
+	const chipOffset = useSharedValue(24);
+	const chipOpacity = useSharedValue(0);
+	const pulse = useSharedValue(1);
 	const fadeOut = useSharedValue(1);
-	const dustOpacity = useSharedValue(0);
-	const wheelSpin = useSharedValue(0);
 
 	useEffect(() => {
-		// Road draws in
-		roadProgress.value = withTiming(1, {
-			duration: 600,
-			easing: Easing.out(Easing.cubic),
-		});
-
-		// Rider zooms across
-		riderX.value = withDelay(
-			200,
-			withTiming(SCREEN_WIDTH * 0.35, {
-				duration: 800,
-				easing: Easing.out(Easing.cubic),
-			}),
+		badgeOpacity.value = withTiming(1, { duration: 260 });
+		badgeScale.value = withSpring(1, { damping: 11, stiffness: 120 });
+		ringOpacity.value = withDelay(80, withTiming(1, { duration: 300 }));
+		ringScale.value = withDelay(80, withTiming(1, { duration: 520 }));
+		titleOpacity.value = withDelay(180, withTiming(1, { duration: 280 }));
+		titleY.value = withDelay(
+			180,
+			withSpring(0, { damping: 14, stiffness: 120 }),
 		);
-
-		// Rider bounce
-		riderBounce.value = withDelay(
-			200,
+		routeProgress.value = withDelay(
+			260,
+			withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) }),
+		);
+		chipOpacity.value = withDelay(420, withTiming(1, { duration: 280 }));
+		chipOffset.value = withDelay(
+			420,
+			withSpring(0, { damping: 16, stiffness: 120 }),
+		);
+		pulse.value = withDelay(
+			700,
 			withRepeat(
 				withSequence(
-					withTiming(-8, { duration: 200, easing: Easing.inOut(Easing.sin) }),
-					withTiming(0, { duration: 200, easing: Easing.inOut(Easing.sin) }),
+					withTiming(1.04, {
+						duration: 700,
+						easing: Easing.inOut(Easing.sin),
+					}),
+					withTiming(1, {
+						duration: 700,
+						easing: Easing.inOut(Easing.sin),
+					}),
 				),
-				4,
+				2,
 				true,
 			),
 		);
 
-		// Wheel spinning
-		wheelSpin.value = withDelay(
-			200,
-			withRepeat(
-				withTiming(360, { duration: 400, easing: Easing.linear }),
-				5,
-				false,
-			),
-		);
-
-		// Dust trail
-		dustOpacity.value = withDelay(
-			300,
-			withSequence(
-				withTiming(0.6, { duration: 300 }),
-				withDelay(600, withTiming(0, { duration: 300 })),
-			),
-		);
-
-		// Package appears with bounce
-		packageScale.value = withDelay(
-			600,
-			withSpring(1, { damping: 8, stiffness: 150 }),
-		);
-		packageRotate.value = withDelay(
-			600,
-			withSequence(
-				withTiming(10, { duration: 150 }),
-				withSpring(0, { damping: 8 }),
-			),
-		);
-
-		// Logo fades in and scales up
-		logoOpacity.value = withDelay(1000, withTiming(1, { duration: 500 }));
-		logoScale.value = withDelay(
-			1000,
-			withSpring(1, { damping: 10, stiffness: 100 }),
-		);
-
-		// Tagline slides up
-		taglineOpacity.value = withDelay(1300, withTiming(1, { duration: 400 }));
-		taglineY.value = withDelay(1300, withSpring(0, { damping: 12 }));
-
-		// Loading dots
-		dotOpacity1.value = withDelay(
-			1600,
-			withRepeat(
-				withSequence(
-					withTiming(1, { duration: 300 }),
-					withTiming(0.3, { duration: 300 }),
-				),
-				3,
-				true,
-			),
-		);
-		dotOpacity2.value = withDelay(
-			1700,
-			withRepeat(
-				withSequence(
-					withTiming(1, { duration: 300 }),
-					withTiming(0.3, { duration: 300 }),
-				),
-				3,
-				true,
-			),
-		);
-		dotOpacity3.value = withDelay(
-			1800,
-			withRepeat(
-				withSequence(
-					withTiming(1, { duration: 300 }),
-					withTiming(0.3, { duration: 300 }),
-				),
-				3,
-				true,
-			),
-		);
-
-		// Fade out everything
 		fadeOut.value = withDelay(
-			2800,
+			2400,
 			withTiming(
 				0,
 				{ duration: 400, easing: Easing.in(Easing.cubic) },
@@ -165,50 +86,36 @@ export default function SplashScreen({
 				},
 			),
 		);
-	}, []);
+	}, [badgeOpacity, badgeScale, chipOffset, chipOpacity, fadeOut, onFinish, pulse, ringOpacity, ringScale, routeProgress, titleOpacity, titleY]);
 
-	// Animated styles
-	const roadStyle = useAnimatedStyle(() => ({
-		transform: [{ scaleX: roadProgress.value }],
-		opacity: roadProgress.value,
+	const badgeStyle = useAnimatedStyle(() => ({
+		opacity: badgeOpacity.value,
+		transform: [{ scale: badgeScale.value * pulse.value }],
 	}));
 
-	const riderStyle = useAnimatedStyle(() => ({
-		transform: [
-			{ translateX: riderX.value },
-			{ translateY: riderBounce.value },
-		],
+	const ringStyle = useAnimatedStyle(() => ({
+		opacity: ringOpacity.value,
+		transform: [{ scale: ringScale.value }],
 	}));
 
-	const wheelStyle = useAnimatedStyle(() => ({
-		transform: [{ rotate: `${wheelSpin.value}deg` }],
+	const titleStyle = useAnimatedStyle(() => ({
+		opacity: titleOpacity.value,
+		transform: [{ translateY: titleY.value }],
 	}));
 
-	const dustStyle = useAnimatedStyle(() => ({
-		opacity: dustOpacity.value,
-		transform: [{ translateX: riderX.value - 60 }],
+	const routeStyle = useAnimatedStyle(() => ({
+		opacity: routeProgress.value,
+		transform: [{ scaleX: routeProgress.value }],
 	}));
 
-	const packageStyle = useAnimatedStyle(() => ({
-		transform: [
-			{ scale: packageScale.value },
-			{ rotate: `${packageRotate.value}deg` },
-		],
+	const chipRowStyle = useAnimatedStyle(() => ({
+		opacity: chipOpacity.value,
+		transform: [{ translateY: chipOffset.value }],
 	}));
 
-	const logoStyle = useAnimatedStyle(() => ({
-		opacity: logoOpacity.value,
-		transform: [{ scale: logoScale.value }],
+	const routeDotStyle = useAnimatedStyle(() => ({
+		transform: [{ translateX: routeProgress.value * 120 }],
 	}));
-
-	const taglineStyle = useAnimatedStyle(() => ({
-		opacity: taglineOpacity.value,
-		transform: [{ translateY: taglineY.value }],
-	}));
-
-	const dot1Style = useAnimatedStyle(() => ({ opacity: dotOpacity1.value }));
-	const dot2Style = useAnimatedStyle(() => ({ opacity: dotOpacity2.value }));
-	const dot3Style = useAnimatedStyle(() => ({ opacity: dotOpacity3.value }));
 
 	const containerStyle = useAnimatedStyle(() => ({
 		opacity: fadeOut.value,
@@ -216,200 +123,148 @@ export default function SplashScreen({
 
 	return (
 		<Animated.View
-			style={[
-				styles.container,
-				{ backgroundColor: accentColor },
-				containerStyle,
-			]}>
-			{/* Background decorative circles */}
-			<View
-				style={[
-					styles.bgCircle,
-					styles.bgCircle1,
-					{ backgroundColor: "rgba(255,255,255,0.05)" },
-				]}
-			/>
-			<View
-				style={[
-					styles.bgCircle,
-					styles.bgCircle2,
-					{ backgroundColor: "rgba(255,255,255,0.03)" },
-				]}
-			/>
+			style={[styles.container, { backgroundColor: accentColor }, containerStyle]}>
+			<View style={styles.glowTop} />
+			<View style={styles.glowBottom} />
 
-			{/* Road */}
-			<Animated.View style={[styles.roadContainer, roadStyle]}>
-				<View style={styles.road} />
-				<View style={styles.roadDashes}>
-					{[...Array(8)].map((_, i) => (
-						<View key={i} style={styles.roadDash} />
-					))}
+			<Animated.View style={[styles.ring, ringStyle]} />
+			<Animated.View style={[styles.badge, badgeStyle]}>
+				<Text style={styles.badgeText}>R</Text>
+			</Animated.View>
+
+			<Animated.View style={titleStyle}>
+				<Text style={styles.title}>{appName}</Text>
+				<Text style={styles.subtitle}>{tagline}</Text>
+			</Animated.View>
+
+			<Animated.View style={[styles.routeTrack, routeStyle]}>
+				<Animated.View style={[styles.routeDot, routeDotStyle]} />
+			</Animated.View>
+
+			<Animated.View style={[styles.chipRow, chipRowStyle]}>
+				<View style={styles.chip}>
+					<Text style={styles.chipEmoji}>🛍️</Text>
+					<Text style={styles.chipText}>Browse</Text>
+				</View>
+				<View style={styles.chip}>
+					<Text style={styles.chipEmoji}>📦</Text>
+					<Text style={styles.chipText}>Send</Text>
+				</View>
+				<View style={styles.chip}>
+					<Text style={styles.chipEmoji}>📍</Text>
+					<Text style={styles.chipText}>Track</Text>
 				</View>
 			</Animated.View>
-
-			{/* Dust trail */}
-			<Animated.View style={[styles.dustContainer, dustStyle]}>
-				<Text style={styles.dustText}>💨</Text>
-			</Animated.View>
-
-			{/* Rider on bike */}
-			<Animated.View style={[styles.riderContainer, riderStyle]}>
-				<View style={styles.riderBody}>
-					{/* Package on back */}
-					<Animated.View style={[styles.riderPackage, packageStyle]}>
-						<Text style={styles.packageEmoji}>📦</Text>
-					</Animated.View>
-					{/* Rider */}
-					<Text style={styles.riderEmoji}>🏍️</Text>
-					{/* Wheels with rotation */}
-					<Animated.View style={[styles.wheelIndicator, wheelStyle]}>
-						<View style={styles.wheelDot} />
-					</Animated.View>
-				</View>
-			</Animated.View>
-
-			{/* App name */}
-			<Animated.View style={[styles.logoContainer, logoStyle]}>
-				<Text style={styles.logoText}>{appName}</Text>
-			</Animated.View>
-
-			{/* Tagline */}
-			<Animated.View style={[styles.taglineContainer, taglineStyle]}>
-				<Text style={styles.taglineText}>{tagline}</Text>
-			</Animated.View>
-
-			{/* Loading dots */}
-			<View style={styles.dotsContainer}>
-				<Animated.View style={[styles.dot, dot1Style]} />
-				<Animated.View style={[styles.dot, dot2Style]} />
-				<Animated.View style={[styles.dot, dot3Style]} />
-			</View>
 		</Animated.View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
-		...StyleSheet.absoluteFillObject,
+		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		zIndex: 1000,
+		paddingHorizontal: 24,
+		overflow: "hidden",
 	},
-	bgCircle: {
+	glowTop: {
 		position: "absolute",
-		borderRadius: 9999,
+		top: -120,
+		width: 280,
+		height: 280,
+		borderRadius: 140,
+		backgroundColor: "rgba(255,255,255,0.08)",
 	},
-	bgCircle1: {
-		width: SCREEN_WIDTH * 1.5,
-		height: SCREEN_WIDTH * 1.5,
-		top: -SCREEN_WIDTH * 0.5,
-		right: -SCREEN_WIDTH * 0.3,
-	},
-	bgCircle2: {
-		width: SCREEN_WIDTH * 1.2,
-		height: SCREEN_WIDTH * 1.2,
-		bottom: -SCREEN_WIDTH * 0.4,
-		left: -SCREEN_WIDTH * 0.3,
-	},
-	roadContainer: {
+	glowBottom: {
 		position: "absolute",
-		bottom: SCREEN_HEIGHT * 0.35,
-		width: SCREEN_WIDTH * 0.8,
-		alignItems: "center",
+		bottom: -140,
+		width: 320,
+		height: 320,
+		borderRadius: 160,
+		backgroundColor: "rgba(255,255,255,0.05)",
 	},
-	road: {
-		width: "100%",
-		height: 4,
-		backgroundColor: "rgba(255,255,255,0.2)",
-		borderRadius: 2,
-	},
-	roadDashes: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		width: "100%",
+	ring: {
 		position: "absolute",
-		top: 1,
-	},
-	roadDash: {
-		width: 16,
-		height: 2,
-		backgroundColor: "rgba(255,255,255,0.4)",
-		borderRadius: 1,
-	},
-	dustContainer: {
-		position: "absolute",
-		bottom: SCREEN_HEIGHT * 0.35 - 15,
-	},
-	dustText: {
-		fontSize: 20,
-	},
-	riderContainer: {
-		position: "absolute",
-		bottom: SCREEN_HEIGHT * 0.35 - 28,
-	},
-	riderBody: {
-		alignItems: "center",
-	},
-	riderPackage: {
-		position: "absolute",
-		top: -20,
-		right: -15,
-		zIndex: 1,
-	},
-	packageEmoji: {
-		fontSize: 22,
-	},
-	riderEmoji: {
-		fontSize: 40,
-	},
-	wheelIndicator: {
-		position: "absolute",
-		bottom: -2,
-		width: 8,
-		height: 8,
-		borderRadius: 4,
+		width: 170,
+		height: 170,
+		borderRadius: 85,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.3)",
-		justifyContent: "center",
+		borderColor: "rgba(255,255,255,0.22)",
+	},
+	badge: {
+		width: 104,
+		height: 104,
+		borderRadius: 32,
+		backgroundColor: "#FFFFFF",
 		alignItems: "center",
+		justifyContent: "center",
+		shadowColor: "#000000",
+		shadowOpacity: 0.12,
+		shadowRadius: 18,
+		shadowOffset: { width: 0, height: 10 },
+		elevation: 5,
 	},
-	wheelDot: {
-		width: 2,
-		height: 2,
-		borderRadius: 1,
-		backgroundColor: "rgba(255,255,255,0.5)",
+	badgeText: {
+		fontSize: 42,
+		fontWeight: "900",
+		color: "#2F8F4E",
+		letterSpacing: -2,
 	},
-	logoContainer: {
-		marginBottom: 8,
-	},
-	logoText: {
-		fontSize: 48,
-		fontWeight: "800",
+	title: {
+		fontSize: 34,
+		fontWeight: "900",
 		color: "#FFFFFF",
-		letterSpacing: 2,
-		textShadowColor: "rgba(0,0,0,0.15)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 8,
+		textAlign: "center",
+		marginTop: 26,
+		letterSpacing: -1,
 	},
-	taglineContainer: {
-		marginBottom: 40,
+	subtitle: {
+		fontSize: 15,
+		lineHeight: 22,
+		color: "rgba(255,255,255,0.82)",
+		textAlign: "center",
+		marginTop: 8,
 	},
-	taglineText: {
-		fontSize: 16,
-		color: "rgba(255,255,255,0.85)",
-		fontWeight: "500",
-		letterSpacing: 0.5,
+	routeTrack: {
+		width: 140,
+		height: 4,
+		borderRadius: 999,
+		backgroundColor: "rgba(255,255,255,0.28)",
+		marginTop: 28,
+		justifyContent: "center",
 	},
-	dotsContainer: {
+	routeDot: {
+		width: 18,
+		height: 18,
+		borderRadius: 9,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#FFFFFF",
+		shadowOpacity: 0.45,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 0 },
+	},
+	chipRow: {
 		flexDirection: "row",
-		gap: 8,
-		position: "absolute",
-		bottom: SCREEN_HEIGHT * 0.12,
+		gap: 12,
+		marginTop: 28,
 	},
-	dot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "rgba(255,255,255,0.8)",
+	chip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		paddingHorizontal: 14,
+		paddingVertical: 10,
+		borderRadius: 999,
+		backgroundColor: "rgba(255,255,255,0.14)",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.15)",
+	},
+	chipEmoji: {
+		fontSize: 16,
+	},
+	chipText: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#FFFFFF",
 	},
 });

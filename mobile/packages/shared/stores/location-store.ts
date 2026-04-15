@@ -6,17 +6,24 @@ interface LocationState {
 	lng: number | undefined;
 	loading: boolean;
 	error: string | undefined;
-	request: () => Promise<void>;
+	hasRequested: boolean;
+	request: (force?: boolean) => Promise<void>;
 }
 
-export const useLocationStore = create<LocationState>((set) => ({
+export const useLocationStore = create<LocationState>((set, get) => ({
 	lat: undefined,
 	lng: undefined,
 	loading: false,
 	error: undefined,
+	hasRequested: false,
 
-	request: async () => {
-		set({ loading: true, error: undefined });
+	request: async (force = false) => {
+		if (get().loading) return;
+		if (!force && (get().hasRequested || (get().lat != null && get().lng != null))) {
+			return;
+		}
+
+		set({ loading: true, error: undefined, hasRequested: true });
 		try {
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") {
@@ -35,6 +42,7 @@ export const useLocationStore = create<LocationState>((set) => ({
 		} catch (err: any) {
 			set({
 				loading: false,
+				hasRequested: true,
 				error: err?.message ?? "Failed to get location",
 			});
 		}

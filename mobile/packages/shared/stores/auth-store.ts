@@ -6,6 +6,14 @@ import { apiClient } from "../api/client";
 const USER_KEY = "auth_user";
 const TOKEN_KEY = "auth_token";
 
+function resolveAccessToken(response: AuthResponse): string {
+	const accessToken = response.accessToken ?? response.token;
+	if (!accessToken || !response.refreshToken) {
+		throw new Error("Authentication response did not include required tokens.");
+	}
+	return accessToken;
+}
+
 interface AuthState {
 	user: User | null;
 	token: string | null;
@@ -52,17 +60,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 	},
 
 	login: async (response: AuthResponse) => {
-		const { token, refreshToken, user } = response;
+		const accessToken = resolveAccessToken(response);
+		const { refreshToken, user } = response;
 
 		await Promise.all([
-			apiClient.setToken(token),
+			apiClient.setToken(accessToken),
 			apiClient.setRefreshToken(refreshToken),
 			SecureStore.setItemAsync(USER_KEY, JSON.stringify(user)),
 		]);
 
 		set({
 			user,
-			token,
+			token: accessToken,
 			isAuthenticated: true,
 		});
 	},

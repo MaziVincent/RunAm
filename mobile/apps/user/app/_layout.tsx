@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
+import { useLocationStore } from "@runam/shared/stores/location-store";
 import { useOnboardingStore } from "@runam/shared/stores/onboarding-store";
 import SplashScreen from "@runam/shared/components/SplashScreen";
 
@@ -35,12 +36,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 		}
 
 		// Already onboarded → normal auth flow
-		if (hasSeenOnboarding) {
-			if (!isAuthenticated && !inAuthGroup) {
-				router.replace("/(auth)/login");
-			} else if (isAuthenticated && inAuthGroup) {
-				router.replace("/(tabs)");
-			}
+		if (hasSeenOnboarding && isAuthenticated && inAuthGroup) {
+			router.replace("/(tabs)");
 		}
 	}, [
 		isAuthenticated,
@@ -55,13 +52,38 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
 	const { hydrate } = useAuthStore();
-	const { hydrate: hydrateOnboarding } = useOnboardingStore();
+	const {
+		hydrate: hydrateOnboarding,
+		hasSeenOnboarding,
+		isHydrated: onboardingHydrated,
+	} = useOnboardingStore();
+	const { request: requestLocation, hasRequested: hasRequestedLocation } =
+		useLocationStore();
 	const [showSplash, setShowSplash] = useState(true);
 
 	useEffect(() => {
 		hydrate();
 		hydrateOnboarding();
 	}, []);
+
+	useEffect(() => {
+		if (
+			showSplash ||
+			!onboardingHydrated ||
+			!hasSeenOnboarding ||
+			hasRequestedLocation
+		) {
+			return;
+		}
+
+		void requestLocation();
+	}, [
+		showSplash,
+		onboardingHydrated,
+		hasSeenOnboarding,
+		hasRequestedLocation,
+		requestLocation,
+	]);
 
 	return (
 		<QueryClientProvider client={queryClient}>

@@ -13,8 +13,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { getErrands } from "@runam/shared/api/errands";
 import type { Errand } from "@runam/shared/types";
+import AuthRequiredState from "../components/AuthRequiredState";
 
 const statusColors: Record<string, string> = {
 	Draft: "#9CA3AF",
@@ -65,6 +67,7 @@ const ACTIVE_STATUSES = [
 
 export default function ActivityScreen() {
 	const router = useRouter();
+	const { isAuthenticated } = useAuthStore();
 	const [refreshing, setRefreshing] = useState(false);
 	const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
 	const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +79,7 @@ export default function ActivityScreen() {
 	} = useQuery({
 		queryKey: ["errands", "all"],
 		queryFn: () => getErrands({ pageSize: 50 }),
+		enabled: isAuthenticated,
 	});
 
 	const data = errandsData?.items;
@@ -174,6 +178,16 @@ export default function ActivityScreen() {
 			</TouchableOpacity>
 		);
 	};
+
+	if (!isAuthenticated) {
+		return (
+			<AuthRequiredState
+				title="Sign in to view your activity"
+				description="Your errand history, live deliveries, and past orders will show up here after you log in."
+				redirectTo="/(tabs)/activity"
+			/>
+		);
+	}
 
 	if (isLoading) {
 		return (

@@ -12,6 +12,7 @@ using System.Threading.RateLimiting;
 
 // Load .env file (no-throw if missing — production uses real env vars)
 Env.Load();
+NormalizeDevelopmentUrls();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +85,30 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 
 // Helper: read env var (returns null when not set — filtered out above)
 static string? E(string name) => Environment.GetEnvironmentVariable(name);
+
+static void NormalizeDevelopmentUrls()
+{
+    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+    if (!string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+    {
+        return;
+    }
+
+    var configuredUrls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+    if (string.IsNullOrWhiteSpace(configuredUrls))
+    {
+        Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://0.0.0.0:5001");
+        return;
+    }
+
+    var normalizedUrls = string.Join(';', configuredUrls
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Select(url => url
+            .Replace("http://localhost:", "http://0.0.0.0:", StringComparison.OrdinalIgnoreCase)
+            .Replace("http://127.0.0.1:", "http://0.0.0.0:", StringComparison.OrdinalIgnoreCase)));
+
+    Environment.SetEnvironmentVariable("ASPNETCORE_URLS", normalizedUrls);
+}
 
 // Serilog
 Log.Logger = new LoggerConfiguration()
