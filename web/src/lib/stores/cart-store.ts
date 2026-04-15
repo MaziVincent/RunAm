@@ -45,11 +45,12 @@ function makeKey(
 	const variantKey = variant
 		? `${variant.name}:${variant.option}:${variant.priceAdjustment}`
 		: "no-variant";
-	const extrasKey = extras
-		.slice()
-		.sort((left, right) => left.name.localeCompare(right.name))
-		.map((extra) => `${extra.name}:${extra.price}`)
-		.join("|") || "no-extras";
+	const extrasKey =
+		extras
+			.slice()
+			.sort((left, right) => left.name.localeCompare(right.name))
+			.map((extra) => `${extra.name}:${extra.price}`)
+			.join("|") || "no-extras";
 	const notesKey = notes.trim().toLowerCase() || "no-notes";
 	return [vendorId, productId, variantKey, extrasKey, notesKey].join("::");
 }
@@ -143,7 +144,11 @@ function loadCart(): { items: CartItem[] } {
 		const items = Array.isArray(parsed.items)
 			? parsed.items
 					.map((item) =>
-						normalizeCartItem(item, parsed.vendorId ?? null, parsed.vendorName ?? ""),
+						normalizeCartItem(
+							item,
+							parsed.vendorId ?? null,
+							parsed.vendorName ?? "",
+						),
 					)
 					.filter((item): item is CartItem => item !== null)
 			: [];
@@ -195,7 +200,13 @@ export const useCartStore = create<CartState>((set, get) => {
 		) => {
 			set((state) => {
 				const normalizedNotes = notes.trim();
-				const key = makeKey(vendorId, product.id, variant, extras, normalizedNotes);
+				const key = makeKey(
+					vendorId,
+					product.id,
+					variant,
+					extras,
+					normalizedNotes,
+				);
 				const existingIndex = state.items.findIndex((item) => item.key === key);
 
 				const newItem: CartItem = {
@@ -259,7 +270,9 @@ export const useCartStore = create<CartState>((set, get) => {
 
 		clearVendorCart: (vendorId) => {
 			set((state) => {
-				const newItems = state.items.filter((item) => item.vendorId !== vendorId);
+				const newItems = state.items.filter(
+					(item) => item.vendorId !== vendorId,
+				);
 				const newState = { items: newItems };
 				persistCart(newState);
 				return newState;
@@ -269,7 +282,9 @@ export const useCartStore = create<CartState>((set, get) => {
 		clearVendors: (vendorIds) => {
 			set((state) => {
 				const blocked = new Set(vendorIds);
-				const newItems = state.items.filter((item) => !blocked.has(item.vendorId));
+				const newItems = state.items.filter(
+					(item) => !blocked.has(item.vendorId),
+				);
 				const newState = { items: newItems };
 				persistCart(newState);
 				return newState;

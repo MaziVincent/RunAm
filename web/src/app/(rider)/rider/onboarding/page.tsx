@@ -695,13 +695,15 @@ export default function RiderOnboardingPage() {
 										))}
 									</select>
 									<p className="text-xs text-muted-foreground">
-										Choose from major Nigerian banks. The bank code will be filled automatically.
+										Choose from major Nigerian banks. The bank code will be
+										filled automatically.
 									</p>
 								</div>
 								<div className="space-y-2">
 									<Label>Selected Bank Code</Label>
 									<div className="flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
-										{settlementBankCode || "Choose a bank to fill its code automatically"}
+										{settlementBankCode ||
+											"Choose a bank to fill its code automatically"}
 									</div>
 								</div>
 							</div>

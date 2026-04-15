@@ -105,7 +105,9 @@ function RegisterForm() {
 			<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<div className="space-y-2">
-						<label htmlFor="firstName" className="block text-sm font-medium text-foreground">
+						<label
+							htmlFor="firstName"
+							className="block text-sm font-medium text-foreground">
 							First Name
 						</label>
 						<Input
@@ -115,10 +117,14 @@ function RegisterForm() {
 							placeholder="John"
 							className="h-11 rounded-xl border-border/80 bg-background/70"
 						/>
-						{errors.firstName && <p className="text-xs text-red-600">{errors.firstName.message}</p>}
+						{errors.firstName && (
+							<p className="text-xs text-red-600">{errors.firstName.message}</p>
+						)}
 					</div>
 					<div className="space-y-2">
-						<label htmlFor="lastName" className="block text-sm font-medium text-foreground">
+						<label
+							htmlFor="lastName"
+							className="block text-sm font-medium text-foreground">
 							Last Name
 						</label>
 						<Input
@@ -128,12 +134,16 @@ function RegisterForm() {
 							placeholder="Doe"
 							className="h-11 rounded-xl border-border/80 bg-background/70"
 						/>
-						{errors.lastName && <p className="text-xs text-red-600">{errors.lastName.message}</p>}
+						{errors.lastName && (
+							<p className="text-xs text-red-600">{errors.lastName.message}</p>
+						)}
 					</div>
 				</div>
 
 				<div className="space-y-2">
-					<label htmlFor="email" className="block text-sm font-medium text-foreground">
+					<label
+						htmlFor="email"
+						className="block text-sm font-medium text-foreground">
 						Email
 					</label>
 					<Input
@@ -144,11 +154,15 @@ function RegisterForm() {
 						placeholder={config.placeholder}
 						className="h-11 rounded-xl border-border/80 bg-background/70"
 					/>
-					{errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+					{errors.email && (
+						<p className="text-xs text-red-600">{errors.email.message}</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
-					<label htmlFor="phoneNumber" className="block text-sm font-medium text-foreground">
+					<label
+						htmlFor="phoneNumber"
+						className="block text-sm font-medium text-foreground">
 						Phone Number
 					</label>
 					<Input
@@ -158,11 +172,15 @@ function RegisterForm() {
 						placeholder="+234 800 000 0000"
 						className="h-11 rounded-xl border-border/80 bg-background/70"
 					/>
-					{errors.phoneNumber && <p className="text-xs text-red-600">{errors.phoneNumber.message}</p>}
+					{errors.phoneNumber && (
+						<p className="text-xs text-red-600">{errors.phoneNumber.message}</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
-					<label htmlFor="password" className="block text-sm font-medium text-foreground">
+					<label
+						htmlFor="password"
+						className="block text-sm font-medium text-foreground">
 						Password
 					</label>
 					<PasswordInput
@@ -172,10 +190,15 @@ function RegisterForm() {
 						placeholder="••••••••"
 						className="h-11 rounded-xl border-border/80 bg-background/70"
 					/>
-					{errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+					{errors.password && (
+						<p className="text-xs text-red-600">{errors.password.message}</p>
+					)}
 				</div>
 
-				<Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl text-sm font-semibold shadow-sm shadow-primary/20">
+				<Button
+					type="submit"
+					disabled={isSubmitting}
+					className="h-11 w-full rounded-xl text-sm font-semibold shadow-sm shadow-primary/20">
 					{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
 					Create account
 				</Button>

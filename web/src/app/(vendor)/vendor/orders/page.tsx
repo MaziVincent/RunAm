@@ -33,7 +33,9 @@ const TAB_STATUS_MAP: Record<TabKey, string | undefined> = {
 	all: undefined,
 };
 
-function parseVendorOrderStatus(status: string | null | undefined): VendorOrderStatus {
+function parseVendorOrderStatus(
+	status: string | null | undefined,
+): VendorOrderStatus {
 	switch (status) {
 		case "Confirmed":
 			return VendorOrderStatus.Confirmed;
@@ -68,12 +70,18 @@ function OrderCard({ order }: { order: VendorOrderDto }) {
 				<div className="flex items-start justify-between gap-3">
 					<div>
 						<div className="flex items-center gap-2">
-							<p className="text-sm font-semibold">Order #{order.errandId.slice(-6)}</p>
-							<Badge variant="outline" className={cn("text-xs", vendorOrderStatusColor[status])}>
+							<p className="text-sm font-semibold">
+								Order #{order.errandId.slice(-6)}
+							</p>
+							<Badge
+								variant="outline"
+								className={cn("text-xs", vendorOrderStatusColor[status])}>
 								{vendorOrderStatusLabel[status]}
 							</Badge>
 						</div>
-						<p className="mt-1 text-xs text-muted-foreground">{order.customerName || "Customer"}</p>
+						<p className="mt-1 text-xs text-muted-foreground">
+							{order.customerName || "Customer"}
+						</p>
 						<p className="text-xs text-muted-foreground">
 							{new Date(order.createdAt).toLocaleString("en-NG", {
 								month: "short",
@@ -83,7 +91,9 @@ function OrderCard({ order }: { order: VendorOrderDto }) {
 							})}
 						</p>
 					</div>
-					<p className="text-sm font-bold">{formatCurrency(order.totalAmount)}</p>
+					<p className="text-sm font-bold">
+						{formatCurrency(order.totalAmount)}
+					</p>
 				</div>
 
 				<p className="text-xs text-muted-foreground">{order.dropoffAddress}</p>
@@ -96,7 +106,9 @@ function OrderCard({ order }: { order: VendorOrderDto }) {
 							</p>
 						))}
 						{order.items.length > 4 && (
-							<p className="text-xs text-muted-foreground">+{order.items.length - 4} more items</p>
+							<p className="text-xs text-muted-foreground">
+								+{order.items.length - 4} more items
+							</p>
 						)}
 					</div>
 				)}
@@ -155,7 +167,9 @@ function OrderList({ tab }: { tab: TabKey }) {
 		return (
 			<div className="flex flex-col items-center py-12 text-center">
 				<ShoppingBag className="h-10 w-10 text-muted-foreground/30" />
-				<p className="mt-3 text-sm text-muted-foreground">No {tab === "all" ? "orders" : `${tab} orders`}</p>
+				<p className="mt-3 text-sm text-muted-foreground">
+					No {tab === "all" ? "orders" : `${tab} orders`}
+				</p>
 			</div>
 		);
 	}
@@ -168,7 +182,11 @@ function OrderList({ tab }: { tab: TabKey }) {
 
 			{pagination && pagination.totalPages > 1 && (
 				<div className="flex items-center justify-center gap-2 pt-2">
-					<Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={page <= 1}
+						onClick={() => setPage((value) => value - 1)}>
 						Previous
 					</Button>
 					<span className="text-xs text-muted-foreground">
@@ -201,7 +219,9 @@ export default function VendorOrdersPage() {
 						<Store className="h-4 w-4" />
 						Open
 						{openCount > 0 && (
-							<Badge variant="destructive" className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">
+							<Badge
+								variant="destructive"
+								className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">
 								{openCount}
 							</Badge>
 						)}

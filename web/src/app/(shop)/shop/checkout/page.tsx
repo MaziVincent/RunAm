@@ -35,7 +35,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { useCartStore, type CartItem, type VendorCartGroup } from "@/lib/stores/cart-store";
+import {
+	useCartStore,
+	type CartItem,
+	type VendorCartGroup,
+} from "@/lib/stores/cart-store";
 import {
 	useAddresses,
 	useCreateAddress,
@@ -131,7 +135,8 @@ function AddressSelector({
 
 	useEffect(() => {
 		if (!selectedId && addresses.length > 0) {
-			const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+			const defaultAddress =
+				addresses.find((address) => address.isDefault) ?? addresses[0];
 			onSelect(defaultAddress.id);
 		}
 	}, [addresses, selectedId, onSelect]);
@@ -176,7 +181,9 @@ function AddressSelector({
 			<>
 				<div className="rounded-lg border border-dashed p-6 text-center">
 					<MapPin className="mx-auto h-8 w-8 text-muted-foreground/50" />
-					<p className="mt-2 text-sm text-muted-foreground">No saved addresses</p>
+					<p className="mt-2 text-sm text-muted-foreground">
+						No saved addresses
+					</p>
 					<Button
 						variant="outline"
 						size="sm"
@@ -300,7 +307,9 @@ function AddAddressDialog({
 					</div>
 				</div>
 				<DialogFooter>
-					<Button onClick={onSave} disabled={!label.trim() || !selectedAddress || isSaving}>
+					<Button
+						onClick={onSave}
+						disabled={!label.trim() || !selectedAddress || isSaving}>
 						{isSaving ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -364,7 +373,8 @@ function PaymentSelector({
 				value={String(selected)}
 				onValueChange={(value) => onSelect(Number(value) as PaymentMethod)}>
 				{PAYMENT_OPTIONS.map((option) => {
-					const disabled = multiVendorCart && option.value !== PaymentMethod.Wallet;
+					const disabled =
+						multiVendorCart && option.value !== PaymentMethod.Wallet;
 
 					return (
 						<label
@@ -376,14 +386,18 @@ function PaymentSelector({
 									? "border-primary bg-primary/5"
 									: !disabled && "hover:bg-accent",
 							)}>
-							<RadioGroupItem value={String(option.value)} disabled={disabled} />
+							<RadioGroupItem
+								value={String(option.value)}
+								disabled={disabled}
+							/>
 							<option.icon className={cn("h-5 w-5", option.color)} />
 							<span className="flex-1 text-sm font-medium">{option.label}</span>
-							{option.value === PaymentMethod.Wallet && walletBalance !== null && (
-								<span className="text-xs text-muted-foreground">
-									Balance: {formatCurrency(walletBalance)}
-								</span>
-							)}
+							{option.value === PaymentMethod.Wallet &&
+								walletBalance !== null && (
+									<span className="text-xs text-muted-foreground">
+										Balance: {formatCurrency(walletBalance)}
+									</span>
+								)}
 							{disabled && (
 								<Badge variant="secondary" className="text-[10px]">
 									Single-vendor only
@@ -397,21 +411,29 @@ function PaymentSelector({
 			{multiVendorCart && (
 				<div className="flex items-center gap-2 rounded-md bg-primary/10 p-3 text-xs text-primary">
 					<Route className="h-4 w-4 shrink-0" />
-					<p>Multi-vendor checkout is currently completed in one wallet-paid flow.</p>
+					<p>
+						Multi-vendor checkout is currently completed in one wallet-paid
+						flow.
+					</p>
 				</div>
 			)}
 
 			{missingWallet && (
 				<div className="flex items-center gap-2 rounded-md bg-amber-100 p-3 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
 					<AlertCircle className="h-4 w-4 shrink-0" />
-					<p>Create your wallet from the dashboard before using wallet payment.</p>
+					<p>
+						Create your wallet from the dashboard before using wallet payment.
+					</p>
 				</div>
 			)}
 
 			{insufficientBalance && (
 				<div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-xs text-destructive">
 					<AlertCircle className="h-4 w-4 shrink-0" />
-					<p>Insufficient wallet balance. Please top up before placing this order.</p>
+					<p>
+						Insufficient wallet balance. Please top up before placing this
+						order.
+					</p>
 				</div>
 			)}
 		</div>
@@ -449,13 +471,18 @@ function VendorSummary({ summary }: { summary: VendorCheckoutSummary }) {
 						item.quantity;
 
 					return (
-						<div key={item.key} className="flex items-start justify-between py-2 text-sm">
+						<div
+							key={item.key}
+							className="flex items-start justify-between py-2 text-sm">
 							<div className="min-w-0 flex-1">
 								<p>
-									<span className="font-medium">{item.quantity}×</span> {item.productName}
+									<span className="font-medium">{item.quantity}×</span>{" "}
+									{item.productName}
 								</p>
 								{item.variant && (
-									<p className="text-xs text-muted-foreground">{item.variant.option}</p>
+									<p className="text-xs text-muted-foreground">
+										{item.variant.option}
+									</p>
 								)}
 								{item.extras.length > 0 && (
 									<p className="text-xs text-muted-foreground">
@@ -463,7 +490,9 @@ function VendorSummary({ summary }: { summary: VendorCheckoutSummary }) {
 									</p>
 								)}
 							</div>
-							<span className="ml-4 shrink-0 font-medium">{formatCurrency(lineTotal)}</span>
+							<span className="ml-4 shrink-0 font-medium">
+								{formatCurrency(lineTotal)}
+							</span>
 						</div>
 					);
 				})}
@@ -482,7 +511,10 @@ function VendorSummary({ summary }: { summary: VendorCheckoutSummary }) {
 
 			{summary.belowMinimum && summary.vendor && (
 				<div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-					Minimum order for {summary.vendorName} is {formatCurrency(summary.vendor.minimumOrderAmount)}. Add {formatCurrency(summary.vendor.minimumOrderAmount - summary.subtotal)} more to continue.
+					Minimum order for {summary.vendorName} is{" "}
+					{formatCurrency(summary.vendor.minimumOrderAmount)}. Add{" "}
+					{formatCurrency(summary.vendor.minimumOrderAmount - summary.subtotal)}{" "}
+					more to continue.
 				</div>
 			)}
 		</div>
@@ -492,13 +524,8 @@ function VendorSummary({ summary }: { summary: VendorCheckoutSummary }) {
 export default function CheckoutPage() {
 	const router = useRouter();
 	const { isAuthenticated } = useAuthStore();
-	const {
-		clearCart,
-		clearVendors,
-		getItemCount,
-		getSubtotal,
-		getVendorCarts,
-	} = useCartStore();
+	const { clearCart, clearVendors, getItemCount, getSubtotal, getVendorCarts } =
+		useCartStore();
 
 	const vendorCarts = getVendorCarts();
 	const itemCount = getItemCount();
@@ -530,7 +557,9 @@ export default function CheckoutPage() {
 		})),
 	});
 
-	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+		null,
+	);
 	const [paymentMethod, setPaymentMethod] = useState(PaymentMethod.Wallet);
 	const [specialInstructions, setSpecialInstructions] = useState("");
 	const [promoCode, setPromoCode] = useState("");
@@ -543,11 +572,17 @@ export default function CheckoutPage() {
 
 	const { data: addressesData } = useAddresses();
 	const addresses = addressesData?.data ?? [];
-	const selectedAddress = addresses.find((address) => address.id === selectedAddressId);
+	const selectedAddress = addresses.find(
+		(address) => address.id === selectedAddressId,
+	);
 
 	const estimateQueries = useQueries({
 		queries: vendorQueries.map((query, index) => ({
-			queryKey: ["checkout-delivery-estimate", vendorCarts[index]?.vendorId, selectedAddressId],
+			queryKey: [
+				"checkout-delivery-estimate",
+				vendorCarts[index]?.vendorId,
+				selectedAddressId,
+			],
 			queryFn: async () => {
 				const vendor = query.data;
 				if (!vendor || !selectedAddress) {
@@ -585,15 +620,16 @@ export default function CheckoutPage() {
 			})
 			.filter((point): point is RoutePoint => point !== null);
 
-		const pricingSeed = estimateQueries.find((query) => query.data)?.data ?? null;
+		const pricingSeed =
+			estimateQueries.find((query) => query.data)?.data ?? null;
 		const pricingModel: DeliveryPricingModel | null = pricingSeed
 			? {
-				baseFare: pricingSeed.baseFare,
-				perKmRate:
-					pricingSeed.estimatedDistanceKm > 0
-						? pricingSeed.distanceFare / pricingSeed.estimatedDistanceKm
-						: 0,
-			}
+					baseFare: pricingSeed.baseFare,
+					perKmRate:
+						pricingSeed.estimatedDistanceKm > 0
+							? pricingSeed.distanceFare / pricingSeed.estimatedDistanceKm
+							: 0,
+				}
 			: null;
 
 		const combinedDistanceKm =
@@ -609,7 +645,10 @@ export default function CheckoutPage() {
 			selectedAddress && points.length > 0
 				? points.map((point) => haversineDistanceKm(point, selectedAddress))
 				: vendorCarts.map(() => 1);
-		const deliveryFeeShares = splitAmountByWeights(combinedDeliveryFee, weights);
+		const deliveryFeeShares = splitAmountByWeights(
+			combinedDeliveryFee,
+			weights,
+		);
 
 		return vendorCarts.map((vendorCart, index) => {
 			const vendor = vendorQueries[index]?.data ?? null;
@@ -627,14 +666,20 @@ export default function CheckoutPage() {
 	}, [estimateQueries, selectedAddress, vendorCarts, vendorQueries]);
 
 	const combinedDeliveryFee = useMemo(
-		() => vendorSummaries.reduce((sum, summary) => sum + summary.deliveryFeeShare, 0),
+		() =>
+			vendorSummaries.reduce(
+				(sum, summary) => sum + summary.deliveryFeeShare,
+				0,
+			),
 		[vendorSummaries],
 	);
 
 	const vendorsReady = vendorSummaries.every((summary) => !!summary.vendor);
 	const deliveryReady =
 		!selectedAddress ||
-		vendorSummaries.every((summary, index) => !summary.vendor || !!estimateQueries[index]?.data);
+		vendorSummaries.every(
+			(summary, index) => !summary.vendor || !!estimateQueries[index]?.data,
+		);
 
 	const { data: walletData } = useWallet();
 	const wallet = walletData?.data ?? null;
@@ -658,9 +703,12 @@ export default function CheckoutPage() {
 
 	const discount = appliedPromo?.discountAmount ?? 0;
 	const total = subtotal + combinedDeliveryFee - discount;
-	const anyBelowMinimum = vendorSummaries.some((summary) => summary.belowMinimum);
+	const anyBelowMinimum = vendorSummaries.some(
+		(summary) => summary.belowMinimum,
+	);
 	const vendorsLoading = vendorQueries.some((query) => query.isLoading);
-	const deliveryLoading = !!selectedAddress && estimateQueries.some((query) => query.isLoading);
+	const deliveryLoading =
+		!!selectedAddress && estimateQueries.some((query) => query.isLoading);
 
 	const canPlaceOrder =
 		!!selectedAddressId &&
@@ -672,7 +720,11 @@ export default function CheckoutPage() {
 		!anyBelowMinimum &&
 		!(isScheduled && !scheduledTime) &&
 		!(paymentMethod === PaymentMethod.Wallet && !wallet?.isActive) &&
-		!(paymentMethod === PaymentMethod.Wallet && walletBalance !== null && walletBalance < total) &&
+		!(
+			paymentMethod === PaymentMethod.Wallet &&
+			walletBalance !== null &&
+			walletBalance < total
+		) &&
 		!(multiVendorCart && paymentMethod !== PaymentMethod.Wallet) &&
 		!placeOrder.isPending;
 
@@ -684,7 +736,9 @@ export default function CheckoutPage() {
 		try {
 			for (const summary of vendorSummaries) {
 				if (!summary.vendor) {
-					throw new Error(`Vendor ${summary.vendorName} is not available right now.`);
+					throw new Error(
+						`Vendor ${summary.vendorName} is not available right now.`,
+					);
 				}
 
 				const payload: PlaceOrderPayload = {
@@ -697,7 +751,7 @@ export default function CheckoutPage() {
 					recipientPhone: null,
 					specialInstructions: specialInstructions.trim() || null,
 					paymentMethod,
-					promoCode: multiVendorCart ? null : appliedPromo?.code ?? null,
+					promoCode: multiVendorCart ? null : (appliedPromo?.code ?? null),
 					scheduledAt:
 						isScheduled && scheduledTime
 							? new Date(scheduledTime).toISOString()
@@ -772,7 +826,9 @@ export default function CheckoutPage() {
 				<div>
 					<h1 className="text-xl font-bold">Checkout</h1>
 					<p className="text-sm text-muted-foreground">
-						{vendorSummaries.length} {vendorSummaries.length === 1 ? "vendor" : "vendors"} · {itemCount} {itemCount === 1 ? "item" : "items"}
+						{vendorSummaries.length}{" "}
+						{vendorSummaries.length === 1 ? "vendor" : "vendors"} · {itemCount}{" "}
+						{itemCount === 1 ? "item" : "items"}
 					</p>
 				</div>
 			</div>
@@ -781,7 +837,8 @@ export default function CheckoutPage() {
 				<div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
 					<AlertCircle className="h-4 w-4 shrink-0" />
 					<span>
-						One or more vendor carts are below minimum order. Adjust those carts before placing your order.
+						One or more vendor carts are below minimum order. Adjust those carts
+						before placing your order.
 					</span>
 				</div>
 			)}
@@ -795,7 +852,10 @@ export default function CheckoutPage() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<AddressSelector selectedId={selectedAddressId} onSelect={setSelectedAddressId} />
+						<AddressSelector
+							selectedId={selectedAddressId}
+							onSelect={setSelectedAddressId}
+						/>
 					</CardContent>
 				</Card>
 
@@ -813,7 +873,9 @@ export default function CheckoutPage() {
 							<label
 								className={cn(
 									"flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors",
-									!isScheduled ? "border-primary bg-primary/5" : "hover:bg-accent",
+									!isScheduled
+										? "border-primary bg-primary/5"
+										: "hover:bg-accent",
 								)}>
 								<RadioGroupItem value="now" />
 								<div>
@@ -826,19 +888,25 @@ export default function CheckoutPage() {
 							<label
 								className={cn(
 									"flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors",
-									isScheduled ? "border-primary bg-primary/5" : "hover:bg-accent",
+									isScheduled
+										? "border-primary bg-primary/5"
+										: "hover:bg-accent",
 								)}>
 								<RadioGroupItem value="scheduled" />
 								<div>
 									<p className="text-sm font-medium">Schedule for Later</p>
-									<p className="text-xs text-muted-foreground">Choose a delivery time</p>
+									<p className="text-xs text-muted-foreground">
+										Choose a delivery time
+									</p>
 								</div>
 							</label>
 						</RadioGroup>
 
 						{isScheduled && (
 							<div className="mt-3">
-								<Label htmlFor="scheduled-time" className="text-xs text-muted-foreground">
+								<Label
+									htmlFor="scheduled-time"
+									className="text-xs text-muted-foreground">
 									Delivery date &amp; time
 								</Label>
 								<Input
@@ -846,7 +914,9 @@ export default function CheckoutPage() {
 									type="datetime-local"
 									value={scheduledTime}
 									onChange={(event) => setScheduledTime(event.target.value)}
-									min={new Date(Date.now() + 60 * 60_000).toISOString().slice(0, 16)}
+									min={new Date(Date.now() + 60 * 60_000)
+										.toISOString()
+										.slice(0, 16)}
 									className="mt-1"
 								/>
 							</div>
@@ -893,8 +963,14 @@ export default function CheckoutPage() {
 						<div className="flex items-center gap-2">
 							<Input
 								value={promoCode}
-								onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
-								placeholder={multiVendorCart ? "Promo codes apply to single-vendor checkout" : "Promo code"}
+								onChange={(event) =>
+									setPromoCode(event.target.value.toUpperCase())
+								}
+								placeholder={
+									multiVendorCart
+										? "Promo codes apply to single-vendor checkout"
+										: "Promo code"
+								}
 								className="flex-1"
 								disabled={multiVendorCart}
 							/>
@@ -909,7 +985,9 @@ export default function CheckoutPage() {
 										});
 
 										if (!response.data?.isValid) {
-											toast.error(response.data?.message || "Promo code is not valid.");
+											toast.error(
+												response.data?.message || "Promo code is not valid.",
+											);
 											setAppliedPromo(null);
 											return;
 										}
@@ -928,7 +1006,11 @@ export default function CheckoutPage() {
 										);
 									}
 								}}
-								disabled={multiVendorCart || !promoCode.trim() || validatePromo.isPending}>
+								disabled={
+									multiVendorCart ||
+									!promoCode.trim() ||
+									validatePromo.isPending
+								}>
 								{appliedPromo?.code === promoCode.trim()
 									? "Applied"
 									: validatePromo.isPending
@@ -938,7 +1020,8 @@ export default function CheckoutPage() {
 						</div>
 						{multiVendorCart && (
 							<p className="mt-2 text-xs text-muted-foreground">
-								Promo codes are currently limited to single-vendor marketplace checkout.
+								Promo codes are currently limited to single-vendor marketplace
+								checkout.
 							</p>
 						)}
 						{appliedPromo && !multiVendorCart && (
@@ -969,7 +1052,9 @@ export default function CheckoutPage() {
 								<span>{formatCurrency(subtotal)}</span>
 							</div>
 							<div className="flex justify-between text-sm">
-								<span className="text-muted-foreground">Combined delivery fee</span>
+								<span className="text-muted-foreground">
+									Combined delivery fee
+								</span>
 								<span>
 									{deliveryLoading ? (
 										<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -999,7 +1084,11 @@ export default function CheckoutPage() {
 
 			<div className="fixed bottom-0 left-0 right-0 border-t bg-background px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
 				<div className="mx-auto max-w-4xl">
-					<Button className="w-full gap-2" size="lg" disabled={!canPlaceOrder} onClick={handlePlaceOrder}>
+					<Button
+						className="w-full gap-2"
+						size="lg"
+						disabled={!canPlaceOrder}
+						onClick={handlePlaceOrder}>
 						{placeOrder.isPending ? (
 							<>
 								<Loader2 className="h-4 w-4 animate-spin" />
@@ -1013,7 +1102,10 @@ export default function CheckoutPage() {
 						)}
 					</Button>
 					<p className="mt-2 text-center text-[11px] text-muted-foreground">
-						By placing this order, you agree to our <Link href="/terms" className="underline">Terms of Service</Link>
+						By placing this order, you agree to our{" "}
+						<Link href="/terms" className="underline">
+							Terms of Service
+						</Link>
 					</p>
 				</div>
 			</div>

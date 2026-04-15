@@ -120,7 +120,9 @@ function AddressFormDialog({
 			onOpenChange(false);
 			setForm(emptyForm);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save address");
+			toast.error(
+				error instanceof Error ? error.message : "Failed to save address",
+			);
 		}
 	}
 

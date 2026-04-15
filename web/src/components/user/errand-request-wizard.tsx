@@ -1,6 +1,12 @@
 "use client";
 
-import { type Dispatch, type SetStateAction, useMemo, useRef, useState } from "react";
+import {
+	type Dispatch,
+	type SetStateAction,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -100,7 +106,12 @@ const PACKAGE_SIZES = [
 	{ value: "small", label: "Small", desc: "Fits in one hand", hint: "< 2kg" },
 	{ value: "medium", label: "Medium", desc: "Fits in a bag", hint: "2-5kg" },
 	{ value: "large", label: "Large", desc: "Needs both hands", hint: "5-15kg" },
-	{ value: "extra_large", label: "Extra Large", desc: "Heavy or bulky", hint: "15kg+" },
+	{
+		value: "extra_large",
+		label: "Extra Large",
+		desc: "Heavy or bulky",
+		hint: "15kg+",
+	},
 ] as const;
 
 function createLocationValue(): LocationFormValue {
@@ -115,8 +126,14 @@ function createLocationValue(): LocationFormValue {
 	};
 }
 
-function normalizeInitialCategory(category: string | undefined): LogisticsCategory | null {
-	if (category === "package" || category === "document" || category === "custom") {
+function normalizeInitialCategory(
+	category: string | undefined,
+): LogisticsCategory | null {
+	if (
+		category === "package" ||
+		category === "document" ||
+		category === "custom"
+	) {
 		return category;
 	}
 
@@ -178,9 +195,15 @@ export default function ErrandRequestWizard({
 	const stopIdRef = useRef(0);
 
 	const [step, setStep] = useState<WizardStep>(resolvedInitialCategory ? 1 : 0);
-	const [category, setCategory] = useState<LogisticsCategory>(resolvedInitialCategory ?? "package");
-	const [pickup, setPickup] = useState<LocationFormValue>(createLocationValue());
-	const [dropoff, setDropoff] = useState<LocationFormValue>(createLocationValue());
+	const [category, setCategory] = useState<LogisticsCategory>(
+		resolvedInitialCategory ?? "package",
+	);
+	const [pickup, setPickup] = useState<LocationFormValue>(
+		createLocationValue(),
+	);
+	const [dropoff, setDropoff] = useState<LocationFormValue>(
+		createLocationValue(),
+	);
 	const [stops, setStops] = useState<LocationFormValue[]>([]);
 	const [description, setDescription] = useState("");
 	const [packageSize, setPackageSize] = useState("small");
@@ -215,23 +238,28 @@ export default function ErrandRequestWizard({
 			priority: toPriority(priority),
 			stops: stops.length
 				? stops.map((stop, index) => ({
-					stopOrder: index + 1,
-					address: stop.address,
-					latitude: stop.latitude,
-					longitude: stop.longitude,
-					contactName: stop.contactName || null,
-					contactPhone: stop.contactPhone || null,
-					instructions: stop.instructions || null,
-				}))
+						stopOrder: index + 1,
+						address: stop.address,
+						latitude: stop.latitude,
+						longitude: stop.longitude,
+						contactName: stop.contactName || null,
+						contactPhone: stop.contactPhone || null,
+						instructions: stop.instructions || null,
+					}))
 				: null,
 		}),
 		[category, pickup, dropoff, packageSize, packageWeight, priority, stops],
 	);
 
-	const estimate = useDeliveryEstimate(estimateRequest, step === 5 && !isPreparingReview);
+	const estimate = useDeliveryEstimate(
+		estimateRequest,
+		step === 5 && !isPreparingReview,
+	);
 	const estimateData = estimate.data?.data ?? null;
 	const walletBlocked =
-		paymentMethod === PaymentMethod.Wallet && (!wallet?.isActive || (estimateData ? walletBalance < estimateData.estimatedPrice : false));
+		paymentMethod === PaymentMethod.Wallet &&
+		(!wallet?.isActive ||
+			(estimateData ? walletBalance < estimateData.estimatedPrice : false));
 
 	function updateLocation(
 		setter: Dispatch<SetStateAction<LocationFormValue>>,
@@ -245,15 +273,19 @@ export default function ErrandRequestWizard({
 		}));
 	}
 
-	function updateStop(id: string, field: keyof LocationFormValue, value: string | number) {
+	function updateStop(
+		id: string,
+		field: keyof LocationFormValue,
+		value: string | number,
+	) {
 		setStops((current) =>
 			current.map((stop) =>
 				stop.id === id
 					? {
-						...stop,
-						[field]: value,
-						...(field === "address" ? { latitude: 0, longitude: 0 } : {}),
-					}
+							...stop,
+							[field]: value,
+							...(field === "address" ? { latitude: 0, longitude: 0 } : {}),
+						}
 					: stop,
 			),
 		);
@@ -286,7 +318,10 @@ export default function ErrandRequestWizard({
 		setStops((current) => current.filter((stop) => stop.id !== id));
 	}
 
-	async function resolveLocation(point: LocationFormValue, label: string): Promise<LocationFormValue> {
+	async function resolveLocation(
+		point: LocationFormValue,
+		label: string,
+	): Promise<LocationFormValue> {
 		if (!point.address.trim()) {
 			throw new Error(`${label} address is required.`);
 		}
@@ -298,7 +333,9 @@ export default function ErrandRequestWizard({
 		const response = await geocodeAddress.mutateAsync(point.address.trim());
 		const result = response.data;
 		if (!result) {
-			throw new Error(`We could not geocode the ${label.toLowerCase()} address.`);
+			throw new Error(
+				`We could not geocode the ${label.toLowerCase()} address.`,
+			);
 		}
 
 		return {
@@ -316,7 +353,9 @@ export default function ErrandRequestWizard({
 			const resolvedStops: LocationFormValue[] = [];
 
 			for (let index = 0; index < stops.length; index += 1) {
-				resolvedStops.push(await resolveLocation(stops[index], `Stop ${index + 1}`));
+				resolvedStops.push(
+					await resolveLocation(stops[index], `Stop ${index + 1}`),
+				);
 			}
 
 			const resolvedDropoff = await resolveLocation(dropoff, "Dropoff");
@@ -326,7 +365,9 @@ export default function ErrandRequestWizard({
 			setDropoff(resolvedDropoff);
 			setStep(5);
 		} catch (error) {
-			toast.error(formatError(error, "Could not prepare your errand for review."));
+			toast.error(
+				formatError(error, "Could not prepare your errand for review."),
+			);
 		} finally {
 			setIsPreparingReview(false);
 		}
@@ -345,7 +386,11 @@ export default function ErrandRequestWizard({
 			return;
 		}
 
-		if (step === 3 && priority === "scheduled" && (!scheduledDate || !scheduledTime)) {
+		if (
+			step === 3 &&
+			priority === "scheduled" &&
+			(!scheduledDate || !scheduledTime)
+		) {
 			toast.error("Choose a date and time for the scheduled errand.");
 			return;
 		}
@@ -406,14 +451,14 @@ export default function ErrandRequestWizard({
 			paymentMethod,
 			stops: stops.length
 				? stops.map((stop, index) => ({
-					stopOrder: index + 1,
-					address: stop.address.trim(),
-					latitude: stop.latitude,
-					longitude: stop.longitude,
-					contactName: stop.contactName.trim() || null,
-					contactPhone: stop.contactPhone.trim() || null,
-					instructions: stop.instructions.trim() || null,
-				}))
+						stopOrder: index + 1,
+						address: stop.address.trim(),
+						latitude: stop.latitude,
+						longitude: stop.longitude,
+						contactName: stop.contactName.trim() || null,
+						contactPhone: stop.contactPhone.trim() || null,
+						instructions: stop.instructions.trim() || null,
+					}))
 				: null,
 		};
 
@@ -438,7 +483,10 @@ export default function ErrandRequestWizard({
 				}
 			} catch (paymentError) {
 				toast.error(
-					formatError(paymentError, "Your errand was created, but payment could not be started."),
+					formatError(
+						paymentError,
+						"Your errand was created, but payment could not be started.",
+					),
 				);
 				router.push(`/dashboard/errands/${errand.id}`);
 				return;
@@ -530,7 +578,9 @@ export default function ErrandRequestWizard({
 							<Label>Pickup Address</Label>
 							<Input
 								value={pickup.address}
-								onChange={(event) => updateLocation(setPickup, "address", event.target.value)}
+								onChange={(event) =>
+									updateLocation(setPickup, "address", event.target.value)
+								}
 								placeholder="Where should we pick up?"
 							/>
 							{addresses.length > 0 && (
@@ -558,44 +608,79 @@ export default function ErrandRequestWizard({
 										Add any stopovers before the final dropoff.
 									</p>
 								</div>
-								<Button type="button" variant="outline" size="sm" className="gap-2" onClick={addStop}>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="gap-2"
+									onClick={addStop}>
 									<Plus className="h-4 w-4" />
 									Add Stop
 								</Button>
 							</div>
 
 							{stops.length === 0 ? (
-								<p className="text-sm text-muted-foreground">No intermediate stops added yet.</p>
+								<p className="text-sm text-muted-foreground">
+									No intermediate stops added yet.
+								</p>
 							) : (
 								<div className="space-y-4">
 									{stops.map((stop, index) => (
-										<div key={stop.id} className="space-y-3 rounded-lg border bg-background p-4">
+										<div
+											key={stop.id}
+											className="space-y-3 rounded-lg border bg-background p-4">
 											<div className="flex items-center justify-between gap-3">
-												<p className="text-sm font-semibold">Stop {index + 1}</p>
-												<Button type="button" variant="ghost" size="icon" onClick={() => removeStop(stop.id)}>
+												<p className="text-sm font-semibold">
+													Stop {index + 1}
+												</p>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													onClick={() => removeStop(stop.id)}>
 													<Trash2 className="h-4 w-4" />
 												</Button>
 											</div>
 											<Input
 												value={stop.address}
-												onChange={(event) => updateStop(stop.id, "address", event.target.value)}
+												onChange={(event) =>
+													updateStop(stop.id, "address", event.target.value)
+												}
 												placeholder="Stop address"
 											/>
 											<div className="grid gap-3 sm:grid-cols-2">
 												<Input
 													value={stop.contactName}
-													onChange={(event) => updateStop(stop.id, "contactName", event.target.value)}
+													onChange={(event) =>
+														updateStop(
+															stop.id,
+															"contactName",
+															event.target.value,
+														)
+													}
 													placeholder="Contact name (optional)"
 												/>
 												<Input
 													value={stop.contactPhone}
-													onChange={(event) => updateStop(stop.id, "contactPhone", event.target.value)}
+													onChange={(event) =>
+														updateStop(
+															stop.id,
+															"contactPhone",
+															event.target.value,
+														)
+													}
 													placeholder="Contact phone (optional)"
 												/>
 											</div>
 											<Textarea
 												value={stop.instructions}
-												onChange={(event) => updateStop(stop.id, "instructions", event.target.value)}
+												onChange={(event) =>
+													updateStop(
+														stop.id,
+														"instructions",
+														event.target.value,
+													)
+												}
 												placeholder="Stop instructions (optional)"
 												rows={2}
 											/>
@@ -609,7 +694,9 @@ export default function ErrandRequestWizard({
 							<Label>Final Dropoff Address</Label>
 							<Input
 								value={dropoff.address}
-								onChange={(event) => updateLocation(setDropoff, "address", event.target.value)}
+								onChange={(event) =>
+									updateLocation(setDropoff, "address", event.target.value)
+								}
 								placeholder="Where should we deliver?"
 							/>
 							{addresses.length > 0 && (
@@ -634,7 +721,13 @@ export default function ErrandRequestWizard({
 								<Label>Recipient Name</Label>
 								<Input
 									value={dropoff.contactName}
-									onChange={(event) => updateLocation(setDropoff, "contactName", event.target.value)}
+									onChange={(event) =>
+										updateLocation(
+											setDropoff,
+											"contactName",
+											event.target.value,
+										)
+									}
 									placeholder="Recipient's name"
 								/>
 							</div>
@@ -642,7 +735,13 @@ export default function ErrandRequestWizard({
 								<Label>Recipient Phone</Label>
 								<Input
 									value={dropoff.contactPhone}
-									onChange={(event) => updateLocation(setDropoff, "contactPhone", event.target.value)}
+									onChange={(event) =>
+										updateLocation(
+											setDropoff,
+											"contactPhone",
+											event.target.value,
+										)
+									}
 									placeholder="080..."
 								/>
 							</div>
@@ -652,7 +751,9 @@ export default function ErrandRequestWizard({
 							<Label>Dropoff Instructions</Label>
 							<Textarea
 								value={dropoff.instructions}
-								onChange={(event) => updateLocation(setDropoff, "instructions", event.target.value)}
+								onChange={(event) =>
+									updateLocation(setDropoff, "instructions", event.target.value)
+								}
 								placeholder="Anything the rider should know at delivery?"
 								rows={2}
 							/>
@@ -694,7 +795,9 @@ export default function ErrandRequestWizard({
 										onClick={() => setPackageSize(size.value)}
 										className={cn(
 											"rounded-xl border p-3 text-left transition-all",
-											packageSize === size.value ? "border-primary bg-primary/5" : "hover:bg-accent",
+											packageSize === size.value
+												? "border-primary bg-primary/5"
+												: "hover:bg-accent",
 										)}>
 										<p className="text-sm font-semibold">{size.label}</p>
 										<p className="text-xs text-muted-foreground">{size.desc}</p>
@@ -722,7 +825,9 @@ export default function ErrandRequestWizard({
 								<Label>Special Instructions</Label>
 								<Textarea
 									value={specialInstructions}
-									onChange={(event) => setSpecialInstructions(event.target.value)}
+									onChange={(event) =>
+										setSpecialInstructions(event.target.value)
+									}
 									placeholder="Handling instructions, access notes, or special context"
 									rows={2}
 								/>
@@ -730,8 +835,14 @@ export default function ErrandRequestWizard({
 						</div>
 
 						<div className="flex items-center gap-3">
-							<Checkbox id="fragile" checked={isFragile} onCheckedChange={(value) => setIsFragile(Boolean(value))} />
-							<Label htmlFor="fragile" className="flex cursor-pointer items-center gap-2">
+							<Checkbox
+								id="fragile"
+								checked={isFragile}
+								onCheckedChange={(value) => setIsFragile(Boolean(value))}
+							/>
+							<Label
+								htmlFor="fragile"
+								className="flex cursor-pointer items-center gap-2">
 								<AlertTriangle className="h-4 w-4 text-yellow-500" />
 								This package is fragile
 							</Label>
@@ -753,25 +864,51 @@ export default function ErrandRequestWizard({
 						<CardTitle>Priority and Schedule</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<RadioGroup value={priority} onValueChange={(value) => setPriority(value as PriorityOption)}>
+						<RadioGroup
+							value={priority}
+							onValueChange={(value) => setPriority(value as PriorityOption)}>
 							{[
-								{ value: "standard", label: "Standard", desc: "Regular delivery speed", icon: Truck, price: null },
-								{ value: "express", label: "Express", desc: "Priority pickup and delivery", icon: Zap, price: "Faster" },
-								{ value: "scheduled", label: "Scheduled", desc: "Choose a future pickup window", icon: Calendar, price: "Planned" },
+								{
+									value: "standard",
+									label: "Standard",
+									desc: "Regular delivery speed",
+									icon: Truck,
+									price: null,
+								},
+								{
+									value: "express",
+									label: "Express",
+									desc: "Priority pickup and delivery",
+									icon: Zap,
+									price: "Faster",
+								},
+								{
+									value: "scheduled",
+									label: "Scheduled",
+									desc: "Choose a future pickup window",
+									icon: Calendar,
+									price: "Planned",
+								},
 							].map((option) => (
 								<label
 									key={option.value}
 									className={cn(
 										"flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all",
-										priority === option.value ? "border-primary bg-primary/5" : "hover:bg-accent",
+										priority === option.value
+											? "border-primary bg-primary/5"
+											: "hover:bg-accent",
 									)}>
 									<RadioGroupItem value={option.value} />
 									<option.icon className="h-5 w-5 text-muted-foreground" />
 									<div className="flex-1">
 										<p className="text-sm font-semibold">{option.label}</p>
-										<p className="text-xs text-muted-foreground">{option.desc}</p>
+										<p className="text-xs text-muted-foreground">
+											{option.desc}
+										</p>
 									</div>
-									{option.price && <Badge variant="secondary">{option.price}</Badge>}
+									{option.price && (
+										<Badge variant="secondary">{option.price}</Badge>
+									)}
 								</label>
 							))}
 						</RadioGroup>
@@ -780,11 +917,19 @@ export default function ErrandRequestWizard({
 							<div className="grid gap-4 sm:grid-cols-2">
 								<div className="space-y-2">
 									<Label>Pickup Date</Label>
-									<Input type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} />
+									<Input
+										type="date"
+										value={scheduledDate}
+										onChange={(event) => setScheduledDate(event.target.value)}
+									/>
 								</div>
 								<div className="space-y-2">
 									<Label>Pickup Time</Label>
-									<Input type="time" value={scheduledTime} onChange={(event) => setScheduledTime(event.target.value)} />
+									<Input
+										type="time"
+										value={scheduledTime}
+										onChange={(event) => setScheduledTime(event.target.value)}
+									/>
 								</div>
 							</div>
 						)}
@@ -805,24 +950,52 @@ export default function ErrandRequestWizard({
 						<CardTitle>Payment Method</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						<RadioGroup value={String(paymentMethod)} onValueChange={(value) => setPaymentMethod(Number(value) as PaymentMethod)}>
+						<RadioGroup
+							value={String(paymentMethod)}
+							onValueChange={(value) =>
+								setPaymentMethod(Number(value) as PaymentMethod)
+							}>
 							{[
-								{ value: PaymentMethod.Wallet, label: "Wallet", desc: `Balance: ${formatCurrency(walletBalance)}`, icon: Wallet },
-								{ value: PaymentMethod.BankTransfer, label: "Bank Transfer", desc: "Secure checkout via Monnify", icon: Landmark },
-								{ value: PaymentMethod.Card, label: "Card", desc: "Pay online with your card", icon: CreditCard },
-								{ value: PaymentMethod.Cash, label: "Cash on Delivery", desc: "Pay the rider when delivered", icon: Banknote },
+								{
+									value: PaymentMethod.Wallet,
+									label: "Wallet",
+									desc: `Balance: ${formatCurrency(walletBalance)}`,
+									icon: Wallet,
+								},
+								{
+									value: PaymentMethod.BankTransfer,
+									label: "Bank Transfer",
+									desc: "Secure checkout via Monnify",
+									icon: Landmark,
+								},
+								{
+									value: PaymentMethod.Card,
+									label: "Card",
+									desc: "Pay online with your card",
+									icon: CreditCard,
+								},
+								{
+									value: PaymentMethod.Cash,
+									label: "Cash on Delivery",
+									desc: "Pay the rider when delivered",
+									icon: Banknote,
+								},
 							].map((option) => (
 								<label
 									key={option.value}
 									className={cn(
 										"flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all",
-										paymentMethod === option.value ? "border-primary bg-primary/5" : "hover:bg-accent",
+										paymentMethod === option.value
+											? "border-primary bg-primary/5"
+											: "hover:bg-accent",
 									)}>
 									<RadioGroupItem value={String(option.value)} />
 									<option.icon className="h-5 w-5 text-muted-foreground" />
 									<div>
 										<p className="text-sm font-semibold">{option.label}</p>
-										<p className="text-xs text-muted-foreground">{option.desc}</p>
+										<p className="text-xs text-muted-foreground">
+											{option.desc}
+										</p>
 									</div>
 								</label>
 							))}
@@ -859,23 +1032,34 @@ export default function ErrandRequestWizard({
 
 						{estimate.isError && (
 							<div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-								{formatError(estimate.error, "We could not calculate a delivery estimate.")}
+								{formatError(
+									estimate.error,
+									"We could not calculate a delivery estimate.",
+								)}
 							</div>
 						)}
 
 						{estimateData && (
 							<div className="grid gap-3 sm:grid-cols-3">
 								<div className="rounded-xl border p-4">
-									<p className="text-xs text-muted-foreground">Estimated Fare</p>
-									<p className="mt-1 text-lg font-bold">{formatCurrency(estimateData.estimatedPrice)}</p>
+									<p className="text-xs text-muted-foreground">
+										Estimated Fare
+									</p>
+									<p className="mt-1 text-lg font-bold">
+										{formatCurrency(estimateData.estimatedPrice)}
+									</p>
 								</div>
 								<div className="rounded-xl border p-4">
 									<p className="text-xs text-muted-foreground">Distance</p>
-									<p className="mt-1 text-lg font-bold">{estimateData.estimatedDistanceKm.toFixed(1)} km</p>
+									<p className="mt-1 text-lg font-bold">
+										{estimateData.estimatedDistanceKm.toFixed(1)} km
+									</p>
 								</div>
 								<div className="rounded-xl border p-4">
 									<p className="text-xs text-muted-foreground">ETA</p>
-									<p className="mt-1 text-lg font-bold">{estimateData.estimatedDurationMinutes} min</p>
+									<p className="mt-1 text-lg font-bold">
+										{estimateData.estimatedDurationMinutes} min
+									</p>
 								</div>
 							</div>
 						)}
@@ -884,7 +1068,9 @@ export default function ErrandRequestWizard({
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-muted-foreground">Service</span>
 								<span className="font-medium">
-									{stops.length > 0 ? "Multi-stop logistics" : CATEGORIES.find((item) => item.value === category)?.label}
+									{stops.length > 0
+										? "Multi-stop logistics"
+										: CATEGORIES.find((item) => item.value === category)?.label}
 								</span>
 							</div>
 							<Separator />
@@ -896,7 +1082,9 @@ export default function ErrandRequestWizard({
 								{stops.map((stop, index) => (
 									<div key={stop.id} className="flex gap-2">
 										<Route className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-										<span>Stop {index + 1}: {stop.address}</span>
+										<span>
+											Stop {index + 1}: {stop.address}
+										</span>
 									</div>
 								))}
 								<div className="flex gap-2">
@@ -912,7 +1100,9 @@ export default function ErrandRequestWizard({
 							{priority === "scheduled" && scheduledDate && scheduledTime && (
 								<div className="flex items-center justify-between text-sm">
 									<span className="text-muted-foreground">Scheduled For</span>
-									<span className="font-medium">{scheduledDate} {scheduledTime}</span>
+									<span className="font-medium">
+										{scheduledDate} {scheduledTime}
+									</span>
 								</div>
 							)}
 							<div className="flex items-center justify-between text-sm">
@@ -924,7 +1114,9 @@ export default function ErrandRequestWizard({
 							</div>
 							<div className="flex items-center justify-between text-sm">
 								<span className="text-muted-foreground">Payment</span>
-								<span className="font-medium">{paymentLabel(paymentMethod)}</span>
+								<span className="font-medium">
+									{paymentLabel(paymentMethod)}
+								</span>
 							</div>
 						</div>
 
@@ -936,7 +1128,13 @@ export default function ErrandRequestWizard({
 							</div>
 						)}
 
-						<Button className="w-full gap-2" size="lg" onClick={handleSubmit} disabled={busy || !estimateData || walletBlocked || estimate.isError}>
+						<Button
+							className="w-full gap-2"
+							size="lg"
+							onClick={handleSubmit}
+							disabled={
+								busy || !estimateData || walletBlocked || estimate.isError
+							}>
 							{createErrand.isPending || processPayment.isPending ? (
 								<>
 									<Loader2 className="h-4 w-4 animate-spin" />

@@ -112,7 +112,9 @@ function LoginForm() {
 
 			<form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 				<div className="space-y-2">
-					<label htmlFor="email" className="block text-sm font-medium text-foreground">
+					<label
+						htmlFor="email"
+						className="block text-sm font-medium text-foreground">
 						Email
 					</label>
 					<Input
@@ -130,10 +132,14 @@ function LoginForm() {
 
 				<div className="space-y-2">
 					<div className="flex items-center justify-between gap-3">
-						<label htmlFor="password" className="block text-sm font-medium text-foreground">
+						<label
+							htmlFor="password"
+							className="block text-sm font-medium text-foreground">
 							Password
 						</label>
-						<Link href="/forgot-password" className="text-xs font-medium text-primary hover:text-primary/80">
+						<Link
+							href="/forgot-password"
+							className="text-xs font-medium text-primary hover:text-primary/80">
 							Forgot password?
 						</Link>
 					</div>
@@ -149,7 +155,10 @@ function LoginForm() {
 					)}
 				</div>
 
-				<Button type="submit" disabled={isSubmitting} className="h-11 w-full rounded-xl text-sm font-semibold shadow-sm shadow-primary/20">
+				<Button
+					type="submit"
+					disabled={isSubmitting}
+					className="h-11 w-full rounded-xl text-sm font-semibold shadow-sm shadow-primary/20">
 					{isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
 					Sign in
 				</Button>

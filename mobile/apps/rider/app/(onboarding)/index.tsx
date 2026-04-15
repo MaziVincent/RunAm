@@ -99,7 +99,10 @@ export default function RiderOnboardingScreen() {
 	};
 
 	const handleVerifyBank = async () => {
-		if (!settlementBankCode.trim() || settlementAccountNumber.trim().length < 10) {
+		if (
+			!settlementBankCode.trim() ||
+			settlementAccountNumber.trim().length < 10
+		) {
 			Alert.alert(
 				"Verify Account",
 				"Enter a valid bank code and 10-digit account number first.",
@@ -290,12 +293,17 @@ export default function RiderOnboardingScreen() {
 					{isUploadingSelfie ? (
 						<ActivityIndicator color="#2F8F4E" />
 					) : selfiePreviewUri ? (
-						<Image source={{ uri: selfiePreviewUri }} style={styles.selfiePreview} />
+						<Image
+							source={{ uri: selfiePreviewUri }}
+							style={styles.selfiePreview}
+						/>
 					) : (
 						<Text style={styles.uploadIcon}>📷</Text>
 					)}
 					<View style={styles.uploadInfo}>
-						<Text style={styles.uploadTitle}>Upload a clear passport photo</Text>
+						<Text style={styles.uploadTitle}>
+							Upload a clear passport photo
+						</Text>
 						<Text style={styles.uploadSubtitle}>
 							JPEG, PNG, or WebP. This is used for identity verification.
 						</Text>
@@ -351,12 +359,10 @@ export default function RiderOnboardingScreen() {
 					placeholder="Account number"
 					placeholderTextColor="#9CA3AF"
 					value={settlementAccountNumber}
-					onChangeText={(value) =>
-						{
-							setSettlementAccountNumber(value.replace(/\D/g, ""));
-							setBankVerified(false);
-						}
-					}
+					onChangeText={(value) => {
+						setSettlementAccountNumber(value.replace(/\D/g, ""));
+						setBankVerified(false);
+					}}
 					keyboardType="number-pad"
 					maxLength={10}
 				/>
@@ -378,7 +384,8 @@ export default function RiderOnboardingScreen() {
 					value={settlementAccountName}
 					onChangeText={setSettlementAccountName}
 				/>
-				<Text style={[styles.helperText, bankVerified && styles.helperTextSuccess]}>
+				<Text
+					style={[styles.helperText, bankVerified && styles.helperTextSuccess]}>
 					{bankVerified
 						? `Verified account name: ${settlementAccountName}`
 						: "Verify the account before you submit your application."}
@@ -389,10 +396,7 @@ export default function RiderOnboardingScreen() {
 					onPress={() => setAgreedToTerms((value) => !value)}
 					activeOpacity={0.8}>
 					<View
-						style={[
-							styles.checkbox,
-							agreedToTerms && styles.checkboxChecked,
-						]}>
+						style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
 						{agreedToTerms && <Text style={styles.checkboxMark}>✓</Text>}
 					</View>
 					<Text style={styles.checkboxLabel}>

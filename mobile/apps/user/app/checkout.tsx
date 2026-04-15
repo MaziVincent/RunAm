@@ -124,9 +124,7 @@ export default function CheckoutScreen() {
 	const vendorClosed = vendor ? !vendor.isOpen : false;
 	const walletUnavailable = paymentMethod === 0 && wallet?.isActive !== true;
 	const insufficientWalletBalance =
-		paymentMethod === 0 &&
-		wallet?.isActive === true &&
-		wallet.balance < total;
+		paymentMethod === 0 && wallet?.isActive === true && wallet.balance < total;
 	const missingSavedCard =
 		paymentMethod === 1 &&
 		!savedPaymentMethods.some((method) => method.type === "Card");
@@ -211,8 +209,7 @@ export default function CheckoutScreen() {
 					{ text: "Cancel", style: "cancel" },
 					{
 						text: "Add Card",
-						onPress: () =>
-							router.push("/settings/payment-methods" as never),
+						onPress: () => router.push("/settings/payment-methods" as never),
 					},
 				],
 			);
@@ -433,13 +430,14 @@ export default function CheckoutScreen() {
 					</View>
 					{walletUnavailable && (
 						<Text style={styles.warningText}>
-							Create your wallet from the Wallet tab before using wallet payment.
+							Create your wallet from the Wallet tab before using wallet
+							payment.
 						</Text>
 					)}
 					{insufficientWalletBalance && (
 						<Text style={styles.warningText}>
-							Wallet balance: ₦{wallet?.balance?.toLocaleString() ?? "0"}. Top up
-							 before placing this order.
+							Wallet balance: ₦{wallet?.balance?.toLocaleString() ?? "0"}. Top
+							up before placing this order.
 						</Text>
 					)}
 					{missingSavedCard && (
@@ -448,7 +446,9 @@ export default function CheckoutScreen() {
 								Add a saved card before using card payment.
 							</Text>
 							<TouchableOpacity
-								onPress={() => router.push("/settings/payment-methods" as never)}>
+								onPress={() =>
+									router.push("/settings/payment-methods" as never)
+								}>
 								<Text style={styles.linkText}>Open payment methods</Text>
 							</TouchableOpacity>
 						</View>
@@ -515,8 +515,7 @@ export default function CheckoutScreen() {
 				<TouchableOpacity
 					style={[
 						styles.placeOrderBtn,
-						cannotPlaceOrder &&
-							styles.placeOrderBtnDisabled,
+						cannotPlaceOrder && styles.placeOrderBtnDisabled,
 					]}
 					activeOpacity={0.8}
 					disabled={cannotPlaceOrder}

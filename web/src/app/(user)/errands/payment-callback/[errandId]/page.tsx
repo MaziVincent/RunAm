@@ -31,7 +31,9 @@ function LogisticsPaymentCallbackContent() {
 
 		const pollStatus = async () => {
 			try {
-				const response = await api.get<PaymentDto | null>(`/payments/errand/${errandId}/status`);
+				const response = await api.get<PaymentDto | null>(
+					`/payments/errand/${errandId}/status`,
+				);
 				const payment = response.data;
 
 				if (cancelled) {
@@ -75,33 +77,50 @@ function LogisticsPaymentCallbackContent() {
 	return (
 		<div className="container mx-auto max-w-lg px-4 py-12 text-center">
 			{state === "loading" && (
-				<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4">
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					className="flex flex-col items-center gap-4">
 					<Loader2 className="h-16 w-16 animate-spin text-primary" />
 					<h1 className="text-2xl font-bold">Confirming Payment...</h1>
-					<p className="text-muted-foreground">Please wait while we verify your errand payment.</p>
+					<p className="text-muted-foreground">
+						Please wait while we verify your errand payment.
+					</p>
 				</motion.div>
 			)}
 
 			{state === "success" && (
-				<motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4">
+				<motion.div
+					initial={{ scale: 0.8, opacity: 0 }}
+					animate={{ scale: 1, opacity: 1 }}
+					className="flex flex-col items-center gap-4">
 					<div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
 						<CheckCircle2 className="h-12 w-12 text-primary" />
 					</div>
 					<h1 className="text-2xl font-bold">Payment Successful</h1>
-					<p className="text-muted-foreground">Your errand payment has been confirmed and the request is active.</p>
-					<Button className="mt-4" onClick={() => router.push(`/dashboard/errands/${errandId}`)}>
+					<p className="text-muted-foreground">
+						Your errand payment has been confirmed and the request is active.
+					</p>
+					<Button
+						className="mt-4"
+						onClick={() => router.push(`/dashboard/errands/${errandId}`)}>
 						View Errand
 					</Button>
 				</motion.div>
 			)}
 
 			{(state === "failed" || state === "timeout") && (
-				<motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4">
+				<motion.div
+					initial={{ scale: 0.8, opacity: 0 }}
+					animate={{ scale: 1, opacity: 1 }}
+					className="flex flex-col items-center gap-4">
 					<div className="flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
 						<XCircle className="h-12 w-12 text-destructive" />
 					</div>
 					<h1 className="text-2xl font-bold">
-						{state === "timeout" ? "Verification Timed Out" : "Payment Not Confirmed"}
+						{state === "timeout"
+							? "Verification Timed Out"
+							: "Payment Not Confirmed"}
 					</h1>
 					<p className="text-muted-foreground">
 						{state === "timeout"
@@ -109,10 +128,13 @@ function LogisticsPaymentCallbackContent() {
 							: "We could not confirm the payment. You can reopen the errand and retry payment."}
 					</p>
 					<div className="mt-4 flex gap-3">
-						<Button variant="outline" onClick={() => router.push("/errands/new")}>
+						<Button
+							variant="outline"
+							onClick={() => router.push("/errands/new")}>
 							Back to Errands
 						</Button>
-						<Button onClick={() => router.push(`/dashboard/errands/${errandId}`)}>
+						<Button
+							onClick={() => router.push(`/dashboard/errands/${errandId}`)}>
 							Check Errand
 						</Button>
 					</div>

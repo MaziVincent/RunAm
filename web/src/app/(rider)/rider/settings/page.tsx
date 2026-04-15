@@ -38,7 +38,11 @@ import {
 	useChangePassword,
 } from "@/lib/hooks";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { VehicleType, ApprovalStatus, type NotificationPreferenceDto } from "@/types";
+import {
+	VehicleType,
+	ApprovalStatus,
+	type NotificationPreferenceDto,
+} from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -62,7 +66,10 @@ const approvalStatusColor: Record<number, string> = {
 	[ApprovalStatus.Rejected]: "bg-red-100 text-red-700",
 };
 
-type NotificationPreferenceKey = Exclude<keyof NotificationPreferenceDto, "fcmToken">;
+type NotificationPreferenceKey = Exclude<
+	keyof NotificationPreferenceDto,
+	"fcmToken"
+>;
 
 const notificationOptions: Array<{
 	key: NotificationPreferenceKey;
@@ -261,7 +268,9 @@ export default function RiderSettingsPage() {
 							disabled={changePassword.isPending}>
 							Cancel
 						</Button>
-						<Button onClick={handlePasswordChange} disabled={changePassword.isPending}>
+						<Button
+							onClick={handlePasswordChange}
+							disabled={changePassword.isPending}>
 							{changePassword.isPending && (
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 							)}
@@ -398,10 +407,14 @@ export default function RiderSettingsPage() {
 											<Switch
 												checked={prefs?.[option.key] ?? true}
 												disabled={updatePrefs.isPending}
-												onCheckedChange={(value) => togglePref(option.key, value)}
+												onCheckedChange={(value) =>
+													togglePref(option.key, value)
+												}
 											/>
 										</div>
-										{index < notificationOptions.length - 1 && <Separator className="mt-4" />}
+										{index < notificationOptions.length - 1 && (
+											<Separator className="mt-4" />
+										)}
 									</div>
 								);
 							})}

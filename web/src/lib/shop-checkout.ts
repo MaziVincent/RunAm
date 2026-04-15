@@ -66,7 +66,11 @@ export function calculateShortestRouteDistanceKm(
 	let bestDistance = Number.POSITIVE_INFINITY;
 	const used = Array(vendors.length).fill(false);
 
-	function visit(lastIndex: number | null, visitedCount: number, distanceSoFar: number) {
+	function visit(
+		lastIndex: number | null,
+		visitedCount: number,
+		distanceSoFar: number,
+	) {
 		if (distanceSoFar >= bestDistance) return;
 
 		if (visitedCount === vendors.length) {
@@ -104,10 +108,16 @@ export function calculateDeliveryFee(
 	return pricing.baseFare + pricing.perKmRate * distanceKm;
 }
 
-export function splitAmountByWeights(amount: number, weights: number[]): number[] {
+export function splitAmountByWeights(
+	amount: number,
+	weights: number[],
+): number[] {
 	if (weights.length === 0) return [];
 
-	const totalWeight = weights.reduce((sum, value) => sum + Math.max(value, 0), 0);
+	const totalWeight = weights.reduce(
+		(sum, value) => sum + Math.max(value, 0),
+		0,
+	);
 	const normalizedWeights =
 		totalWeight > 0
 			? weights.map((value) => Math.max(value, 0) / totalWeight)
@@ -116,7 +126,8 @@ export function splitAmountByWeights(amount: number, weights: number[]): number[
 	const totalMinorUnits = Math.round(amount * 100);
 	const rawShares = normalizedWeights.map((weight) => weight * totalMinorUnits);
 	const roundedDown = rawShares.map((share) => Math.floor(share));
-	let remainder = totalMinorUnits - roundedDown.reduce((sum, share) => sum + share, 0);
+	let remainder =
+		totalMinorUnits - roundedDown.reduce((sum, share) => sum + share, 0);
 
 	const rankedRemainders = rawShares
 		.map((share, index) => ({ index, remainder: share - Math.floor(share) }))

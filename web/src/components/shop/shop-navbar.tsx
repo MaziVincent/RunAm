@@ -77,7 +77,10 @@ export function ShopNavbar() {
 	const debouncedQuery = useDebounce(searchQuery, 400);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const { lat, lng, loading: geoLoading } = useGeolocation();
-	const { name: locationName, loading: locationLoading } = useLocationName(lat, lng);
+	const { name: locationName, loading: locationLoading } = useLocationName(
+		lat,
+		lng,
+	);
 
 	useEffect(() => {
 		setHasMounted(true);
@@ -94,7 +97,7 @@ export function ShopNavbar() {
 
 	const isShopHome = pathname === "/shop";
 	const isVendorPage = pathname.startsWith("/shop/vendors/");
-	
+
 	//const isScrolled = scrollY > 20;
 	return (
 		<header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -120,7 +123,6 @@ export function ShopNavbar() {
 							style={{ width: "auto" }}
 							priority
 						/>
-						
 					</Link>
 				)}
 

@@ -54,9 +54,7 @@ function mapRiderProfile(profile: RiderProfileDto): RiderProfile {
 // ── Get Rider Profile ────────────────────────────────────────
 
 export function getRiderProfile(): Promise<RiderProfile> {
-	return apiClient
-		.get<RiderProfileDto>("/rider/profile")
-		.then(mapRiderProfile);
+	return apiClient.get<RiderProfileDto>("/rider/profile").then(mapRiderProfile);
 }
 
 // ── Onboard Rider ────────────────────────────────────────────

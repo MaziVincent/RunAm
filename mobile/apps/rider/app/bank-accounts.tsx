@@ -78,12 +78,11 @@ export default function BankAccountsScreen() {
 	}, [refetch]);
 
 	const handleAdd = async () => {
-		if (
-			!bankName.trim() ||
-			!bankCode.trim() ||
-			!accountNumber.trim()
-		) {
-			Alert.alert("Error", "Fill in the bank name, bank code, and account number");
+		if (!bankName.trim() || !bankCode.trim() || !accountNumber.trim()) {
+			Alert.alert(
+				"Error",
+				"Fill in the bank name, bank code, and account number",
+			);
 			return;
 		}
 		if (accountNumber.length < 10) {

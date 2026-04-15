@@ -25,7 +25,9 @@ import { formatCurrency, cn, vendorOrderStatusLabel } from "@/lib/utils";
 import { VendorStatus, VendorOrderStatus } from "@/types";
 import { toast } from "sonner";
 
-function parseVendorOrderStatus(status: string | null | undefined): VendorOrderStatus {
+function parseVendorOrderStatus(
+	status: string | null | undefined,
+): VendorOrderStatus {
 	switch (status) {
 		case "Confirmed":
 			return VendorOrderStatus.Confirmed;
@@ -170,9 +172,7 @@ function NewOrders() {
 				) : orders.length === 0 ? (
 					<div className="flex flex-col items-center py-8 text-center">
 						<ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
-						<p className="mt-2 text-sm text-muted-foreground">
-							No open orders
-						</p>
+						<p className="mt-2 text-sm text-muted-foreground">No open orders</p>
 					</div>
 				) : (
 					<div className="space-y-3">
@@ -199,7 +199,11 @@ function NewOrders() {
 										</p>
 									</div>
 									<Badge variant="outline">
-										{vendorOrderStatusLabel[parseVendorOrderStatus(order.vendorOrderStatus)]}
+										{
+											vendorOrderStatusLabel[
+												parseVendorOrderStatus(order.vendorOrderStatus)
+											]
+										}
 									</Badge>
 								</div>
 								<p className="mt-2 line-clamp-2 text-xs text-muted-foreground">

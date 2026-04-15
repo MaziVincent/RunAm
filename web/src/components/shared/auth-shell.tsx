@@ -9,11 +9,20 @@ interface AuthShellProps {
 	footer?: React.ReactNode;
 }
 
-export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
+export function AuthShell({
+	title,
+	subtitle,
+	children,
+	footer,
+}: AuthShellProps) {
 	return (
 		<>
 			<div className="mb-8 flex items-center justify-between gap-3">
-				<Button variant="ghost" size="sm" asChild className="gap-2 text-foreground/80">
+				<Button
+					variant="ghost"
+					size="sm"
+					asChild
+					className="gap-2 text-foreground/80">
 					<Link href="/">
 						<ArrowLeft className="h-4 w-4" />
 						Back

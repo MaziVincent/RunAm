@@ -74,7 +74,11 @@ export default function VendorOrderDetailPage() {
 						{new Date(order.createdAt).toLocaleString("en-NG")}
 					</p>
 				</div>
-				<StatusBadge status={vendorStatus} kind="vendorOrder" className="rounded-full px-3 py-1" />
+				<StatusBadge
+					status={vendorStatus}
+					kind="vendorOrder"
+					className="rounded-full px-3 py-1"
+				/>
 			</div>
 
 			{canMarkReady && (
@@ -115,14 +119,20 @@ export default function VendorOrderDetailPage() {
 					)}
 					{order.specialInstructions && (
 						<div>
-							<p className="text-xs text-muted-foreground">Special Instructions</p>
-							<p className="text-sm text-amber-600 dark:text-amber-400">{order.specialInstructions}</p>
+							<p className="text-xs text-muted-foreground">
+								Special Instructions
+							</p>
+							<p className="text-sm text-amber-600 dark:text-amber-400">
+								{order.specialInstructions}
+							</p>
 						</div>
 					)}
 					<Separator />
 					<div className="flex justify-between text-sm">
 						<span className="text-muted-foreground">Total</span>
-						<span className="font-semibold">{formatCurrency(order.totalAmount)}</span>
+						<span className="font-semibold">
+							{formatCurrency(order.totalAmount)}
+						</span>
 					</div>
 				</CardContent>
 			</Card>
@@ -142,12 +152,18 @@ export default function VendorOrderDetailPage() {
 					</div>
 					<div className="flex items-center gap-3">
 						<Package className="h-4 w-4 text-muted-foreground" />
-						<span className="text-sm">Rider: {order.riderName || "Waiting for rider assignment"}</span>
+						<span className="text-sm">
+							Rider: {order.riderName || "Waiting for rider assignment"}
+						</span>
 					</div>
 					<div className="flex items-center gap-3">
 						<Clock className="h-4 w-4 text-muted-foreground" />
 						<span className="text-sm">
-							Placed {new Date(order.createdAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
+							Placed{" "}
+							{new Date(order.createdAt).toLocaleString("en-NG", {
+								dateStyle: "medium",
+								timeStyle: "short",
+							})}
 						</span>
 					</div>
 				</CardContent>

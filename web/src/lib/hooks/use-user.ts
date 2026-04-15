@@ -55,8 +55,7 @@ export function useChangePassword() {
 		mutationFn: async (data: {
 			currentPassword: string;
 			newPassword: string;
-		}) =>
-			ensureSuccess(await api.post<string>("/auth/change-password", data)),
+		}) => ensureSuccess(await api.post<string>("/auth/change-password", data)),
 	});
 }
 
@@ -151,11 +150,9 @@ export function useDeliveryEstimate(
 	enabled: boolean,
 ) {
 	return useQuery({
-		queryKey: [
-			"delivery-estimate",
-			request,
-		],
-		queryFn: () => api.post<PriceEstimateResponse>("/errands/estimate", request),
+		queryKey: ["delivery-estimate", request],
+		queryFn: () =>
+			api.post<PriceEstimateResponse>("/errands/estimate", request),
 		enabled:
 			enabled &&
 			request.pickupLatitude !== 0 &&

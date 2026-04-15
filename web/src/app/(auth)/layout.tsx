@@ -17,17 +17,28 @@ export default function AuthLayout({
 								One account for orders, riders, and the full RunAm flow.
 							</h2>
 							<p className="text-base leading-7 text-muted-foreground">
-								Access the same delivery network, wallet, and tracking experience that powers the storefront and dashboard.
+								Access the same delivery network, wallet, and tracking
+								experience that powers the storefront and dashboard.
 							</p>
 						</div>
 						<div className="grid gap-4 sm:grid-cols-2">
 							<div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-sm shadow-primary/5 backdrop-blur dark:border-white/10 dark:bg-white/5">
-								<p className="text-sm font-semibold text-foreground">Unified wallet</p>
-								<p className="mt-2 text-sm text-muted-foreground">Fund once, pay for marketplace orders, and track transactions from the same account.</p>
+								<p className="text-sm font-semibold text-foreground">
+									Unified wallet
+								</p>
+								<p className="mt-2 text-sm text-muted-foreground">
+									Fund once, pay for marketplace orders, and track transactions
+									from the same account.
+								</p>
 							</div>
 							<div className="rounded-2xl border border-white/60 bg-white/70 p-5 shadow-sm shadow-primary/5 backdrop-blur dark:border-white/10 dark:bg-white/5">
-								<p className="text-sm font-semibold text-foreground">Live fulfillment</p>
-								<p className="mt-2 text-sm text-muted-foreground">Stay connected to dispatch, chat, and order tracking without leaving the platform.</p>
+								<p className="text-sm font-semibold text-foreground">
+									Live fulfillment
+								</p>
+								<p className="mt-2 text-sm text-muted-foreground">
+									Stay connected to dispatch, chat, and order tracking without
+									leaving the platform.
+								</p>
 							</div>
 						</div>
 					</div>
