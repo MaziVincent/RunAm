@@ -26,7 +26,20 @@ function CategoriesSection() {
 		cleaning: "🧹",
 		beauty: "💇",
 		electronics: "📱",
+		"package-delivery": "📦",
+		"document-delivery": "📄",
+		"custom-errand": "🛠️",
+		"multi-stop": "🔀",
+		"bill-payment": "🧾",
 		default: "📦",
+	};
+
+	const slugToWizardCategory: Record<string, string> = {
+		"package-delivery": "package",
+		"document-delivery": "document",
+		"custom-errand": "custom",
+		"multi-stop": "package",
+		"bill-payment": "custom",
 	};
 
 	return (
@@ -48,34 +61,43 @@ function CategoriesSection() {
 				</div>
 			) : (
 				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-					{categories.map((cat) => (
-						<Link key={cat.id} href={`/shop/categories/${cat.slug}`}>
-							<Card className="group h-full cursor-pointer border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-								<CardContent className="flex flex-col items-center justify-center gap-2 p-4 text-center">
-									{cat.iconUrl ? (
-										cat.iconUrl.startsWith("http") ? (
-											<Image
-												src={cat.iconUrl}
-												alt={cat.name}
-												width={40}
-												height={40}
-												className="h-10 w-10 object-contain"
-											/>
+					{categories.map((cat) => {
+						const isLogistics = cat.requiresVendor === false;
+						const wizardCat = slugToWizardCategory[cat.slug];
+						const href =
+							isLogistics && wizardCat
+								? `/errands/new?category=${wizardCat}`
+								: `/shop/categories/${cat.slug}`;
+
+						return (
+							<Link key={cat.id} href={href}>
+								<Card className="group h-full cursor-pointer border-none shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+									<CardContent className="flex flex-col items-center justify-center gap-2 p-4 text-center">
+										{cat.iconUrl ? (
+											cat.iconUrl.startsWith("http") ? (
+												<Image
+													src={cat.iconUrl}
+													alt={cat.name}
+													width={40}
+													height={40}
+													className="h-10 w-10 object-contain"
+												/>
+											) : (
+												<span className="text-3xl">{cat.iconUrl}</span>
+											)
 										) : (
-											<span className="text-3xl">{cat.iconUrl}</span>
-										)
-									) : (
-										<span className="text-3xl">
-											{iconFallback[cat.slug] ?? iconFallback.default}
+											<span className="text-3xl">
+												{iconFallback[cat.slug] ?? iconFallback.default}
+											</span>
+										)}
+										<span className="text-xs font-medium leading-tight line-clamp-2">
+											{cat.name}
 										</span>
-									)}
-									<span className="text-xs font-medium leading-tight line-clamp-2">
-										{cat.name}
-									</span>
-								</CardContent>
-							</Card>
-						</Link>
-					))}
+									</CardContent>
+								</Card>
+							</Link>
+						);
+					})}
 				</div>
 			)}
 		</section>

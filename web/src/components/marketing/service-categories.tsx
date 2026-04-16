@@ -32,7 +32,7 @@ const categories: Category[] = [
 		description: "Send packages across the city quickly and securely",
 		color: "text-blue-600",
 		bgColor: "bg-blue-50 group-hover:bg-blue-100",
-		href: "/shop?category=package-delivery",
+		href: "/errands/new?category=package",
 	},
 	{
 		icon: UtensilsCrossed,
@@ -40,7 +40,7 @@ const categories: Category[] = [
 		description: "Order from your favorite local restaurants",
 		color: "text-orange-600",
 		bgColor: "bg-orange-50 group-hover:bg-orange-100",
-		href: "/shop?category=food-delivery",
+		href: "/shop/categories/food",
 	},
 	{
 		icon: ShoppingCart,
@@ -48,7 +48,7 @@ const categories: Category[] = [
 		description: "Fresh groceries delivered from nearby markets",
 		color: "text-green-600",
 		bgColor: "bg-green-50 group-hover:bg-green-100",
-		href: "/shop?category=grocery-shopping",
+		href: "/shop/categories/groceries",
 	},
 	{
 		icon: FileText,
@@ -56,7 +56,7 @@ const categories: Category[] = [
 		description: "Important documents handled with care",
 		color: "text-indigo-600",
 		bgColor: "bg-indigo-50 group-hover:bg-indigo-100",
-		href: "/shop?category=document-delivery",
+		href: "/errands/new?category=document",
 	},
 	{
 		icon: Pill,
@@ -64,7 +64,7 @@ const categories: Category[] = [
 		description: "Get medicines and prescriptions picked up",
 		color: "text-rose-600",
 		bgColor: "bg-rose-50 group-hover:bg-rose-100",
-		href: "/shop?category=pharmacy-pickup",
+		href: "/shop/categories/pharmacy",
 	},
 	{
 		icon: Shirt,
@@ -72,7 +72,7 @@ const categories: Category[] = [
 		description: "Pickup and delivery for your laundry",
 		color: "text-cyan-600",
 		bgColor: "bg-cyan-50 group-hover:bg-cyan-100",
-		href: "/shop?category=laundry",
+		href: "/shop/categories/laundry",
 	},
 	{
 		icon: Sparkles,
@@ -80,7 +80,7 @@ const categories: Category[] = [
 		description: "Any task you need — we've got you covered",
 		color: "text-purple-600",
 		bgColor: "bg-purple-50 group-hover:bg-purple-100",
-		href: "/shop?category=custom-errand",
+		href: "/errands/new?category=custom",
 	},
 	{
 		icon: ArrowUpDown,
@@ -88,7 +88,7 @@ const categories: Category[] = [
 		description: "Multiple pickups and drop-offs in one trip",
 		color: "text-amber-600",
 		bgColor: "bg-amber-50 group-hover:bg-amber-100",
-		href: "/shop?category=multi-stop",
+		href: "/errands/new?category=package",
 	},
 	{
 		icon: Receipt,
@@ -96,7 +96,7 @@ const categories: Category[] = [
 		description: "Let a runner handle your bill payments",
 		color: "text-teal-600",
 		bgColor: "bg-teal-50 group-hover:bg-teal-100",
-		href: "/shop?category=bill-payment",
+		href: "/errands/new?category=custom",
 	},
 ];
 
