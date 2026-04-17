@@ -21,8 +21,8 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
     // Database — prefer DATABASE_URL (production) over individual vars (local dev)
     ["ConnectionStrings:DefaultConnection"] =
-        E("DATABASE_URL") ??
-        $"Host={E("DATABASE_HOST")};Port={E("DATABASE_PORT")};Database={E("DATABASE_NAME")};Username={E("DATABASE_USER")};Password={E("DATABASE_PASSWORD")}",
+        AppendNpgsqlDefaults(E("DATABASE_URL") ??
+        $"Host={E("DATABASE_HOST")};Port={E("DATABASE_PORT")};Database={E("DATABASE_NAME")};Username={E("DATABASE_USER")};Password={E("DATABASE_PASSWORD")}"),
     ["ConnectionStrings:Redis"] = E("REDIS_CONNECTION"),
 
     // JWT
@@ -86,6 +86,26 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 
 // Helper: read env var (returns null when not set — filtered out above)
 static string? E(string name) => Environment.GetEnvironmentVariable(name);
+
+// Append Npgsql connection-string defaults for Neon serverless compatibility
+static string AppendNpgsqlDefaults(string connStr)
+{
+    if (string.IsNullOrWhiteSpace(connStr)) return connStr;
+    var sb = new System.Text.StringBuilder(connStr.TrimEnd(';'));
+    void Set(string key, string value)
+    {
+        if (!connStr.Contains(key, StringComparison.OrdinalIgnoreCase))
+            sb.Append($";{key}={value}");
+    }
+    Set("Timeout", "30");
+    Set("Command Timeout", "30");
+    Set("Keepalive", "30");
+    Set("SSL Mode", "Require");
+    Set("Pooling", "true");
+    Set("Minimum Pool Size", "0");
+    Set("Maximum Pool Size", "20");
+    return sb.ToString();
+}
 
 static void NormalizeDevelopmentUrls()
 {

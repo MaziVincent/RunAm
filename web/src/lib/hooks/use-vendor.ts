@@ -17,6 +17,8 @@ export function useMyVendor() {
 		queryKey: ["my-vendor"],
 		queryFn: () => api.get<VendorDetailDto>("/vendors/me"),
 		staleTime: 60_000,
+		retry: false,
+		refetchOnWindowFocus: false,
 	});
 }
 

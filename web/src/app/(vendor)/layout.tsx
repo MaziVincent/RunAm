@@ -135,7 +135,11 @@ export default function VendorDashboardLayout({
 	const pathname = usePathname();
 	const router = useRouter();
 	const { isAuthenticated, isHydrated, hydrate, user } = useAuthStore();
-	const { data: vendorData, isLoading: vendorLoading } = useMyVendor();
+	const {
+		data: vendorData,
+		isLoading: vendorLoading,
+		isError: vendorError,
+	} = useMyVendor();
 	const vendor = vendorData?.success ? vendorData.data : undefined;
 	const vendorProfileMissing =
 		vendorData?.success === false && vendorData.error?.code === "NOT_FOUND";
@@ -260,7 +264,7 @@ export default function VendorDashboardLayout({
 	}
 
 	// Still loading vendor profile
-	if (vendorLoading) {
+	if (vendorLoading && !vendorError) {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
