@@ -54,7 +54,7 @@ public class FilesController : BaseApiController
     [ProducesResponseType(typeof(ApiResponse<FileUploadResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UploadServiceCategoryIcon(IFormFile file)
     {
-        var url = await UploadFile(file, "service-categories");
+        var url = await UploadFile(file, "service-categories", extraAllowedExtensions: new[] { ".svg" });
         return Ok(ApiResponse<FileUploadResponse>.Ok(new FileUploadResponse(url)));
     }
 
@@ -76,7 +76,7 @@ public class FilesController : BaseApiController
         return Ok(ApiResponse.Ok("File deleted."));
     }
 
-    private async Task<string> UploadFile(IFormFile file, string folder)
+    private async Task<string> UploadFile(IFormFile file, string folder, IEnumerable<string>? extraAllowedExtensions = null)
     {
         if (file is null || file.Length == 0)
             throw new ArgumentException("No file provided.");
@@ -84,9 +84,13 @@ public class FilesController : BaseApiController
         if (file.Length > MaxFileSize)
             throw new ArgumentException("File size exceeds the 5 MB limit.");
 
+        var allowed = extraAllowedExtensions is null
+            ? AllowedExtensions
+            : new HashSet<string>(AllowedExtensions.Concat(extraAllowedExtensions), StringComparer.OrdinalIgnoreCase);
+
         var ext = Path.GetExtension(file.FileName);
-        if (!AllowedExtensions.Contains(ext))
-            throw new ArgumentException($"File type '{ext}' is not allowed. Allowed: {string.Join(", ", AllowedExtensions)}");
+        if (!allowed.Contains(ext))
+            throw new ArgumentException($"File type '{ext}' is not allowed. Allowed: {string.Join(", ", allowed)}");
 
         await using var stream = file.OpenReadStream();
         return await _storageService.UploadAsync(stream, file.FileName, folder);
