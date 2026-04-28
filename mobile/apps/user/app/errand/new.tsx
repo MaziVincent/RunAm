@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
 	View,
 	Text,
@@ -18,24 +18,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { createErrand, getDeliveryEstimate } from "@runam/shared/api/errands";
-import {
-	validatePromoCode,
-	getPaymentMethods,
-} from "@runam/shared/api/payments";
+import { validatePromoCode } from "@runam/shared/api/payments";
 import type {
 	CreateErrandRequest,
 	ErrandCategory,
 	PriceEstimate,
-	Errand,
-	PaymentMethod,
 	ApplyPromoResult,
 } from "@runam/shared/types";
 import { useQuery } from "@tanstack/react-query";
+import { geocodeAddress, type GeocodedPoint } from "../lib/geocoding";
 
 type Step = 1 | 2 | 3 | 4;
 
 type DeliveryPriority = "Standard" | "Express" | "Scheduled";
 type PaymentOption = "Wallet" | "Card" | "Cash";
+
+// NOTE: The errand/logistics flow intentionally accepts Wallet, Card, AND Cash
+// because dispatch couriers can collect cash on delivery for self-arranged
+// pickups (package, document, laundry, etc.). Pharmacy is handled via the
+// marketplace flow with a registered pharmacy vendor — not via this errand
+// screen.
+// The marketplace checkout flow (cart -> checkout) only allows Wallet/Card —
+// vendors must be paid up-front so the order can be released for fulfilment.
 
 export default function NewErrandScreen() {
 	const router = useRouter();
@@ -46,6 +50,10 @@ export default function NewErrandScreen() {
 	const [priceEstimate, setPriceEstimate] = useState<PriceEstimate | null>(
 		null,
 	);
+	const [pickupCoordinates, setPickupCoordinates] =
+		useState<GeocodedPoint | null>(null);
+	const [dropoffCoordinates, setDropoffCoordinates] =
+		useState<GeocodedPoint | null>(null);
 
 	// Step 1 – Addresses
 	const [pickupAddress, setPickupAddress] = useState("");
@@ -76,11 +84,6 @@ export default function NewErrandScreen() {
 	const [promoCode, setPromoCode] = useState("");
 	const [promoResult, setPromoResult] = useState<ApplyPromoResult | null>(null);
 	const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-
-	const { data: paymentMethods } = useQuery<PaymentMethod[]>({
-		queryKey: ["payment-methods"],
-		queryFn: getPaymentMethods,
-	});
 
 	const pickImage = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
@@ -129,6 +132,18 @@ export default function NewErrandScreen() {
 		}
 	};
 
+	const resolveStopCoordinates = async () => {
+		const [pickup, dropoff] = await Promise.all([
+			pickupCoordinates ?? geocodeAddress(pickupAddress.trim()),
+			dropoffCoordinates ?? geocodeAddress(dropoffAddress.trim()),
+		]);
+
+		setPickupCoordinates(pickup);
+		setDropoffCoordinates(dropoff);
+
+		return { pickup, dropoff };
+	};
+
 	const handleNext = async () => {
 		if (step === 1) {
 			if (!pickupAddress.trim() || !dropoffAddress.trim()) {
@@ -147,16 +162,16 @@ export default function NewErrandScreen() {
 				Alert.alert("Error", "Please select a scheduled date and time.");
 				return;
 			}
-			// Fetch price estimate
+			// Resolve stop coordinates before fetching an estimate.
 			setIsLoading(true);
 			try {
-				// TODO: replace 0s with geocoded coordinates from address inputs
+				const { pickup, dropoff } = await resolveStopCoordinates();
 				const estimate = await getDeliveryEstimate({
 					category: category || "PackageDelivery",
-					pickupLatitude: 0,
-					pickupLongitude: 0,
-					dropoffLatitude: 0,
-					dropoffLongitude: 0,
+					pickupLatitude: pickup.latitude,
+					pickupLongitude: pickup.longitude,
+					dropoffLatitude: dropoff.latitude,
+					dropoffLongitude: dropoff.longitude,
 					priority,
 				});
 				setPriceEstimate(estimate);
@@ -176,14 +191,16 @@ export default function NewErrandScreen() {
 	const handleConfirm = async () => {
 		setIsLoading(true);
 		try {
+			const { pickup, dropoff } = await resolveStopCoordinates();
+
 			const body: CreateErrandRequest = {
 				category: (category as ErrandCategory) || "PackageDelivery",
 				description: description.trim(),
 				stops: [
 					{
 						address: pickupAddress.trim(),
-						latitude: 0,
-						longitude: 0,
+						latitude: pickup.latitude,
+						longitude: pickup.longitude,
 						contactName: pickupContactName.trim() || undefined,
 						contactPhone: pickupContactPhone.trim() || undefined,
 						instructions: pickupInstructions.trim() || undefined,
@@ -192,8 +209,8 @@ export default function NewErrandScreen() {
 					},
 					{
 						address: dropoffAddress.trim(),
-						latitude: 0,
-						longitude: 0,
+						latitude: dropoff.latitude,
+						longitude: dropoff.longitude,
 						contactName: dropoffContactName.trim() || undefined,
 						contactPhone: dropoffContactPhone.trim() || undefined,
 						instructions: dropoffInstructions.trim() || undefined,
@@ -241,25 +258,38 @@ export default function NewErrandScreen() {
 	const discount = promoResult?.valid ? promoResult.discount : 0;
 	const totalPrice = (priceEstimate?.estimatedPrice ?? 0) - discount;
 
-	const renderStepIndicator = () => (
-		<View style={styles.stepIndicator}>
-			{[1, 2, 3, 4].map((s) => (
-				<View key={s} style={styles.stepRow}>
-					<View style={[styles.stepDot, s <= step && styles.stepDotActive]}>
-						<Text
-							style={[styles.stepNumber, s <= step && styles.stepNumberActive]}>
-							{s}
-						</Text>
+	const renderStepIndicator = () => {
+		const labels = ["Pickup", "Details", "Priority", "Pay"];
+		return (
+			<View style={styles.stepIndicator}>
+				{[1, 2, 3, 4].map((s) => (
+					<View key={s} style={styles.stepRow}>
+						<View style={styles.stepCol}>
+							<View style={[styles.stepDot, s <= step && styles.stepDotActive]}>
+								<Text
+									style={[
+										styles.stepNumber,
+										s <= step && styles.stepNumberActive,
+									]}>
+									{s}
+								</Text>
+							</View>
+							<Text
+								style={[styles.stepLabel, s === step && styles.stepLabelActive]}
+								numberOfLines={1}>
+								{labels[s - 1]}
+							</Text>
+						</View>
+						{s < 4 && (
+							<View
+								style={[styles.stepLine, s < step && styles.stepLineActive]}
+							/>
+						)}
 					</View>
-					{s < 4 && (
-						<View
-							style={[styles.stepLine, s < step && styles.stepLineActive]}
-						/>
-					)}
-				</View>
-			))}
-		</View>
-	);
+				))}
+			</View>
+		);
+	};
 
 	return (
 		<SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -283,7 +313,10 @@ export default function NewErrandScreen() {
 								placeholder="Enter pickup address"
 								placeholderTextColor="#9CA3AF"
 								value={pickupAddress}
-								onChangeText={setPickupAddress}
+								onChangeText={(value) => {
+									setPickupAddress(value);
+									setPickupCoordinates(null);
+								}}
 							/>
 							<TextInput
 								style={styles.input}
@@ -316,7 +349,10 @@ export default function NewErrandScreen() {
 								placeholder="Enter dropoff address"
 								placeholderTextColor="#9CA3AF"
 								value={dropoffAddress}
-								onChangeText={setDropoffAddress}
+								onChangeText={(value) => {
+									setDropoffAddress(value);
+									setDropoffCoordinates(null);
+								}}
 							/>
 							<TextInput
 								style={styles.input}
@@ -622,16 +658,14 @@ export default function NewErrandScreen() {
 											{opt === "Wallet"
 												? "Wallet Balance"
 												: opt === "Card"
-													? "Debit/Credit Card"
+													? "Secure Card Checkout"
 													: "Cash on Delivery"}
 										</Text>
-										{opt === "Card" &&
-											paymentMethods?.find((m) => m.type === "Card") && (
-												<Text style={styles.paymentSub}>
-													****{" "}
-													{paymentMethods.find((m) => m.type === "Card")?.last4}
-												</Text>
-											)}
+										{opt === "Card" && (
+											<Text style={styles.paymentSub}>
+												You will finish payment in a secure checkout page.
+											</Text>
+										)}
 									</View>
 									<View
 										style={[
@@ -700,7 +734,20 @@ const styles = StyleSheet.create({
 	},
 	stepRow: {
 		flexDirection: "row",
+		alignItems: "flex-start",
+	},
+	stepCol: {
 		alignItems: "center",
+		width: 64,
+	},
+	stepLabel: {
+		marginTop: 4,
+		fontSize: 11,
+		fontWeight: "600",
+		color: "#9CA3AF",
+	},
+	stepLabelActive: {
+		color: "#2F8F4E",
 	},
 	stepDot: {
 		width: 32,
@@ -722,10 +769,11 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 	},
 	stepLine: {
-		width: 48,
+		width: 32,
 		height: 2,
 		backgroundColor: "#F3F4F6",
-		marginHorizontal: 4,
+		marginHorizontal: 2,
+		marginTop: 15,
 	},
 	stepLineActive: {
 		backgroundColor: "#2F8F4E",

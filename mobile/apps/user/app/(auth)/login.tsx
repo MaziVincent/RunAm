@@ -1,21 +1,24 @@
 import { useState } from "react";
 import {
-	View,
+	ActivityIndicator,
+	Alert,
+	KeyboardAvoidingView,
+	Platform,
+	StyleSheet,
 	Text,
 	TextInput,
 	TouchableOpacity,
-	StyleSheet,
-	KeyboardAvoidingView,
-	Platform,
-	ActivityIndicator,
-	Alert,
+	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { login as loginApi } from "@runam/shared/api/auth";
 import { ApiError } from "@runam/shared/api/client";
 import type { LoginRequest } from "@runam/shared/types";
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginScreen() {
 	const [email, setEmail] = useState("");
@@ -36,55 +39,75 @@ export default function LoginScreen() {
 
 	const handleLogin = async () => {
 		if (!email.trim() || !password.trim()) {
-			Alert.alert("Error", "Please fill in all fields");
+			setErrorMessage("Enter your email and password to continue.");
+			Alert.alert("Missing details", "Please fill in both fields.");
+			return;
+		}
+
+		if (!emailPattern.test(email.trim().toLowerCase())) {
+			setErrorMessage("Enter a valid email address before continuing.");
+			Alert.alert("Invalid email", "Enter a valid email address.");
 			return;
 		}
 
 		setIsLoading(true);
 		setErrorMessage("");
 		try {
-			const body: LoginRequest = { email: email.trim(), password };
+			const body: LoginRequest = {
+				email: email.trim().toLowerCase(),
+				password,
+			};
 			const response = await loginApi(body);
 			await login(response);
 			const redirectPath =
 				typeof params.redirect === "string" ? params.redirect : "/(tabs)";
 			router.replace(redirectPath as any);
 		} catch (error) {
-			console.error("Login failed", error);
 			const message =
 				error instanceof ApiError
 					? error.message
 					: "Invalid email or password. Please try again.";
 			setErrorMessage(message);
-			Alert.alert(
-				"Login Failed",
-				message,
-			);
+			Alert.alert("Login failed", message);
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<SafeAreaView style={styles.container} edges={["top"]}>
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				style={styles.keyboardView}>
-				<View style={styles.header}>
-					<Text style={styles.logo}>RunAm</Text>
-					<Text style={styles.subtitle}>Your errands, delivered.</Text>
+				<View style={styles.heroCard}>
+					<Text style={styles.kicker}>RunAm account</Text>
+					<Text style={styles.title}>Pick up where your orders left off.</Text>
+					<Text style={styles.subtitle}>
+						Log in to access saved addresses, active deliveries, wallet
+						payments, and order history.
+					</Text>
+					<View style={styles.heroMetaRow}>
+						<View style={styles.heroMetaChip}>
+							<Ionicons name="receipt-outline" size={14} color="#19543B" />
+							<Text style={styles.heroMetaText}>Orders</Text>
+						</View>
+						<View style={styles.heroMetaChip}>
+							<Ionicons name="wallet-outline" size={14} color="#19543B" />
+							<Text style={styles.heroMetaText}>Wallet</Text>
+						</View>
+						<View style={styles.heroMetaChip}>
+							<Ionicons name="location-outline" size={14} color="#19543B" />
+							<Text style={styles.heroMetaText}>Addresses</Text>
+						</View>
+					</View>
 				</View>
 
-				<View style={styles.form}>
+				<View style={styles.formCard}>
+					<Text style={styles.formTitle}>Log in</Text>
 					{errorMessage ? (
 						<View style={styles.errorBanner}>
-							<Text style={styles.errorBannerTitle}>Could not log in</Text>
-							<Text style={styles.errorBannerText}>{errorMessage}</Text>
-							{__DEV__ && (
-								<Text style={styles.debugText}>
-									Check the Metro terminal for request logs and make sure the backend is running.
-								</Text>
-							)}
+							<Text style={styles.errorTitle}>Could not sign you in</Text>
+							<Text style={styles.errorText}>{errorMessage}</Text>
 						</View>
 					) : null}
 
@@ -94,7 +117,12 @@ export default function LoginScreen() {
 						placeholder="you@example.com"
 						placeholderTextColor="#9CA3AF"
 						value={email}
-						onChangeText={setEmail}
+						onChangeText={(value) => {
+							setEmail(value);
+							if (errorMessage) {
+								setErrorMessage("");
+							}
+						}}
 						keyboardType="email-address"
 						autoCapitalize="none"
 						autoCorrect={false}
@@ -107,33 +135,45 @@ export default function LoginScreen() {
 							placeholder="Enter your password"
 							placeholderTextColor="#9CA3AF"
 							value={password}
-							onChangeText={setPassword}
+							onChangeText={(value) => {
+								setPassword(value);
+								if (errorMessage) {
+									setErrorMessage("");
+								}
+							}}
 							secureTextEntry={!showPassword}
 						/>
 						<TouchableOpacity
 							style={styles.eyeButton}
 							onPress={() => setShowPassword((value) => !value)}>
-							<Text style={styles.eyeText}>{showPassword ? "🙈" : "👁"}</Text>
+							<Ionicons
+								name={showPassword ? "eye-off-outline" : "eye-outline"}
+								size={20}
+								color="#6B7280"
+							/>
 						</TouchableOpacity>
 					</View>
 
 					<TouchableOpacity
-						style={[styles.button, isLoading && styles.buttonDisabled]}
+						style={[
+							styles.primaryButton,
+							isLoading && styles.primaryButtonDisabled,
+						]}
 						onPress={handleLogin}
 						disabled={isLoading}
-						activeOpacity={0.8}>
+						activeOpacity={0.85}>
 						{isLoading ? (
 							<ActivityIndicator color="#FFFFFF" />
 						) : (
-							<Text style={styles.buttonText}>Log In</Text>
+							<Text style={styles.primaryButtonText}>Log in</Text>
 						)}
 					</TouchableOpacity>
 
 					<View style={styles.footer}>
-						<Text style={styles.footerText}>Don't have an account? </Text>
+						<Text style={styles.footerText}>New to RunAm? </Text>
 						<Link href={registerHref as any} asChild>
 							<TouchableOpacity>
-								<Text style={styles.linkText}>Sign Up</Text>
+								<Text style={styles.linkText}>Create account</Text>
 							</TouchableOpacity>
 						</Link>
 					</View>
@@ -146,114 +186,147 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: "#F3F5EF",
 	},
 	keyboardView: {
 		flex: 1,
 		justifyContent: "center",
-		paddingHorizontal: 24,
+		paddingHorizontal: 20,
+		paddingVertical: 24,
 	},
-	header: {
-		alignItems: "center",
-		marginBottom: 48,
+	heroCard: {
+		backgroundColor: "#103E2B",
+		borderRadius: 30,
+		padding: 22,
+		marginBottom: 16,
 	},
-	logo: {
-		fontSize: 40,
+	kicker: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1.6,
+		textTransform: "uppercase",
+		color: "#A6E4C3",
+		marginBottom: 8,
+	},
+	title: {
+		fontSize: 28,
 		fontWeight: "800",
-		color: "#2F8F4E",
-		letterSpacing: -1,
+		lineHeight: 33,
+		letterSpacing: -0.8,
+		color: "#FFFFFF",
 	},
 	subtitle: {
-		fontSize: 16,
-		color: "#6B7280",
-		marginTop: 8,
+		fontSize: 14,
+		lineHeight: 21,
+		color: "#D6EFE1",
+		marginTop: 10,
 	},
-	form: {
-		width: "100%",
+	heroMetaRow: {
+		flexDirection: "row",
+		gap: 8,
+		flexWrap: "wrap",
+		marginTop: 16,
+	},
+	heroMetaChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		backgroundColor: "#FFFFFF",
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 999,
+	},
+	heroMetaText: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#19543B",
+	},
+	formCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 24,
+		padding: 20,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	formTitle: {
+		fontSize: 22,
+		fontWeight: "800",
+		color: "#142013",
+		marginBottom: 16,
 	},
 	errorBanner: {
-		backgroundColor: "#FEF2F2",
-		borderRadius: 12,
+		backgroundColor: "#FDE7E6",
+		borderRadius: 16,
 		padding: 14,
-		marginBottom: 18,
-		borderWidth: 1,
-		borderColor: "#FECACA",
+		marginBottom: 16,
 	},
-	errorBannerTitle: {
+	errorTitle: {
 		fontSize: 14,
-		fontWeight: "700",
-		color: "#991B1B",
-		marginBottom: 4,
+		fontWeight: "800",
+		color: "#B42318",
 	},
-	errorBannerText: {
+	errorText: {
 		fontSize: 13,
 		lineHeight: 18,
-		color: "#B91C1C",
-	},
-	debugText: {
-		fontSize: 12,
-		lineHeight: 17,
-		color: "#7F1D1D",
-		marginTop: 8,
+		color: "#B42318",
+		marginTop: 4,
 	},
 	label: {
-		fontSize: 14,
-		fontWeight: "600",
+		fontSize: 13,
+		fontWeight: "700",
 		color: "#374151",
 		marginBottom: 6,
+		textTransform: "uppercase",
+		letterSpacing: 0.6,
 	},
 	input: {
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F7F8F4",
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		paddingHorizontal: 16,
+		borderColor: "#E4E8DE",
+		borderRadius: 16,
+		paddingHorizontal: 14,
 		paddingVertical: 14,
 		fontSize: 16,
-		color: "#111827",
-		marginBottom: 16,
+		color: "#142013",
+		marginBottom: 14,
 	},
 	passwordField: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F7F8F4",
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
+		borderColor: "#E4E8DE",
+		borderRadius: 16,
 		marginBottom: 16,
 	},
 	passwordInput: {
 		flex: 1,
-		paddingHorizontal: 16,
+		paddingHorizontal: 14,
 		paddingVertical: 14,
 		fontSize: 16,
-		color: "#111827",
+		color: "#142013",
 	},
 	eyeButton: {
 		paddingHorizontal: 14,
 	},
-	eyeText: {
-		fontSize: 18,
-	},
-	button: {
-		backgroundColor: "#2F8F4E",
-		borderRadius: 12,
+	primaryButton: {
+		backgroundColor: "#19543B",
+		borderRadius: 18,
 		paddingVertical: 16,
 		alignItems: "center",
-		marginTop: 8,
 	},
-	buttonDisabled: {
-		opacity: 0.6,
+	primaryButtonDisabled: {
+		opacity: 0.5,
 	},
-	buttonText: {
-		color: "#FFFFFF",
+	primaryButtonText: {
 		fontSize: 16,
-		fontWeight: "700",
+		fontWeight: "800",
+		color: "#FFFFFF",
 	},
 	footer: {
 		flexDirection: "row",
 		justifyContent: "center",
-		marginTop: 24,
+		marginTop: 20,
 	},
 	footerText: {
 		fontSize: 14,
@@ -261,7 +334,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 14,
-		color: "#2F8F4E",
-		fontWeight: "600",
+		fontWeight: "800",
+		color: "#19543B",
 	},
 });

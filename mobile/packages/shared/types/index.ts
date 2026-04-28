@@ -306,6 +306,8 @@ export interface PaymentResult {
 	createdAt: string;
 }
 
+export type PaymentStatus = 0 | 1 | 2 | 3;
+
 // ── Earnings Summary ─────────────────────────────────────────
 export interface EarningsSummary {
 	todayEarnings: number;
@@ -518,7 +520,6 @@ export interface Vendor {
 	operatingHours?: string;
 	isOpen: boolean;
 	minimumOrderAmount: number;
-	deliveryFee: number;
 	estimatedPrepTimeMinutes: number;
 	rating: number;
 	totalReviews: number;
@@ -626,4 +627,9 @@ export interface CreateMarketplaceOrderRequest {
 	paymentMethod: number;
 	promoCode?: string;
 	items: CreateOrderItemRequest[];
+}
+
+export interface MarketplaceOrderResult {
+	errand: Errand;
+	checkoutUrl: string | null;
 }

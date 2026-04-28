@@ -1,21 +1,29 @@
 import { useState } from "react";
 import {
-	View,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	StyleSheet,
+	ActivityIndicator,
+	Alert,
 	KeyboardAvoidingView,
 	Platform,
 	ScrollView,
-	ActivityIndicator,
-	Alert,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { register as registerApi } from "@runam/shared/api/auth";
 import { ApiError } from "@runam/shared/api/client";
 import type { RegisterRequest } from "@runam/shared/types";
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^\+?[0-9\s()-]{10,20}$/;
+
+function isStrongPassword(value: string) {
+	return value.length >= 8 && /[A-Za-z]/.test(value) && /\d/.test(value);
+}
 
 export default function RegisterScreen() {
 	const [firstName, setFirstName] = useState("");
@@ -44,7 +52,39 @@ export default function RegisterScreen() {
 			!phoneNumber.trim() ||
 			!password.trim()
 		) {
-			Alert.alert("Error", "Please fill in all fields");
+			setErrorMessage("Complete every field before creating your account.");
+			Alert.alert("Missing details", "Please fill in all fields.");
+			return;
+		}
+
+		if (firstName.trim().length < 2 || lastName.trim().length < 2) {
+			setErrorMessage("Enter your full first and last name.");
+			Alert.alert("Invalid name", "Enter your full first and last name.");
+			return;
+		}
+
+		if (!emailPattern.test(email.trim().toLowerCase())) {
+			setErrorMessage("Enter a valid email address before continuing.");
+			Alert.alert("Invalid email", "Enter a valid email address.");
+			return;
+		}
+
+		if (!phonePattern.test(phoneNumber.trim())) {
+			setErrorMessage(
+				"Enter a valid phone number with country code if available.",
+			);
+			Alert.alert("Invalid phone number", "Enter a valid phone number.");
+			return;
+		}
+
+		if (!isStrongPassword(password)) {
+			setErrorMessage(
+				"Use at least 8 characters and include both letters and numbers.",
+			);
+			Alert.alert(
+				"Weak password",
+				"Use at least 8 characters and include both letters and numbers.",
+			);
 			return;
 		}
 
@@ -54,7 +94,7 @@ export default function RegisterScreen() {
 			const body: RegisterRequest = {
 				firstName: firstName.trim(),
 				lastName: lastName.trim(),
-				email: email.trim(),
+				email: email.trim().toLowerCase(),
 				phoneNumber: phoneNumber.trim(),
 				password,
 			};
@@ -69,22 +109,21 @@ export default function RegisterScreen() {
 				},
 			} as any);
 		} catch (error) {
-			console.error("Registration failed", error);
-			const errorMessages =
+			const message =
 				error instanceof ApiError && error.errors
 					? Object.values(error.errors).flat().join("\n")
 					: error instanceof ApiError
 						? error.message
 						: "Registration failed. Please try again.";
-			setErrorMessage(errorMessages);
-			Alert.alert("Registration Failed", errorMessages);
+			setErrorMessage(message);
+			Alert.alert("Registration failed", message);
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
 	return (
-		<SafeAreaView style={styles.container}>
+		<SafeAreaView style={styles.container} edges={["top"]}>
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				style={styles.keyboardView}>
@@ -92,39 +131,56 @@ export default function RegisterScreen() {
 					contentContainerStyle={styles.scrollContent}
 					showsVerticalScrollIndicator={false}
 					keyboardShouldPersistTaps="handled">
-					<View style={styles.header}>
-						<Text style={styles.logo}>RunAm</Text>
-						<Text style={styles.subtitle}>Create your account</Text>
+					<View style={styles.heroCard}>
+						<Text style={styles.kicker}>Create account</Text>
+						<Text style={styles.title}>
+							Set up your delivery identity once.
+						</Text>
+						<Text style={styles.subtitle}>
+							Your account unlocks saved addresses, wallet funding, order
+							tracking, and notifications across the app.
+						</Text>
 					</View>
 
-					<View style={styles.form}>
+					<View style={styles.formCard}>
+						<Text style={styles.formTitle}>Sign up</Text>
 						{errorMessage ? (
 							<View style={styles.errorBanner}>
-								<Text style={styles.errorBannerTitle}>Could not create account</Text>
-								<Text style={styles.errorBannerText}>{errorMessage}</Text>
+								<Text style={styles.errorTitle}>Could not create account</Text>
+								<Text style={styles.errorText}>{errorMessage}</Text>
 							</View>
 						) : null}
 
 						<View style={styles.row}>
-							<View style={styles.halfInput}>
-								<Text style={styles.label}>First Name</Text>
+							<View style={styles.halfField}>
+								<Text style={styles.label}>First name</Text>
 								<TextInput
 									style={styles.input}
 									placeholder="John"
 									placeholderTextColor="#9CA3AF"
 									value={firstName}
-									onChangeText={setFirstName}
+									onChangeText={(value) => {
+										setFirstName(value);
+										if (errorMessage) {
+											setErrorMessage("");
+										}
+									}}
 									autoCapitalize="words"
 								/>
 							</View>
-							<View style={styles.halfInput}>
-								<Text style={styles.label}>Last Name</Text>
+							<View style={styles.halfField}>
+								<Text style={styles.label}>Last name</Text>
 								<TextInput
 									style={styles.input}
 									placeholder="Doe"
 									placeholderTextColor="#9CA3AF"
 									value={lastName}
-									onChangeText={setLastName}
+									onChangeText={(value) => {
+										setLastName(value);
+										if (errorMessage) {
+											setErrorMessage("");
+										}
+									}}
 									autoCapitalize="words"
 								/>
 							</View>
@@ -136,19 +192,29 @@ export default function RegisterScreen() {
 							placeholder="you@example.com"
 							placeholderTextColor="#9CA3AF"
 							value={email}
-							onChangeText={setEmail}
+							onChangeText={(value) => {
+								setEmail(value);
+								if (errorMessage) {
+									setErrorMessage("");
+								}
+							}}
 							keyboardType="email-address"
 							autoCapitalize="none"
 							autoCorrect={false}
 						/>
 
-						<Text style={styles.label}>Phone Number</Text>
+						<Text style={styles.label}>Phone number</Text>
 						<TextInput
 							style={styles.input}
 							placeholder="+234 800 000 0000"
 							placeholderTextColor="#9CA3AF"
 							value={phoneNumber}
-							onChangeText={setPhoneNumber}
+							onChangeText={(value) => {
+								setPhoneNumber(value);
+								if (errorMessage) {
+									setErrorMessage("");
+								}
+							}}
 							keyboardType="phone-pad"
 						/>
 
@@ -159,25 +225,40 @@ export default function RegisterScreen() {
 								placeholder="Create a password"
 								placeholderTextColor="#9CA3AF"
 								value={password}
-								onChangeText={setPassword}
+								onChangeText={(value) => {
+									setPassword(value);
+									if (errorMessage) {
+										setErrorMessage("");
+									}
+								}}
 								secureTextEntry={!showPassword}
 							/>
 							<TouchableOpacity
 								style={styles.eyeButton}
 								onPress={() => setShowPassword((value) => !value)}>
-								<Text style={styles.eyeText}>{showPassword ? "🙈" : "👁"}</Text>
+								<Ionicons
+									name={showPassword ? "eye-off-outline" : "eye-outline"}
+									size={20}
+									color="#6B7280"
+								/>
 							</TouchableOpacity>
 						</View>
+						<Text style={styles.helperText}>
+							Use at least 8 characters with letters and numbers.
+						</Text>
 
 						<TouchableOpacity
-							style={[styles.button, isLoading && styles.buttonDisabled]}
+							style={[
+								styles.primaryButton,
+								isLoading && styles.primaryButtonDisabled,
+							]}
 							onPress={handleRegister}
 							disabled={isLoading}
-							activeOpacity={0.8}>
+							activeOpacity={0.85}>
 							{isLoading ? (
 								<ActivityIndicator color="#FFFFFF" />
 							) : (
-								<Text style={styles.buttonText}>Create Account</Text>
+								<Text style={styles.primaryButtonText}>Create account</Text>
 							)}
 						</TouchableOpacity>
 
@@ -185,7 +266,7 @@ export default function RegisterScreen() {
 							<Text style={styles.footerText}>Already have an account? </Text>
 							<Link href={loginHref as any} asChild>
 								<TouchableOpacity>
-									<Text style={styles.linkText}>Log In</Text>
+									<Text style={styles.linkText}>Log in</Text>
 								</TouchableOpacity>
 							</Link>
 						</View>
@@ -199,7 +280,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: "#F3F5EF",
 	},
 	keyboardView: {
 		flex: 1,
@@ -207,111 +288,135 @@ const styles = StyleSheet.create({
 	scrollContent: {
 		flexGrow: 1,
 		justifyContent: "center",
-		paddingHorizontal: 24,
-		paddingVertical: 32,
+		paddingHorizontal: 20,
+		paddingVertical: 24,
 	},
-	header: {
-		alignItems: "center",
-		marginBottom: 36,
+	heroCard: {
+		backgroundColor: "#103E2B",
+		borderRadius: 30,
+		padding: 22,
+		marginBottom: 16,
 	},
-	logo: {
-		fontSize: 40,
+	kicker: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1.6,
+		textTransform: "uppercase",
+		color: "#A6E4C3",
+		marginBottom: 8,
+	},
+	title: {
+		fontSize: 28,
 		fontWeight: "800",
-		color: "#2F8F4E",
-		letterSpacing: -1,
+		lineHeight: 33,
+		letterSpacing: -0.8,
+		color: "#FFFFFF",
 	},
 	subtitle: {
-		fontSize: 16,
-		color: "#6B7280",
-		marginTop: 8,
+		fontSize: 14,
+		lineHeight: 21,
+		color: "#D6EFE1",
+		marginTop: 10,
 	},
-	form: {
-		width: "100%",
+	formCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 24,
+		padding: 20,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	formTitle: {
+		fontSize: 22,
+		fontWeight: "800",
+		color: "#142013",
+		marginBottom: 16,
 	},
 	errorBanner: {
-		backgroundColor: "#FEF2F2",
-		borderRadius: 12,
+		backgroundColor: "#FDE7E6",
+		borderRadius: 16,
 		padding: 14,
-		marginBottom: 18,
-		borderWidth: 1,
-		borderColor: "#FECACA",
+		marginBottom: 16,
 	},
-	errorBannerTitle: {
+	errorTitle: {
 		fontSize: 14,
-		fontWeight: "700",
-		color: "#991B1B",
-		marginBottom: 4,
+		fontWeight: "800",
+		color: "#B42318",
 	},
-	errorBannerText: {
+	errorText: {
 		fontSize: 13,
 		lineHeight: 18,
-		color: "#B91C1C",
+		color: "#B42318",
+		marginTop: 4,
 	},
 	row: {
 		flexDirection: "row",
 		gap: 12,
 	},
-	halfInput: {
+	halfField: {
 		flex: 1,
 	},
 	label: {
-		fontSize: 14,
-		fontWeight: "600",
+		fontSize: 13,
+		fontWeight: "700",
 		color: "#374151",
 		marginBottom: 6,
+		textTransform: "uppercase",
+		letterSpacing: 0.6,
 	},
 	input: {
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F7F8F4",
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		paddingHorizontal: 16,
+		borderColor: "#E4E8DE",
+		borderRadius: 16,
+		paddingHorizontal: 14,
 		paddingVertical: 14,
 		fontSize: 16,
-		color: "#111827",
-		marginBottom: 16,
+		color: "#142013",
+		marginBottom: 14,
 	},
 	passwordField: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F7F8F4",
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		marginBottom: 16,
+		borderColor: "#E4E8DE",
+		borderRadius: 16,
+		marginBottom: 10,
 	},
 	passwordInput: {
 		flex: 1,
-		paddingHorizontal: 16,
+		paddingHorizontal: 14,
 		paddingVertical: 14,
 		fontSize: 16,
-		color: "#111827",
+		color: "#142013",
 	},
 	eyeButton: {
 		paddingHorizontal: 14,
 	},
-	eyeText: {
-		fontSize: 18,
+	helperText: {
+		fontSize: 12,
+		lineHeight: 18,
+		color: "#6B7280",
+		marginBottom: 14,
 	},
-	button: {
-		backgroundColor: "#2F8F4E",
-		borderRadius: 12,
+	primaryButton: {
+		backgroundColor: "#19543B",
+		borderRadius: 18,
 		paddingVertical: 16,
 		alignItems: "center",
-		marginTop: 8,
 	},
-	buttonDisabled: {
-		opacity: 0.6,
+	primaryButtonDisabled: {
+		opacity: 0.5,
 	},
-	buttonText: {
-		color: "#FFFFFF",
+	primaryButtonText: {
 		fontSize: 16,
-		fontWeight: "700",
+		fontWeight: "800",
+		color: "#FFFFFF",
 	},
 	footer: {
 		flexDirection: "row",
 		justifyContent: "center",
-		marginTop: 24,
+		marginTop: 20,
 	},
 	footerText: {
 		fontSize: 14,
@@ -319,7 +424,7 @@ const styles = StyleSheet.create({
 	},
 	linkText: {
 		fontSize: 14,
-		color: "#2F8F4E",
-		fontWeight: "600",
+		fontWeight: "800",
+		color: "#19543B",
 	},
 });

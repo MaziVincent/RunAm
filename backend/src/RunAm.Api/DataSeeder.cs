@@ -110,7 +110,6 @@ public static class DataSeeder
                         IsOpen = true,
                         IsActive = true,
                         MinimumOrderAmount = 500,
-                        DeliveryFee = 200,
                         EstimatedPrepTimeMinutes = 15,
                         Status = VendorStatus.Active
                     });
@@ -137,6 +136,146 @@ public static class DataSeeder
             };
 
             await db.ServiceCategories.AddRangeAsync(categories);
+            await db.SaveChangesAsync();
+        }
+
+        var demoVendorUser = await userManager.FindByEmailAsync(vendorEmail);
+        if (demoVendorUser is null)
+        {
+            return;
+        }
+
+        var demoVendor = await db.Vendors
+            .Include(v => v.VendorServiceCategories)
+            .Include(v => v.ProductCategories)
+            .FirstOrDefaultAsync(v => v.UserId == demoVendorUser.Id);
+
+        if (demoVendor is null)
+        {
+            demoVendor = new Vendor
+            {
+                UserId = demoVendorUser.Id,
+                BusinessName = "Demo Store",
+                BusinessDescription = "A demo vendor for testing",
+                Address = "123 Main Street, Lagos",
+                Latitude = 6.5244,
+                Longitude = 3.3792,
+                IsOpen = true,
+                IsActive = true,
+                MinimumOrderAmount = 500,
+                EstimatedPrepTimeMinutes = 15,
+                Status = VendorStatus.Active
+            };
+
+            await db.Vendors.AddAsync(demoVendor);
+            await db.SaveChangesAsync();
+        }
+
+        var foodCategory = await db.ServiceCategories
+            .FirstAsync(category => category.Slug == "food-delivery");
+        var groceryCategory = await db.ServiceCategories
+            .FirstAsync(category => category.Slug == "grocery-shopping");
+
+        if (!await db.Set<VendorServiceCategory>().AnyAsync(link => link.VendorId == demoVendor.Id))
+        {
+            await db.Set<VendorServiceCategory>().AddRangeAsync(
+                new VendorServiceCategory
+                {
+                    VendorId = demoVendor.Id,
+                    ServiceCategoryId = foodCategory.Id,
+                },
+                new VendorServiceCategory
+                {
+                    VendorId = demoVendor.Id,
+                    ServiceCategoryId = groceryCategory.Id,
+                });
+        }
+
+        if (!await db.ProductCategories.AnyAsync(category => category.VendorId == demoVendor.Id))
+        {
+            await db.ProductCategories.AddRangeAsync(
+                new ProductCategory
+                {
+                    VendorId = demoVendor.Id,
+                    Name = "Quick Meals",
+                    Description = "Freshly prepared meals ready for delivery.",
+                    SortOrder = 0,
+                    IsActive = true,
+                },
+                new ProductCategory
+                {
+                    VendorId = demoVendor.Id,
+                    Name = "Daily Essentials",
+                    Description = "Fast-moving grocery items for everyday needs.",
+                    SortOrder = 1,
+                    IsActive = true,
+                });
+
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Products.AnyAsync(product => product.VendorId == demoVendor.Id))
+        {
+            var seededCategories = await db.ProductCategories
+                .Where(category => category.VendorId == demoVendor.Id)
+                .OrderBy(category => category.SortOrder)
+                .ToListAsync();
+
+            var quickMealsCategory = seededCategories.First(category => category.Name == "Quick Meals");
+            var essentialsCategory = seededCategories.First(category => category.Name == "Daily Essentials");
+
+            await db.Products.AddRangeAsync(
+                new Product
+                {
+                    VendorId = demoVendor.Id,
+                    ProductCategoryId = quickMealsCategory.Id,
+                    Name = "Jollof Rice Bowl",
+                    Description = "Party-style jollof rice with chicken and plantain.",
+                    Price = 3500,
+                    CompareAtPrice = 4000,
+                    IsAvailable = true,
+                    IsActive = true,
+                    SortOrder = 0,
+                },
+                new Product
+                {
+                    VendorId = demoVendor.Id,
+                    ProductCategoryId = quickMealsCategory.Id,
+                    Name = "Peppered Turkey Wrap",
+                    Description = "Grilled turkey, crunchy slaw, and spicy mayo.",
+                    Price = 2800,
+                    IsAvailable = true,
+                    IsActive = true,
+                    SortOrder = 1,
+                },
+                new Product
+                {
+                    VendorId = demoVendor.Id,
+                    ProductCategoryId = essentialsCategory.Id,
+                    Name = "Breakfast Basket",
+                    Description = "Bread, eggs, milk, and cereal for the morning rush.",
+                    Price = 5200,
+                    IsAvailable = true,
+                    IsActive = true,
+                    SortOrder = 0,
+                },
+                new Product
+                {
+                    VendorId = demoVendor.Id,
+                    ProductCategoryId = essentialsCategory.Id,
+                    Name = "Fresh Fruit Pack",
+                    Description = "A ready-to-blend mix of pineapple, watermelon, and citrus.",
+                    Price = 2400,
+                    IsAvailable = true,
+                    IsActive = true,
+                    SortOrder = 1,
+                });
+
+            await db.SaveChangesAsync();
+        }
+
+        if (db.ChangeTracker.HasChanges())
+        {
             await db.SaveChangesAsync();
         }
     }

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface AuthRequiredStateProps {
 	title: string;
@@ -20,7 +21,13 @@ export default function AuthRequiredState({
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			<View style={styles.card}>
-				<Text style={styles.icon}>🔐</Text>
+				<View style={styles.iconWrap}>
+					<MaterialCommunityIcons
+						name="shield-lock-outline"
+						size={34}
+						color="#166534"
+					/>
+				</View>
 				<Text style={styles.title}>{title}</Text>
 				<Text style={styles.description}>{description}</Text>
 
@@ -83,9 +90,14 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 10 },
 		elevation: 3,
 	},
-	icon: {
-		fontSize: 34,
-		textAlign: "center",
+	iconWrap: {
+		width: 68,
+		height: 68,
+		borderRadius: 22,
+		backgroundColor: "#F0FDF4",
+		alignItems: "center",
+		justifyContent: "center",
+		alignSelf: "center",
 		marginBottom: 14,
 	},
 	title: {

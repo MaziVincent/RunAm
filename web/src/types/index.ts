@@ -645,7 +645,6 @@ export interface VendorDto {
 	operatingHours: string | null;
 	isOpen: boolean;
 	minimumOrderAmount: number;
-	deliveryFee: number;
 	estimatedPrepTimeMinutes: number;
 	rating: number;
 	totalReviews: number;

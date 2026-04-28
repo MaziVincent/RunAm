@@ -48,6 +48,16 @@ public class FilesController : BaseApiController
         return Ok(ApiResponse<FileUploadResponse>.Ok(new FileUploadResponse(url)));
     }
 
+    /// <summary>Upload a service category icon (admin only)</summary>
+    [HttpPost("service-category-icon")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<FileUploadResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UploadServiceCategoryIcon(IFormFile file)
+    {
+        var url = await UploadFile(file, "service-categories");
+        return Ok(ApiResponse<FileUploadResponse>.Ok(new FileUploadResponse(url)));
+    }
+
     /// <summary>Upload a rider document (ID, selfie)</summary>
     [HttpPost("rider-document")]
     [ProducesResponseType(typeof(ApiResponse<FileUploadResponse>), StatusCodes.Status200OK)]

@@ -12,7 +12,6 @@ public class CreateVendorRequestValidator : AbstractValidator<CreateVendorReques
         RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
         RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
         RuleFor(x => x.MinimumOrderAmount).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.DeliveryFee).GreaterThanOrEqualTo(0);
         RuleFor(x => x.EstimatedPrepTimeMinutes).GreaterThanOrEqualTo(0);
         RuleFor(x => x.ServiceCategoryIds).NotEmpty().WithMessage("At least one service category is required.");
     }
@@ -47,10 +46,6 @@ public class UpdateVendorRequestValidator : AbstractValidator<UpdateVendorReques
         RuleFor(x => x.MinimumOrderAmount)
             .GreaterThanOrEqualTo(0)
             .When(x => x.MinimumOrderAmount.HasValue);
-
-        RuleFor(x => x.DeliveryFee)
-            .GreaterThanOrEqualTo(0)
-            .When(x => x.DeliveryFee.HasValue);
 
         RuleFor(x => x.EstimatedPrepTimeMinutes)
             .GreaterThanOrEqualTo(0)

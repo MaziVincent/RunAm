@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import {
 	View,
 	Text,
@@ -8,25 +8,59 @@ import {
 	TextInput,
 	ActivityIndicator,
 	RefreshControl,
-	Image,
+	ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getVendors } from "@runam/shared/api/vendors";
 import type { PaginatedResult } from "@runam/shared/api/client";
 import type { Vendor } from "@runam/shared/types";
 import { useLocationStore } from "@runam/shared/stores/location-store";
+import BackHeader from "../components/BackHeader";
+import EmptyState from "../components/EmptyState";
+import HeroCard from "../components/HeroCard";
+import VendorCard from "../components/VendorCard";
+import { getVendorDiscoveryTags, getVendorDistanceKm } from "../lib/discovery";
+
+type SortOption = "nearest" | "rating" | "fastest";
+
+type VendorBrowseEntry = {
+	vendor: Vendor;
+	distanceKm: number | null;
+	rankingLabel: string;
+	tags: string[];
+};
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+	{ value: "nearest", label: "Nearest" },
+	{ value: "rating", label: "Top rated" },
+	{ value: "fastest", label: "Fastest" },
+];
 
 export default function VendorListScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams<{
 		categoryId?: string;
 		categoryName?: string;
+		search?: string;
+		sort?: SortOption;
 	}>();
 
-	const [search, setSearch] = useState("");
+	const initialSearch = typeof params.search === "string" ? params.search : "";
+	const initialSort =
+		typeof params.sort === "string" &&
+		SORT_OPTIONS.some((option) => option.value === params.sort)
+			? params.sort
+			: "nearest";
+
+	const [search, setSearch] = useState(initialSearch);
 	const [refreshing, setRefreshing] = useState(false);
+	const [sortBy, setSortBy] = useState<SortOption>(initialSort);
+	const [openOnly, setOpenOnly] = useState(false);
+	const [topRatedOnly, setTopRatedOnly] = useState(false);
+	const [quickPrepOnly, setQuickPrepOnly] = useState(false);
 
 	const { lat, lng, request: requestLocation } = useLocationStore();
 
@@ -40,15 +74,132 @@ export default function VendorListScreen() {
 		refetch,
 	} = useQuery<PaginatedResult<Vendor>>({
 		queryKey: ["vendors", params.categoryId, search, lat, lng],
-		queryFn: () =>
-			getVendors({
+		queryFn: async () => {
+			const baseParams = {
 				categoryId: params.categoryId,
 				search: search || undefined,
-				...(lat && lng ? { lat, lng, radius: 10 } : {}),
-			}),
+			};
+
+			if (lat != null && lng != null) {
+				const nearbyResults = await getVendors({
+					...baseParams,
+					lat,
+					lng,
+					radius: 10,
+				});
+
+				if (nearbyResults.items.length > 0) {
+					return nearbyResults;
+				}
+			}
+
+			return getVendors(baseParams);
+		},
 	});
 
-	const vendors = vendorResult?.items;
+	const vendorEntries = useMemo<VendorBrowseEntry[]>(() => {
+		const mappedEntries = (vendorResult?.items ?? []).map((vendor, index) => ({
+			vendor,
+			distanceKm: getVendorDistanceKm(vendor, lat, lng),
+			rankingLabel:
+				index === 0 ? "Best match for this lane" : "Recommended nearby",
+			tags: getVendorDiscoveryTags(vendor),
+		}));
+
+		let filteredEntries = mappedEntries;
+
+		if (openOnly) {
+			filteredEntries = filteredEntries.filter((entry) => entry.vendor.isOpen);
+		}
+
+		if (topRatedOnly) {
+			filteredEntries = filteredEntries.filter(
+				(entry) => entry.vendor.rating >= 4.5,
+			);
+		}
+
+		if (quickPrepOnly) {
+			filteredEntries = filteredEntries.filter(
+				(entry) => entry.vendor.estimatedPrepTimeMinutes <= 25,
+			);
+		}
+
+		filteredEntries = [...filteredEntries];
+
+		if (sortBy === "rating") {
+			filteredEntries.sort(
+				(first, second) => second.vendor.rating - first.vendor.rating,
+			);
+		} else if (sortBy === "fastest") {
+			filteredEntries.sort(
+				(first, second) =>
+					first.vendor.estimatedPrepTimeMinutes -
+					second.vendor.estimatedPrepTimeMinutes,
+			);
+		} else {
+			filteredEntries.sort(
+				(first, second) =>
+					(first.distanceKm ?? Number.POSITIVE_INFINITY) -
+					(second.distanceKm ?? Number.POSITIVE_INFINITY),
+			);
+		}
+
+		return filteredEntries.map((entry, index) => {
+			let rankingLabel = "Recommended nearby";
+
+			if (sortBy === "nearest") {
+				rankingLabel =
+					index === 0
+						? "Closest pick for you"
+						: entry.distanceKm != null && entry.distanceKm < 3
+							? "Easy to reach"
+							: "Available in your area";
+			} else if (sortBy === "rating") {
+				rankingLabel =
+					index === 0
+						? "Highest rated in this lane"
+						: "Strong customer ratings";
+			} else if (sortBy === "fastest") {
+				rankingLabel =
+					index === 0 ? "Fastest prep right now" : "Quick turnaround";
+			}
+
+			return {
+				...entry,
+				rankingLabel,
+			};
+		});
+	}, [lat, lng, openOnly, quickPrepOnly, sortBy, topRatedOnly, vendorResult]);
+
+	const highlightedTags = useMemo(
+		() =>
+			Array.from(new Set(vendorEntries.flatMap((entry) => entry.tags))).slice(
+				0,
+				6,
+			),
+		[vendorEntries],
+	);
+
+	const summaryStats = useMemo(() => {
+		const openCount = vendorEntries.filter(
+			(entry) => entry.vendor.isOpen,
+		).length;
+		const averagePrep =
+			vendorEntries.length > 0
+				? Math.round(
+						vendorEntries.reduce(
+							(total, entry) => total + entry.vendor.estimatedPrepTimeMinutes,
+							0,
+						) / vendorEntries.length,
+					)
+				: 0;
+
+		return {
+			results: vendorEntries.length,
+			openCount,
+			averagePrep,
+		};
+	}, [vendorEntries]);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -56,125 +207,224 @@ export default function VendorListScreen() {
 		setRefreshing(false);
 	}, [refetch]);
 
-	const renderVendor = ({ item }: { item: Vendor }) => (
-		<TouchableOpacity
-			style={styles.vendorCard}
-			activeOpacity={0.7}
+	const renderVendor = ({ item }: { item: VendorBrowseEntry }) => (
+		<VendorCard
+			vendor={item.vendor}
 			onPress={() =>
 				router.push({
 					pathname: "/vendors/[id]",
-					params: { id: item.id },
+					params: { id: item.vendor.id },
 				})
-			}>
-			{item.bannerUrl ? (
-				<Image source={{ uri: item.bannerUrl }} style={styles.vendorBanner} />
-			) : (
-				<View style={styles.vendorBannerPlaceholder}>
-					<Text style={{ fontSize: 36 }}>🏪</Text>
-				</View>
-			)}
-			<View style={styles.vendorInfo}>
-				<View style={styles.vendorHeader}>
-					<View style={{ flex: 1 }}>
-						<Text style={styles.vendorName}>{item.businessName}</Text>
-						{item.description ? (
-							<Text style={styles.vendorDesc} numberOfLines={1}>
-								{item.description}
-							</Text>
-						) : null}
-					</View>
-					<View
-						style={[
-							styles.openBadge,
-							{ backgroundColor: item.isOpen ? "#D1FAE5" : "#F3F4F6" },
-						]}>
-						<View
-							style={[
-								styles.openDot,
-								{ backgroundColor: item.isOpen ? "#10B981" : "#9CA3AF" },
-							]}
-						/>
-						<Text
-							style={[
-								styles.openText,
-								{ color: item.isOpen ? "#065F46" : "#6B7280" },
-							]}>
-							{item.isOpen ? "Open" : "Closed"}
-						</Text>
-					</View>
-				</View>
-
-				<View style={styles.vendorMeta}>
-					<Text style={styles.metaText}>⭐ {item.rating.toFixed(1)}</Text>
-					<Text style={styles.metaDot}>·</Text>
-					<Text style={styles.metaText}>
-						{item.estimatedPrepTimeMinutes} min
-					</Text>
-					<Text style={styles.metaDot}>·</Text>
-					<Text style={styles.metaText}>
-						{item.deliveryFee > 0
-							? `₦${item.deliveryFee.toLocaleString()} delivery`
-							: "Free delivery"}
-					</Text>
-				</View>
-
-				{item.serviceCategories.length > 0 && (
-					<View style={styles.tagRow}>
-						{item.serviceCategories.slice(0, 3).map((sc) => (
-							<View key={sc.id} style={styles.tag}>
-								<Text style={styles.tagText}>{sc.name}</Text>
-							</View>
-						))}
-					</View>
-				)}
-			</View>
-		</TouchableOpacity>
+			}
+			style={styles.vendorCard}
+			distanceKm={item.distanceKm}
+			rankingLabel={item.rankingLabel}
+			tags={item.tags}
+		/>
 	);
 
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
-			{/* Header */}
-			<View style={styles.header}>
-				<TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-					<Text style={styles.backText}>‹</Text>
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>
-					{params.categoryName || "Vendors"}
-				</Text>
-				<View style={{ width: 40 }} />
-			</View>
-
-			{/* Search */}
-			<View style={styles.searchWrap}>
-				<TextInput
-					style={styles.searchInput}
-					placeholder="Search vendors…"
-					placeholderTextColor="#9CA3AF"
-					value={search}
-					onChangeText={setSearch}
-					returnKeyType="search"
-				/>
-			</View>
+			<BackHeader
+				title={params.categoryName || "Vendors"}
+				onBack={() => router.back()}
+			/>
 
 			{isLoading && !refreshing ? (
 				<View style={styles.center}>
 					<ActivityIndicator size="large" color="#2F8F4E" />
 				</View>
-			) : !vendors || vendors.length === 0 ? (
-				<View style={styles.center}>
-					<Text style={styles.emptyIcon}>🔍</Text>
-					<Text style={styles.emptyText}>No vendors found</Text>
-					<Text style={styles.emptySubtext}>
-						{search ? "Try a different search" : "Check back soon!"}
-					</Text>
+			) : vendorEntries.length === 0 ? (
+				<View style={styles.emptyWrap}>
+					<HeroCard
+						kicker={params.categoryName ? "Category" : "Marketplace"}
+						title={
+							params.categoryName
+								? `Browse ${params.categoryName}.`
+								: "Browse live vendors near you."
+						}
+						subtitle="Use search and quick filters to compare merchants faster before you open a store."
+						style={styles.heroCard}
+					/>
+					<View style={styles.searchWrap}>
+						<View style={styles.searchInputWrap}>
+							<Ionicons name="search-outline" size={18} color="#9CA3AF" />
+							<TextInput
+								style={styles.searchInput}
+								placeholder="Search vendors"
+								placeholderTextColor="#9CA3AF"
+								value={search}
+								onChangeText={setSearch}
+								returnKeyType="search"
+							/>
+						</View>
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.filterRow}>
+							{SORT_OPTIONS.map((option) => (
+								<TouchableOpacity
+									key={option.value}
+									style={[
+										styles.filterChip,
+										sortBy === option.value && styles.filterChipActive,
+									]}
+									onPress={() => setSortBy(option.value)}
+									activeOpacity={0.82}>
+									<Text
+										style={[
+											styles.filterChipText,
+											sortBy === option.value && styles.filterChipTextActive,
+										]}>
+										{option.label}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</ScrollView>
+					</View>
+					<EmptyState
+						icon="search-outline"
+						title="No vendors found"
+						description={
+							search ? "Try a different search." : "Check back soon."
+						}
+					/>
 				</View>
 			) : (
 				<FlatList
-					data={vendors}
-					keyExtractor={(item) => item.id}
+					data={vendorEntries}
+					keyExtractor={(item) => item.vendor.id}
 					renderItem={renderVendor}
 					contentContainerStyle={styles.list}
 					showsVerticalScrollIndicator={false}
+					ListHeaderComponent={
+						<View>
+							<HeroCard
+								kicker={params.categoryName ? "Category" : "Marketplace"}
+								title={
+									params.categoryName
+										? `Browse ${params.categoryName}.`
+										: "Browse live vendors near you."
+								}
+								subtitle="Use search and quick filters to compare merchants faster before you open a store."
+								style={styles.heroCard}
+							/>
+							<View style={styles.searchWrap}>
+								<View style={styles.searchInputWrap}>
+									<Ionicons name="search-outline" size={18} color="#9CA3AF" />
+									<TextInput
+										style={styles.searchInput}
+										placeholder="Search vendors"
+										placeholderTextColor="#9CA3AF"
+										value={search}
+										onChangeText={setSearch}
+										returnKeyType="search"
+									/>
+								</View>
+								<View style={styles.summaryRow}>
+									<View style={styles.summaryCard}>
+										<Text style={styles.summaryValue}>
+											{summaryStats.results}
+										</Text>
+										<Text style={styles.summaryLabel}>Results</Text>
+									</View>
+									<View style={styles.summaryCard}>
+										<Text style={styles.summaryValue}>
+											{summaryStats.openCount}
+										</Text>
+										<Text style={styles.summaryLabel}>Open now</Text>
+									</View>
+									<View style={styles.summaryCard}>
+										<Text style={styles.summaryValue}>
+											{summaryStats.averagePrep}
+										</Text>
+										<Text style={styles.summaryLabel}>Avg prep</Text>
+									</View>
+								</View>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerStyle={styles.filterRow}>
+									{SORT_OPTIONS.map((option) => (
+										<TouchableOpacity
+											key={option.value}
+											style={[
+												styles.filterChip,
+												sortBy === option.value && styles.filterChipActive,
+											]}
+											onPress={() => setSortBy(option.value)}
+											activeOpacity={0.82}>
+											<Text
+												style={[
+													styles.filterChipText,
+													sortBy === option.value &&
+														styles.filterChipTextActive,
+												]}>
+												{option.label}
+											</Text>
+										</TouchableOpacity>
+									))}
+									<TouchableOpacity
+										style={[
+											styles.filterChip,
+											openOnly && styles.filterChipActive,
+										]}
+										onPress={() => setOpenOnly((value) => !value)}
+										activeOpacity={0.82}>
+										<Text
+											style={[
+												styles.filterChipText,
+												openOnly && styles.filterChipTextActive,
+											]}>
+											Open now
+										</Text>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={[
+											styles.filterChip,
+											topRatedOnly && styles.filterChipActive,
+										]}
+										onPress={() => setTopRatedOnly((value) => !value)}
+										activeOpacity={0.82}>
+										<Text
+											style={[
+												styles.filterChipText,
+												topRatedOnly && styles.filterChipTextActive,
+											]}>
+											4.5+
+										</Text>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={[
+											styles.filterChip,
+											quickPrepOnly && styles.filterChipActive,
+										]}
+										onPress={() => setQuickPrepOnly((value) => !value)}
+										activeOpacity={0.82}>
+										<Text
+											style={[
+												styles.filterChipText,
+												quickPrepOnly && styles.filterChipTextActive,
+											]}>
+											Under 25 min
+										</Text>
+									</TouchableOpacity>
+								</ScrollView>
+								{highlightedTags.length > 0 ? (
+									<ScrollView
+										horizontal
+										showsHorizontalScrollIndicator={false}
+										contentContainerStyle={styles.tagRow}>
+										{highlightedTags.map((tag) => (
+											<View key={tag} style={styles.tagChip}>
+												<Text style={styles.tagText}>{tag}</Text>
+											</View>
+										))}
+									</ScrollView>
+								) : null}
+							</View>
+						</View>
+					}
 					refreshControl={
 						<RefreshControl
 							refreshing={refreshing}
@@ -191,152 +441,114 @@ export default function VendorListScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F3F5EF",
 	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		backgroundColor: "#FFFFFF",
-		borderBottomWidth: 1,
-		borderBottomColor: "#F3F4F6",
-	},
-	backBtn: {
-		width: 40,
-		height: 40,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	backText: {
-		fontSize: 28,
-		color: "#374151",
-		fontWeight: "300",
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#111827",
+	heroCard: {
+		marginHorizontal: 16,
+		marginTop: 8,
+		marginBottom: 16,
 	},
 	searchWrap: {
 		paddingHorizontal: 16,
-		paddingVertical: 12,
+		paddingBottom: 12,
+	},
+	searchInputWrap: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 		backgroundColor: "#FFFFFF",
+		borderRadius: 16,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		paddingHorizontal: 14,
+		paddingVertical: 12,
 	},
 	searchInput: {
-		backgroundColor: "#F3F4F6",
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 12,
+		flex: 1,
 		fontSize: 15,
 		color: "#111827",
 	},
-	list: {
-		padding: 16,
+	filterRow: {
+		gap: 8,
+		paddingTop: 12,
+		paddingBottom: 4,
 	},
-	vendorCard: {
+	filterChip: {
+		paddingHorizontal: 14,
+		paddingVertical: 10,
+		borderRadius: 999,
 		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
-		marginBottom: 16,
-		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "#F3F4F6",
+		borderColor: "#E4E8DE",
 	},
-	vendorBanner: {
-		width: "100%",
-		height: 120,
+	filterChipActive: {
+		backgroundColor: "#19543B",
+		borderColor: "#19543B",
 	},
-	vendorBannerPlaceholder: {
-		width: "100%",
-		height: 120,
-		backgroundColor: "#F0FDF4",
-		alignItems: "center",
-		justifyContent: "center",
+	filterChipText: {
+		fontSize: 12,
+		fontWeight: "800",
+		color: "#334155",
 	},
-	vendorInfo: {
+	filterChipTextActive: {
+		color: "#FFFFFF",
+	},
+	summaryRow: {
+		flexDirection: "row",
+		gap: 10,
+		paddingHorizontal: 16,
+		paddingBottom: 12,
+	},
+	summaryCard: {
+		flex: 1,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 18,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
 		padding: 14,
 	},
-	vendorHeader: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-start",
+	summaryValue: {
+		fontSize: 20,
+		fontWeight: "800",
+		color: "#142013",
 	},
-	vendorName: {
-		fontSize: 17,
+	summaryLabel: {
+		fontSize: 11,
 		fontWeight: "700",
-		color: "#111827",
-	},
-	vendorDesc: {
-		fontSize: 13,
-		color: "#6B7280",
-		marginTop: 2,
-	},
-	openBadge: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-		marginLeft: 8,
-	},
-	openDot: {
-		width: 6,
-		height: 6,
-		borderRadius: 3,
-		marginRight: 4,
-	},
-	openText: {
-		fontSize: 12,
-		fontWeight: "600",
-	},
-	vendorMeta: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginTop: 8,
-	},
-	metaText: {
-		fontSize: 13,
-		color: "#6B7280",
-	},
-	metaDot: {
-		marginHorizontal: 6,
-		color: "#D1D5DB",
+		textTransform: "uppercase",
+		letterSpacing: 0.8,
+		color: "#7A8579",
+		marginTop: 4,
 	},
 	tagRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		marginTop: 8,
-		gap: 6,
+		gap: 8,
+		paddingHorizontal: 16,
+		paddingBottom: 12,
 	},
-	tag: {
-		backgroundColor: "#F0FDF4",
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 8,
+	tagChip: {
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 999,
+		backgroundColor: "#EDF2EA",
 	},
 	tagText: {
-		fontSize: 11,
-		fontWeight: "600",
-		color: "#1F6B3A",
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#19543B",
+	},
+	list: {
+		padding: 16,
+		paddingTop: 0,
+	},
+	vendorCard: {
+		marginBottom: 16,
 	},
 	center: {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	emptyIcon: {
-		fontSize: 48,
-		marginBottom: 12,
-	},
-	emptyText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#374151",
-	},
-	emptySubtext: {
-		fontSize: 14,
-		color: "#9CA3AF",
-		marginTop: 4,
+	emptyWrap: {
+		paddingBottom: 20,
 	},
 });

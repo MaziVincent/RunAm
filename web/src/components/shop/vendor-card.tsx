@@ -102,9 +102,7 @@ export function VendorCard({ vendor, className }: VendorCardProps) {
 					</span>
 
 					<span className="ml-auto text-xs font-medium">
-						{vendor.deliveryFee === 0
-							? "Free delivery"
-							: `${formatCurrency(vendor.deliveryFee)} delivery`}
+						Delivery from checkout
 					</span>
 				</div>
 			</div>

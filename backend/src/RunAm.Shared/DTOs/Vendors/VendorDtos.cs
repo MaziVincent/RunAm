@@ -48,7 +48,6 @@ public record VendorDto(
     bool IsOpen,
     bool IsActive,
     decimal MinimumOrderAmount,
-    decimal DeliveryFee,
     int EstimatedPrepTimeMinutes,
     double Rating,
     int TotalReviews,
@@ -73,7 +72,6 @@ public record VendorDetailDto(
     bool IsOpen,
     bool IsActive,
     decimal MinimumOrderAmount,
-    decimal DeliveryFee,
     int EstimatedPrepTimeMinutes,
     double Rating,
     int TotalReviews,
@@ -95,7 +93,6 @@ public record CreateVendorRequest(
     double Longitude,
     string? OperatingHours,
     decimal MinimumOrderAmount,
-    decimal DeliveryFee,
     int EstimatedPrepTimeMinutes,
     List<Guid> ServiceCategoryIds
 );
@@ -109,7 +106,6 @@ public record UpdateVendorRequest(
     double? Longitude = null,
     string? OperatingHours = null,
     decimal? MinimumOrderAmount = null,
-    decimal? DeliveryFee = null,
     int? EstimatedPrepTimeMinutes = null,
     string? LogoUrl = null,
     string? BannerUrl = null,

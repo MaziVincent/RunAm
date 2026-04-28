@@ -1,22 +1,27 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	ScrollView,
-	Image,
 	Alert,
+	Image,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useCartStore } from "@runam/shared/stores/cart-store";
 import type {
 	Product,
+	ProductExtra,
 	ProductVariant,
 	ProductVariantOption,
-	ProductExtra,
 } from "@runam/shared/types";
+
+function formatCurrency(amount: number): string {
+	return `₦${amount.toLocaleString()}`;
+}
 
 export default function ProductDetailScreen() {
 	const router = useRouter();
@@ -27,7 +32,7 @@ export default function ProductDetailScreen() {
 		productJson: string;
 	}>();
 
-	const product: Product = useMemo(() => {
+	const product = useMemo<Product | null>(() => {
 		try {
 			return JSON.parse(params.productJson!);
 		} catch {
@@ -35,11 +40,14 @@ export default function ProductDetailScreen() {
 		}
 	}, [params.productJson]);
 
-	const addItem = useCartStore((s) => s.addItem);
-	const cartVendorId = useCartStore((s) => s.vendorId);
+	const addItem = useCartStore((state) => state.addItem);
+	const cartVendorId = useCartStore((state) => state.vendorId);
+	const cartCount = useCartStore((state) => state.getItemCount());
 
-	const variants: ProductVariant[] = useMemo(() => {
-		if (!product?.variantsJson) return [];
+	const variants = useMemo<ProductVariant[]>(() => {
+		if (!product?.variantsJson) {
+			return [];
+		}
 		try {
 			return JSON.parse(product.variantsJson);
 		} catch {
@@ -47,8 +55,10 @@ export default function ProductDetailScreen() {
 		}
 	}, [product?.variantsJson]);
 
-	const extras: ProductExtra[] = useMemo(() => {
-		if (!product?.extrasJson) return [];
+	const extras = useMemo<ProductExtra[]>(() => {
+		if (!product?.extrasJson) {
+			return [];
+		}
 		try {
 			return JSON.parse(product.extrasJson);
 		} catch {
@@ -67,9 +77,9 @@ export default function ProductDetailScreen() {
 	if (!product) {
 		return (
 			<SafeAreaView style={styles.container}>
-				<View style={styles.center}>
-					<Text style={styles.errorText}>Product not found</Text>
-					<TouchableOpacity onPress={() => router.back()}>
+				<View style={styles.centered}>
+					<Text style={styles.emptyTitle}>Product not found</Text>
+					<TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
 						<Text style={styles.linkText}>Go back</Text>
 					</TouchableOpacity>
 				</View>
@@ -77,51 +87,46 @@ export default function ProductDetailScreen() {
 		);
 	}
 
+	const requiredVariants = variants.filter(
+		(variant) => variant.options.length > 0,
+	);
+	const missingRequiredVariantNames = requiredVariants
+		.filter((variant) => !selectedVariants[variant.name])
+		.map((variant) => variant.name);
+
 	const unitPrice = useMemo(() => {
 		let price = product.price;
-		Object.values(selectedVariants).forEach((v) => {
-			price += v.option.priceAdjustment;
+		Object.values(selectedVariants).forEach((variant) => {
+			price += variant.option.priceAdjustment;
 		});
 		Object.entries(selectedExtras).forEach(([name, qty]) => {
-			const extra = extras.find((e) => e.name === name);
+			const extra = extras.find((item) => item.name === name);
 			if (extra && qty > 0) {
 				price += extra.price * qty;
 			}
 		});
 		return price;
-	}, [product.price, selectedVariants, selectedExtras, extras]);
+	}, [extras, product.price, selectedExtras, selectedVariants]);
 
 	const totalPrice = unitPrice * quantity;
-
-	const handleAddToCart = () => {
-		if (cartVendorId && cartVendorId !== params.vendorId) {
-			Alert.alert(
-				"Replace cart?",
-				"Your cart contains items from a different vendor. Adding this item will clear your current cart.",
-				[
-					{ text: "Cancel", style: "cancel" },
-					{
-						text: "Replace",
-						style: "destructive",
-						onPress: () => doAdd(),
-					},
-				],
-			);
-			return;
-		}
-		doAdd();
-	};
+	const variantSummary = Object.values(selectedVariants).map(
+		(entry) => `${entry.name}: ${entry.option.label}`,
+	);
+	const extrasSummary = Object.entries(selectedExtras)
+		.filter(([, qty]) => qty > 0)
+		.map(([name, qty]) => `${name} x${qty}`);
+	const isReadyToAdd =
+		product.isAvailable && missingRequiredVariantNames.length === 0;
 
 	const doAdd = () => {
 		const variantEntries = Object.values(selectedVariants);
-
-		const extrasArr = Object.entries(selectedExtras)
+		const extrasArray = Object.entries(selectedExtras)
 			.filter(([, qty]) => qty > 0)
 			.map(([name, qty]) => ({
-				extra: extras.find((e) => e.name === name)!,
+				extra: extras.find((entry) => entry.name === name)!,
 				quantity: qty,
 			}))
-			.filter((e) => e.extra);
+			.filter((entry) => entry.extra);
 
 		addItem(
 			params.vendorId!,
@@ -129,52 +134,167 @@ export default function ProductDetailScreen() {
 			product,
 			quantity,
 			variantEntries.length > 0 ? variantEntries : undefined,
-			extrasArr.length > 0 ? extrasArr : undefined,
+			extrasArray.length > 0 ? extrasArray : undefined,
 		);
 		router.back();
 	};
 
+	const handleAddToCart = () => {
+		if (!isReadyToAdd) {
+			return;
+		}
+
+		if (cartVendorId && cartVendorId !== params.vendorId) {
+			Alert.alert(
+				"Replace cart?",
+				"Your cart contains items from another vendor. Adding this item will replace the current cart.",
+				[
+					{ text: "Cancel", style: "cancel" },
+					{ text: "Replace", style: "destructive", onPress: () => doAdd() },
+				],
+			);
+			return;
+		}
+		doAdd();
+	};
+
+	const addButtonLabel = !product.isAvailable
+		? "Currently unavailable"
+		: missingRequiredVariantNames.length > 0
+			? `Choose ${missingRequiredVariantNames[0]}`
+			: "Add to cart";
+
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
-			<ScrollView showsVerticalScrollIndicator={false}>
-				{/* Image */}
-				{product.imageUrl ? (
-					<Image source={{ uri: product.imageUrl }} style={styles.image} />
-				) : (
-					<View style={styles.imagePlaceholder}>
-						<Text style={{ fontSize: 64 }}>📦</Text>
-					</View>
-				)}
-
-				{/* Back button */}
-				<TouchableOpacity
-					style={styles.backOverlay}
-					onPress={() => router.back()}>
-					<Text style={styles.backIcon}>‹</Text>
-				</TouchableOpacity>
-
-				{/* Product Info */}
-				<View style={styles.infoSection}>
-					<Text style={styles.productName}>{product.name}</Text>
-					{product.description ? (
-						<Text style={styles.productDesc}>{product.description}</Text>
-					) : null}
-					<View style={styles.priceRow}>
-						<Text style={styles.price}>₦{product.price.toLocaleString()}</Text>
-						{product.compareAtPrice != null &&
-							product.compareAtPrice > product.price && (
-								<Text style={styles.comparePrice}>
-									₦{product.compareAtPrice.toLocaleString()}
-								</Text>
-							)}
+			<ScrollView
+				contentContainerStyle={styles.content}
+				showsVerticalScrollIndicator={false}>
+				<View style={styles.heroWrap}>
+					{product.imageUrl ? (
+						<Image
+							source={{ uri: product.imageUrl }}
+							style={styles.heroImage}
+						/>
+					) : (
+						<View style={styles.heroFallback}>
+							<Ionicons name="cube-outline" size={44} color="#19543B" />
+						</View>
+					)}
+					<View style={styles.topBar}>
+						<TouchableOpacity
+							style={styles.topButton}
+							onPress={() => router.back()}>
+							<Ionicons name="chevron-back" size={22} color="#142013" />
+						</TouchableOpacity>
+						{cartVendorId === params.vendorId && cartCount > 0 ? (
+							<TouchableOpacity
+								style={styles.cartButton}
+								onPress={() => router.push("/cart" as any)}>
+								<Ionicons name="cart-outline" size={18} color="#142013" />
+								<Text style={styles.cartButtonText}>{cartCount}</Text>
+							</TouchableOpacity>
+						) : null}
 					</View>
 				</View>
 
-				{/* Variants */}
+				<View style={styles.infoCard}>
+					<Text style={styles.productName}>{product.name}</Text>
+					{product.description ? (
+						<Text style={styles.productDescription}>{product.description}</Text>
+					) : null}
+					<View style={styles.priceRow}>
+						<Text style={styles.price}>{formatCurrency(product.price)}</Text>
+						{product.compareAtPrice != null &&
+						product.compareAtPrice > product.price ? (
+							<Text style={styles.comparePrice}>
+								{formatCurrency(product.compareAtPrice)}
+							</Text>
+						) : null}
+						{!product.isAvailable ? (
+							<View style={styles.unavailableBadge}>
+								<Text style={styles.unavailableText}>Unavailable</Text>
+							</View>
+						) : null}
+					</View>
+				</View>
+
+				<View style={styles.summaryCard}>
+					<View style={styles.summaryHeader}>
+						<View>
+							<Text style={styles.summaryEyebrow}>Builder</Text>
+							<Text style={styles.summaryTitle}>Review before you add</Text>
+						</View>
+						<Text style={styles.summaryPrice}>
+							{formatCurrency(unitPrice)} each
+						</Text>
+					</View>
+					{missingRequiredVariantNames.length > 0 ? (
+						<View style={styles.inlineWarning}>
+							<Ionicons name="alert-circle-outline" size={18} color="#A15C00" />
+							<Text style={styles.inlineWarningText}>
+								Choose {missingRequiredVariantNames.join(", ")} to continue.
+							</Text>
+						</View>
+					) : (
+						<View style={styles.readyPill}>
+							<Ionicons name="checkmark-circle" size={18} color="#19543B" />
+							<Text style={styles.readyPillText}>
+								Required selections complete
+							</Text>
+						</View>
+					)}
+					<View style={styles.selectionGroup}>
+						<Text style={styles.selectionLabel}>Required choices</Text>
+						<View style={styles.selectionWrap}>
+							{variantSummary.length > 0 ? (
+								variantSummary.map((item) => (
+									<View key={item} style={styles.selectionChip}>
+										<Text style={styles.selectionChipText}>{item}</Text>
+									</View>
+								))
+							) : (
+								<Text style={styles.selectionPlaceholder}>
+									Nothing chosen yet
+								</Text>
+							)}
+						</View>
+					</View>
+					{extras.length > 0 ? (
+						<View style={styles.selectionGroup}>
+							<Text style={styles.selectionLabel}>Optional extras</Text>
+							<View style={styles.selectionWrap}>
+								{extrasSummary.length > 0 ? (
+									extrasSummary.map((item) => (
+										<View key={item} style={styles.selectionChipSecondary}>
+											<Text style={styles.selectionChipSecondaryText}>
+												{item}
+											</Text>
+										</View>
+									))
+								) : (
+									<Text style={styles.selectionPlaceholder}>
+										No extras selected
+									</Text>
+								)}
+							</View>
+						</View>
+					) : null}
+				</View>
+
 				{variants.map((variant) => (
-					<View key={variant.name} style={styles.optionSection}>
-						<Text style={styles.optionTitle}>{variant.name}</Text>
-						<View style={styles.optionRow}>
+					<View key={variant.name} style={styles.sectionCard}>
+						<View style={styles.sectionHeader}>
+							<View>
+								<Text style={styles.sectionTitle}>{variant.name}</Text>
+								<Text style={styles.sectionMeta}>Required selection</Text>
+							</View>
+							{selectedVariants[variant.name] ? (
+								<Text style={styles.sectionStatus}>Selected</Text>
+							) : (
+								<Text style={styles.sectionStatusMuted}>Choose one</Text>
+							)}
+						</View>
+						<View style={styles.choiceWrap}>
 							{variant.options.map((option) => {
 								const isSelected =
 									selectedVariants[variant.name]?.option.label === option.label;
@@ -182,24 +302,33 @@ export default function ProductDetailScreen() {
 									<TouchableOpacity
 										key={option.label}
 										style={[
-											styles.optionChip,
-											isSelected && styles.optionChipActive,
+											styles.choiceChip,
+											isSelected && styles.choiceChipActive,
 										]}
 										onPress={() =>
 											setSelectedVariants((prev) => ({
 												...prev,
 												[variant.name]: { name: variant.name, option },
 											}))
-										}>
+										}
+										activeOpacity={0.82}>
 										<Text
 											style={[
-												styles.optionChipText,
-												isSelected && styles.optionChipTextActive,
+												styles.choiceText,
+												isSelected && styles.choiceTextActive,
 											]}>
 											{option.label}
-											{option.priceAdjustment !== 0 &&
-												` (+₦${option.priceAdjustment.toLocaleString()})`}
 										</Text>
+										{option.priceAdjustment !== 0 ? (
+											<Text
+												style={[
+													styles.choiceMeta,
+													isSelected && styles.choiceMetaActive,
+												]}>
+												{option.priceAdjustment > 0 ? "+" : ""}
+												{formatCurrency(option.priceAdjustment)}
+											</Text>
+										) : null}
 									</TouchableOpacity>
 								);
 							})}
@@ -207,34 +336,39 @@ export default function ProductDetailScreen() {
 					</View>
 				))}
 
-				{/* Extras */}
-				{extras.length > 0 && (
-					<View style={styles.optionSection}>
-						<Text style={styles.optionTitle}>Extras</Text>
+				{extras.length > 0 ? (
+					<View style={styles.sectionCard}>
+						<View style={styles.sectionHeader}>
+							<View>
+								<Text style={styles.sectionTitle}>Extras</Text>
+								<Text style={styles.sectionMeta}>Optional add-ons</Text>
+							</View>
+						</View>
 						{extras.map((extra) => {
 							const qty = selectedExtras[extra.name] ?? 0;
 							return (
 								<View key={extra.name} style={styles.extraRow}>
-									<View style={{ flex: 1 }}>
+									<View style={styles.extraCopy}>
 										<Text style={styles.extraName}>{extra.name}</Text>
-										<Text style={styles.extraPrice}>
-											+₦{extra.price.toLocaleString()}
+										<Text style={styles.extraMeta}>
+											Add {formatCurrency(extra.price)} each
 										</Text>
 									</View>
 									<View style={styles.qtyControl}>
 										<TouchableOpacity
-											style={styles.qtyBtn}
+											style={styles.qtyButton}
 											onPress={() =>
 												setSelectedExtras((prev) => ({
 													...prev,
 													[extra.name]: Math.max(0, qty - 1),
 												}))
-											}>
-											<Text style={styles.qtyBtnText}>−</Text>
+											}
+											activeOpacity={0.82}>
+											<Ionicons name="remove" size={16} color="#142013" />
 										</TouchableOpacity>
 										<Text style={styles.qtyText}>{qty}</Text>
 										<TouchableOpacity
-											style={styles.qtyBtn}
+											style={styles.qtyButton}
 											onPress={() =>
 												setSelectedExtras((prev) => ({
 													...prev,
@@ -243,49 +377,61 @@ export default function ProductDetailScreen() {
 														qty + 1,
 													),
 												}))
-											}>
-											<Text style={styles.qtyBtnText}>+</Text>
+											}
+											activeOpacity={0.82}>
+											<Ionicons name="add" size={16} color="#142013" />
 										</TouchableOpacity>
 									</View>
 								</View>
 							);
 						})}
 					</View>
-				)}
+				) : null}
 
-				{/* Quantity */}
-				<View style={styles.optionSection}>
-					<Text style={styles.optionTitle}>Quantity</Text>
+				<View style={styles.sectionCard}>
+					<View style={styles.sectionHeader}>
+						<View>
+							<Text style={styles.sectionTitle}>Quantity</Text>
+							<Text style={styles.sectionMeta}>Adjust your order</Text>
+						</View>
+					</View>
 					<View style={styles.quantityRow}>
 						<TouchableOpacity
-							style={styles.qtyBtnLg}
-							onPress={() => setQuantity((q) => Math.max(1, q - 1))}>
-							<Text style={styles.qtyBtnLgText}>−</Text>
+							style={styles.quantityButton}
+							onPress={() => setQuantity((value) => Math.max(1, value - 1))}>
+							<Ionicons name="remove" size={18} color="#142013" />
 						</TouchableOpacity>
-						<Text style={styles.quantityText}>{quantity}</Text>
+						<Text style={styles.quantityValue}>{quantity}</Text>
 						<TouchableOpacity
-							style={styles.qtyBtnLg}
-							onPress={() => setQuantity((q) => q + 1)}>
-							<Text style={styles.qtyBtnLgText}>+</Text>
+							style={styles.quantityButton}
+							onPress={() => setQuantity((value) => value + 1)}>
+							<Ionicons name="add" size={18} color="#142013" />
 						</TouchableOpacity>
 					</View>
 				</View>
 
-				<View style={{ height: 120 }} />
+				<View style={styles.footerSpacer} />
 			</ScrollView>
 
-			{/* Add to Cart Button */}
 			<View style={styles.bottomBar}>
-				<TouchableOpacity
-					style={[styles.addBtn, !product.isAvailable && styles.addBtnDisabled]}
-					activeOpacity={0.8}
-					disabled={!product.isAvailable}
-					onPress={handleAddToCart}>
-					<Text style={styles.addBtnText}>
-						{product.isAvailable
-							? `Add to Cart · ₦${totalPrice.toLocaleString()}`
-							: "Currently Unavailable"}
+				<View style={styles.bottomInfo}>
+					<Text style={styles.bottomLabel}>Total</Text>
+					<Text style={styles.bottomValue}>{formatCurrency(totalPrice)}</Text>
+					<Text style={styles.bottomHelper}>
+						{missingRequiredVariantNames.length > 0
+							? `Required: ${missingRequiredVariantNames.join(", ")}`
+							: "Ready to add"}
 					</Text>
+				</View>
+				<TouchableOpacity
+					style={[
+						styles.primaryButton,
+						!isReadyToAdd && styles.primaryButtonDisabled,
+					]}
+					onPress={handleAddToCart}
+					disabled={!isReadyToAdd}
+					activeOpacity={0.85}>
+					<Text style={styles.primaryButtonText}>{addButtonLabel}</Text>
 				</TouchableOpacity>
 			</View>
 		</SafeAreaView>
@@ -293,211 +439,353 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	center: {
+	container: { flex: 1, backgroundColor: "#F3F5EF" },
+	content: { paddingBottom: 24 },
+	centered: {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
+		padding: 32,
 	},
-	errorText: {
-		fontSize: 16,
-		color: "#6B7280",
-		fontWeight: "600",
-	},
+	emptyTitle: { fontSize: 18, fontWeight: "800", color: "#142013" },
 	linkText: {
-		fontSize: 15,
-		color: "#2F8F4E",
-		fontWeight: "600",
-		marginTop: 8,
+		fontSize: 14,
+		fontWeight: "800",
+		color: "#19543B",
+		marginTop: 12,
 	},
-	image: {
+	heroWrap: { position: "relative" },
+	heroImage: { width: "100%", height: 280 },
+	heroFallback: {
 		width: "100%",
 		height: 280,
-	},
-	imagePlaceholder: {
-		width: "100%",
-		height: 280,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: "#DDF3E7",
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	backOverlay: {
+	topBar: {
 		position: "absolute",
 		top: 12,
-		left: 12,
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "rgba(255,255,255,0.92)",
+		left: 16,
+		right: 16,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	topButton: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "rgba(255,255,255,0.94)",
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	backIcon: {
-		fontSize: 24,
-		color: "#374151",
-		fontWeight: "300",
-		marginTop: -2,
+	cartButton: {
+		minWidth: 52,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: "rgba(255,255,255,0.94)",
+		paddingHorizontal: 12,
+		alignItems: "center",
+		justifyContent: "center",
+		flexDirection: "row",
+		gap: 6,
 	},
-	infoSection: {
+	cartButtonText: { fontSize: 13, fontWeight: "800", color: "#142013" },
+	infoCard: {
+		marginHorizontal: 20,
+		marginTop: -28,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 28,
 		padding: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: "#F3F4F6",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
 	},
-	productName: {
-		fontSize: 22,
-		fontWeight: "800",
-		color: "#111827",
-	},
-	productDesc: {
+	productName: { fontSize: 24, fontWeight: "800", color: "#142013" },
+	productDescription: {
 		fontSize: 14,
-		color: "#6B7280",
-		marginTop: 6,
 		lineHeight: 20,
+		color: "#667268",
+		marginTop: 8,
 	},
 	priceRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginTop: 10,
-		gap: 8,
+		gap: 10,
+		marginTop: 14,
+		flexWrap: "wrap",
 	},
-	price: {
-		fontSize: 20,
-		fontWeight: "800",
-		color: "#111827",
-	},
+	price: { fontSize: 22, fontWeight: "800", color: "#142013" },
 	comparePrice: {
-		fontSize: 16,
+		fontSize: 14,
 		color: "#9CA3AF",
 		textDecorationLine: "line-through",
 	},
-	optionSection: {
-		padding: 20,
-		borderBottomWidth: 1,
-		borderBottomColor: "#F3F4F6",
+	unavailableBadge: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 999,
+		backgroundColor: "#FDE7E6",
 	},
-	optionTitle: {
-		fontSize: 16,
+	unavailableText: {
+		fontSize: 11,
+		fontWeight: "800",
+		color: "#C93C37",
+		textTransform: "uppercase",
+		letterSpacing: 0.5,
+	},
+	summaryCard: {
+		marginHorizontal: 20,
+		marginTop: 14,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 22,
+		padding: 18,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	summaryHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		gap: 10,
+	},
+	summaryEyebrow: {
+		fontSize: 11,
 		fontWeight: "700",
-		color: "#111827",
+		textTransform: "uppercase",
+		letterSpacing: 0.8,
+		color: "#7A8579",
+	},
+	summaryTitle: {
+		fontSize: 18,
+		fontWeight: "800",
+		color: "#142013",
+		marginTop: 4,
+	},
+	summaryPrice: {
+		fontSize: 14,
+		fontWeight: "800",
+		color: "#19543B",
+	},
+	inlineWarning: {
+		marginTop: 14,
+		borderRadius: 16,
+		backgroundColor: "#FFF5DE",
+		padding: 14,
+		flexDirection: "row",
+		gap: 10,
+		alignItems: "flex-start",
+	},
+	inlineWarningText: {
+		flex: 1,
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#7A4A00",
+	},
+	readyPill: {
+		marginTop: 14,
+		borderRadius: 16,
+		backgroundColor: "#EDF7F1",
+		padding: 14,
+		flexDirection: "row",
+		gap: 10,
+		alignItems: "center",
+	},
+	readyPillText: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#19543B",
+	},
+	selectionGroup: {
+		marginTop: 14,
+	},
+	selectionLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+		textTransform: "uppercase",
+		letterSpacing: 0.8,
+		color: "#7A8579",
+		marginBottom: 8,
+	},
+	selectionWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+	selectionChip: {
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 999,
+		backgroundColor: "#EDF2EA",
+	},
+	selectionChipText: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#19543B",
+	},
+	selectionChipSecondary: {
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 999,
+		backgroundColor: "#F7F8F4",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	selectionChipSecondaryText: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#4B5563",
+	},
+	selectionPlaceholder: {
+		fontSize: 13,
+		color: "#7A8579",
+	},
+	sectionCard: {
+		marginHorizontal: 20,
+		marginTop: 14,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 22,
+		padding: 18,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	sectionHeader: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		gap: 12,
 		marginBottom: 12,
 	},
-	optionRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
+	sectionTitle: {
+		fontSize: 18,
+		fontWeight: "800",
+		color: "#142013",
 	},
-	optionChip: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 12,
-		borderWidth: 1.5,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+	sectionMeta: {
+		fontSize: 12,
+		fontWeight: "700",
+		textTransform: "uppercase",
+		letterSpacing: 0.8,
+		color: "#7A8579",
+		marginTop: 4,
 	},
-	optionChipActive: {
-		borderColor: "#2F8F4E",
-		backgroundColor: "#F0FDF4",
+	sectionStatus: {
+		fontSize: 12,
+		fontWeight: "800",
+		color: "#19543B",
 	},
-	optionChipText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#6B7280",
+	sectionStatusMuted: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#7A8579",
 	},
-	optionChipTextActive: {
-		color: "#2F8F4E",
+	choiceWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+	choiceChip: {
+		paddingHorizontal: 14,
+		paddingVertical: 11,
+		borderRadius: 18,
+		backgroundColor: "#F7F8F4",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		minWidth: 120,
 	},
+	choiceChipActive: { backgroundColor: "#19543B", borderColor: "#19543B" },
+	choiceText: { fontSize: 13, fontWeight: "700", color: "#374151" },
+	choiceTextActive: { color: "#FFFFFF" },
+	choiceMeta: { fontSize: 12, color: "#7A8579", marginTop: 4 },
+	choiceMetaActive: { color: "rgba(255,255,255,0.85)" },
 	extraRow: {
 		flexDirection: "row",
+		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 12,
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: "#EEF1EA",
 	},
-	extraName: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#374151",
-	},
-	extraPrice: {
-		fontSize: 12,
-		color: "#6B7280",
-		marginTop: 1,
-	},
-	qtyControl: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	qtyBtn: {
-		width: 32,
-		height: 32,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
+	extraCopy: { flex: 1, paddingRight: 12 },
+	extraName: { fontSize: 15, fontWeight: "700", color: "#142013" },
+	extraMeta: { fontSize: 12, color: "#7A8579", marginTop: 4 },
+	qtyControl: { flexDirection: "row", alignItems: "center", gap: 8 },
+	qtyButton: {
+		width: 30,
+		height: 30,
+		borderRadius: 10,
+		backgroundColor: "#F3F5EF",
 		alignItems: "center",
 		justifyContent: "center",
-	},
-	qtyBtnText: {
-		fontSize: 18,
-		fontWeight: "600",
-		color: "#374151",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
 	},
 	qtyText: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: "#111827",
-		minWidth: 24,
+		minWidth: 18,
 		textAlign: "center",
+		fontSize: 14,
+		fontWeight: "800",
+		color: "#142013",
 	},
 	quantityRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 24,
+		gap: 16,
 	},
-	qtyBtnLg: {
+	quantityButton: {
 		width: 44,
 		height: 44,
-		borderRadius: 12,
-		backgroundColor: "#F3F4F6",
+		borderRadius: 22,
+		backgroundColor: "#F3F5EF",
 		alignItems: "center",
 		justifyContent: "center",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
 	},
-	qtyBtnLgText: {
-		fontSize: 22,
-		fontWeight: "600",
-		color: "#374151",
-	},
-	quantityText: {
-		fontSize: 22,
+	quantityValue: {
+		fontSize: 24,
 		fontWeight: "800",
-		color: "#111827",
+		color: "#142013",
 		minWidth: 40,
 		textAlign: "center",
 	},
 	bottomBar: {
 		position: "absolute",
-		bottom: 0,
 		left: 0,
 		right: 0,
-		padding: 16,
-		paddingBottom: 32,
-		backgroundColor: "rgba(255,255,255,0.97)",
+		bottom: 0,
+		backgroundColor: "rgba(255,255,255,0.98)",
 		borderTopWidth: 1,
-		borderTopColor: "#F3F4F6",
-	},
-	addBtn: {
-		backgroundColor: "#2F8F4E",
-		paddingVertical: 16,
-		borderRadius: 14,
+		borderTopColor: "#E4E8DE",
+		paddingHorizontal: 20,
+		paddingTop: 14,
+		paddingBottom: 24,
+		flexDirection: "row",
+		justifyContent: "space-between",
 		alignItems: "center",
+		gap: 12,
 	},
-	addBtnDisabled: {
-		backgroundColor: "#D1D5DB",
-	},
-	addBtnText: {
-		fontSize: 16,
+	bottomInfo: { flex: 1 },
+	bottomLabel: {
+		fontSize: 11,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		textTransform: "uppercase",
+		letterSpacing: 1,
+		color: "#7A8579",
 	},
+	bottomValue: {
+		fontSize: 22,
+		fontWeight: "800",
+		color: "#142013",
+		marginTop: 4,
+	},
+	bottomHelper: {
+		fontSize: 12,
+		color: "#7A8579",
+		marginTop: 4,
+	},
+	primaryButton: {
+		backgroundColor: "#19543B",
+		borderRadius: 18,
+		paddingHorizontal: 20,
+		paddingVertical: 15,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	primaryButtonDisabled: { opacity: 0.45 },
+	primaryButtonText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF" },
+	footerSpacer: { height: 120 },
 });

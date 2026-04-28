@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { getMyReviews, getMyReviewSummary } from "@runam/shared/api/reviews";
 import type { Review, ReviewSummary } from "@runam/shared/types";
@@ -61,7 +62,8 @@ export default function MyReviewsScreen() {
 		if (!summary) return null;
 		return (
 			<View style={styles.summaryCard}>
-				<View style={styles.summaryLeft}>
+				<View style={styles.summaryHero}>
+					<Text style={styles.summaryKicker}>Ratings</Text>
 					<Text style={styles.summaryRating}>
 						{summary.averageRating.toFixed(1)}
 					</Text>
@@ -107,11 +109,14 @@ export default function MyReviewsScreen() {
 		<View style={styles.reviewCard}>
 			<View style={styles.reviewHeader}>
 				<Text style={styles.reviewStars}>{renderStars(item.rating)}</Text>
-				<Text style={styles.reviewDate}>
-					{new Date(item.createdAt).toLocaleDateString()}
-				</Text>
+				<View style={styles.reviewDatePill}>
+					<Text style={styles.reviewDate}>
+						{new Date(item.createdAt).toLocaleDateString()}
+					</Text>
+				</View>
 			</View>
-			<Text style={styles.revieweeName}>To: {item.revieweeName}</Text>
+			<Text style={styles.revieweeLabel}>Reviewed rider</Text>
+			<Text style={styles.revieweeName}>{item.revieweeName}</Text>
 			{item.comment ? (
 				<Text style={styles.reviewComment}>{item.comment}</Text>
 			) : (
@@ -130,20 +135,35 @@ export default function MyReviewsScreen() {
 
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
-			<View style={styles.header}>
-				<TouchableOpacity onPress={() => router.back()}>
-					<Text style={styles.backBtn}>← Back</Text>
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>My Reviews</Text>
-			</View>
-
 			<FlatList
 				data={allReviews}
 				keyExtractor={(item) => item.id}
 				renderItem={renderReview}
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
-				ListHeaderComponent={renderSummary}
+				ListHeaderComponent={
+					<>
+						<View style={styles.heroCard}>
+							<TouchableOpacity
+								style={styles.backButton}
+								onPress={() => router.back()}
+								activeOpacity={0.82}>
+								<Ionicons name="chevron-back" size={18} color="#142013" />
+								<Text style={styles.backBtn}>Back</Text>
+							</TouchableOpacity>
+							<Text style={styles.kicker}>Reviews</Text>
+							<Text style={styles.headerTitle}>
+								Everything you’ve rated stays here.
+							</Text>
+							<Text style={styles.headerSubtitle}>
+								Track the ratings and comments you’ve left for riders after
+								completed orders.
+							</Text>
+						</View>
+						{renderSummary()}
+						<Text style={styles.sectionTitle}>Recent reviews</Text>
+					</>
+				}
 				refreshControl={
 					<RefreshControl
 						refreshing={refreshing}
@@ -153,7 +173,9 @@ export default function MyReviewsScreen() {
 				}
 				ListEmptyComponent={
 					<View style={styles.emptyState}>
-						<Text style={styles.emptyIcon}>⭐</Text>
+						<View style={styles.emptyIconWrap}>
+							<Ionicons name="star-outline" size={28} color="#19543B" />
+						</View>
 						<Text style={styles.emptyTitle}>No reviews yet</Text>
 						<Text style={styles.emptySubtitle}>
 							Reviews you leave for riders will appear here
@@ -170,59 +192,105 @@ export default function MyReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#F8FAFC" },
+	container: { flex: 1, backgroundColor: "#F3F5EF" },
 	centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-	header: { paddingHorizontal: 20, paddingVertical: 12 },
-	backBtn: { fontSize: 15, color: "#2F8F4E", fontWeight: "600" },
+	heroCard: {
+		margin: 20,
+		marginBottom: 16,
+		backgroundColor: "#103E2B",
+		borderRadius: 30,
+		padding: 22,
+	},
+	backButton: {
+		alignSelf: "flex-start",
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		marginBottom: 18,
+	},
+	backBtn: { fontSize: 14, color: "#DDF3E7", fontWeight: "800" },
+	kicker: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1.5,
+		textTransform: "uppercase",
+		color: "#A6E4C3",
+	},
 	headerTitle: {
-		fontSize: 24,
+		fontSize: 28,
 		fontWeight: "800",
-		color: "#1E293B",
+		lineHeight: 33,
+		letterSpacing: -0.8,
+		color: "#FFFFFF",
 		marginTop: 8,
 	},
-	listContent: { padding: 16, paddingBottom: 40 },
+	headerSubtitle: {
+		fontSize: 14,
+		lineHeight: 21,
+		color: "#D6EFE1",
+		marginTop: 10,
+	},
+	listContent: { paddingBottom: 40 },
+	sectionTitle: {
+		fontSize: 16,
+		fontWeight: "800",
+		color: "#142013",
+		paddingHorizontal: 20,
+		paddingBottom: 12,
+	},
 
-	// Summary card
 	summaryCard: {
-		flexDirection: "row",
+		marginHorizontal: 20,
 		backgroundColor: "#FFFFFF",
-		borderRadius: 16,
+		borderRadius: 24,
 		padding: 20,
 		marginBottom: 20,
 		borderWidth: 1,
-		borderColor: "#E2E8F0",
+		borderColor: "#E4E8DE",
 	},
-	summaryLeft: {
+	summaryHero: {
 		alignItems: "center",
-		justifyContent: "center",
-		marginRight: 20,
-		minWidth: 80,
+		paddingBottom: 18,
+		borderBottomWidth: 1,
+		borderBottomColor: "#EEF1EA",
 	},
-	summaryRating: { fontSize: 36, fontWeight: "800", color: "#1E293B" },
-	summaryStars: { fontSize: 14, color: "#F59E0B", marginTop: 4 },
-	summaryCount: { fontSize: 12, color: "#94A3B8", marginTop: 4 },
-	summaryRight: { flex: 1, justifyContent: "center" },
+	summaryKicker: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1.2,
+		textTransform: "uppercase",
+		color: "#7A8579",
+	},
+	summaryRating: {
+		fontSize: 42,
+		fontWeight: "800",
+		color: "#142013",
+		marginTop: 8,
+	},
+	summaryStars: { fontSize: 16, color: "#D97706", marginTop: 4 },
+	summaryCount: { fontSize: 12, color: "#7A8579", marginTop: 6 },
+	summaryRight: { justifyContent: "center", marginTop: 18 },
 	barRow: { flexDirection: "row", alignItems: "center", marginVertical: 2 },
-	barLabel: { fontSize: 12, color: "#64748B", width: 16, textAlign: "center" },
+	barLabel: { fontSize: 12, color: "#667268", width: 16, textAlign: "center" },
 	barTrack: {
 		flex: 1,
 		height: 8,
-		backgroundColor: "#F1F5F9",
+		backgroundColor: "#EEF1EA",
 		borderRadius: 4,
 		marginHorizontal: 8,
 		overflow: "hidden",
 	},
-	barFill: { height: 8, backgroundColor: "#F59E0B", borderRadius: 4 },
-	barCount: { fontSize: 12, color: "#94A3B8", width: 24, textAlign: "right" },
+	barFill: { height: 8, backgroundColor: "#D97706", borderRadius: 4 },
+	barCount: { fontSize: 12, color: "#7A8579", width: 24, textAlign: "right" },
 
-	// Review card
 	reviewCard: {
 		backgroundColor: "#FFFFFF",
-		borderRadius: 14,
-		padding: 16,
+		borderRadius: 20,
+		padding: 18,
 		marginBottom: 10,
 		borderWidth: 1,
-		borderColor: "#F1F5F9",
+		borderColor: "#E4E8DE",
+		marginHorizontal: 20,
 	},
 	reviewHeader: {
 		flexDirection: "row",
@@ -230,20 +298,57 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		marginBottom: 6,
 	},
-	reviewStars: { fontSize: 16, color: "#F59E0B" },
-	reviewDate: { fontSize: 12, color: "#94A3B8" },
+	reviewStars: { fontSize: 16, color: "#D97706" },
+	reviewDatePill: {
+		backgroundColor: "#EEF1EA",
+		borderRadius: 999,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+	},
+	reviewDate: { fontSize: 11, color: "#667268", fontWeight: "700" },
+	revieweeLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		color: "#7A8579",
+	},
 	revieweeName: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#64748B",
-		marginBottom: 4,
+		fontSize: 16,
+		fontWeight: "800",
+		color: "#142013",
+		marginTop: 6,
+		marginBottom: 8,
 	},
 	reviewComment: { fontSize: 14, color: "#334155", lineHeight: 20 },
-	noComment: { fontSize: 13, color: "#CBD5E1", fontStyle: "italic" },
+	noComment: { fontSize: 13, color: "#A3ADA1", fontStyle: "italic" },
 
-	// Empty state
-	emptyState: { alignItems: "center", paddingTop: 60 },
-	emptyIcon: { fontSize: 48, marginBottom: 12 },
-	emptyTitle: { fontSize: 18, fontWeight: "600", color: "#374151" },
-	emptySubtitle: { fontSize: 14, color: "#9CA3AF", marginTop: 4 },
+	emptyState: {
+		alignItems: "center",
+		paddingTop: 36,
+		paddingHorizontal: 24,
+		paddingBottom: 20,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		marginHorizontal: 20,
+	},
+	emptyIconWrap: {
+		width: 60,
+		height: 60,
+		borderRadius: 20,
+		backgroundColor: "#ECF5EF",
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 12,
+	},
+	emptyTitle: { fontSize: 18, fontWeight: "800", color: "#142013" },
+	emptySubtitle: {
+		fontSize: 14,
+		color: "#7A8579",
+		marginTop: 4,
+		textAlign: "center",
+		lineHeight: 20,
+	},
 });

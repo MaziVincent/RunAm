@@ -176,7 +176,6 @@ export default function VendorOnboardingPage() {
 				longitude: form.longitude,
 				serviceCategoryIds: form.serviceCategoryIds,
 				minimumOrderAmount: form.minimumOrder,
-				deliveryFee: 0,
 				estimatedPrepTimeMinutes: parseInt(form.prepTime) || 30,
 				operatingHours: JSON.stringify({
 					mon: `${form.openingTime}-${form.closingTime}`,

@@ -26,13 +26,15 @@ function resolveDevBaseUrl(): string {
 	const hostCandidates = [
 		extractHost((Constants.expoConfig as { hostUri?: string } | null)?.hostUri),
 		extractHost(
-			(Constants as unknown as {
-				manifest2?: { extra?: { expoClient?: { hostUri?: string } } };
-			}).manifest2?.extra?.expoClient?.hostUri,
+			(
+				Constants as unknown as {
+					manifest2?: { extra?: { expoClient?: { hostUri?: string } } };
+				}
+			).manifest2?.extra?.expoClient?.hostUri,
 		),
 		extractHost(
-			(Constants as unknown as { manifest?: { debuggerHost?: string } }).manifest
-				?.debuggerHost,
+			(Constants as unknown as { manifest?: { debuggerHost?: string } })
+				.manifest?.debuggerHost,
 		),
 		extractHost(Constants.linkingUri),
 	].filter((value): value is string => Boolean(value));
@@ -42,6 +44,21 @@ function resolveDevBaseUrl(): string {
 }
 
 const BASE_URL = __DEV__ ? resolveDevBaseUrl() : "https://api.runam.com/api/v1";
+
+function debugLog(message: string, details?: unknown) {
+	if (!__DEV__) {
+		return;
+	}
+
+	if (details === undefined) {
+		console.log(`[api] ${message}`);
+		return;
+	}
+
+	console.log(`[api] ${message}`, details);
+}
+
+debugLog(`Base URL: ${BASE_URL}`);
 
 export interface PaginatedResult<T> {
 	items: T[];
@@ -123,6 +140,7 @@ class ApiClient {
 	): Promise<Response> {
 		const { method = "GET", body, headers = {}, params } = options;
 		const isFormData = body instanceof FormData;
+		const requestUrl = this.buildUrl(path, params);
 
 		const requestHeaders: Record<string, string> = {
 			...(isFormData ? {} : { "Content-Type": "application/json" }),
@@ -134,7 +152,9 @@ class ApiClient {
 			requestHeaders["Authorization"] = `Bearer ${token}`;
 		}
 
-		return fetch(this.buildUrl(path, params), {
+		debugLog(`${method} ${requestUrl}`);
+
+		const response = await fetch(requestUrl, {
 			method,
 			headers: requestHeaders,
 			body: body
@@ -143,6 +163,9 @@ class ApiClient {
 					: JSON.stringify(body)
 				: undefined,
 		});
+
+		debugLog(`${method} ${requestUrl} -> ${response.status}`);
+		return response;
 	}
 
 	private async refreshAccessToken(): Promise<string | null> {
@@ -212,6 +235,7 @@ class ApiClient {
 		try {
 			response = await this.sendRequest(path, options, token);
 		} catch (error) {
+			debugLog(`Network failure for ${path}`, error);
 			throw new ApiError(
 				`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
 				0,
@@ -226,6 +250,7 @@ class ApiClient {
 				try {
 					response = await this.sendRequest(path, options, refreshedToken);
 				} catch (error) {
+					debugLog(`Network failure after token refresh for ${path}`, error);
 					throw new ApiError(
 						`Unable to reach ${this.baseUrl}. Make sure the backend is running and your phone is on the same network as your computer.`,
 						0,

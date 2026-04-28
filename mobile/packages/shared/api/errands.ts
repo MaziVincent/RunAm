@@ -3,6 +3,7 @@ import type {
 	Errand,
 	CreateErrandRequest,
 	CreateMarketplaceOrderRequest,
+	MarketplaceOrderResult,
 	PriceEstimate,
 } from "../types";
 
@@ -66,6 +67,6 @@ export function getDeliveryEstimate(
 
 export function createMarketplaceOrder(
 	data: CreateMarketplaceOrderRequest,
-): Promise<Errand> {
-	return apiClient.post<Errand>("/errands/marketplace", data);
+): Promise<MarketplaceOrderResult> {
+	return apiClient.post<MarketplaceOrderResult>("/errands/marketplace", data);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
@@ -12,54 +12,68 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
+import { getErrands } from "@runam/shared/api/errands";
 import { getUnreadCount } from "@runam/shared/api/notifications";
-import {
-	getServiceCategories,
-	getVendorProducts,
-	getVendors,
-} from "@runam/shared/api/vendors";
+import { getServiceCategories, getVendors } from "@runam/shared/api/vendors";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { useCartStore } from "@runam/shared/stores/cart-store";
+import { useDeliveryAddressStore } from "@runam/shared/stores/delivery-address-store";
 import { useLocationStore } from "@runam/shared/stores/location-store";
 import type {
+	Errand,
 	ErrandCategory,
-	Product,
 	ServiceCategory,
 	Vendor,
 } from "@runam/shared/types";
+import AddressPickerHeader from "../components/AddressPickerHeader";
+import CategoryRail, {
+	buildVendorCategoryTiles,
+} from "../components/CategoryRail";
+import EmptyState from "../components/EmptyState";
+import LiveOrderBar from "../components/LiveOrderBar";
+import PromoCarousel, { type PromoSlide } from "../components/PromoCarousel";
+import SearchSheet from "../components/SearchSheet";
+import VendorCard from "../components/VendorCard";
+import { colors } from "../lib/design";
+import { getVendorDiscoveryTags, getVendorDistanceKm } from "../lib/discovery";
 
-interface LogisticsShortcut {
-	id: string;
-	title: string;
-	subtitle: string;
-	icon: string;
-	category: ErrandCategory;
-	accent: string;
-}
+const ACTIVE_STATUSES = [
+	"Pending",
+	"PendingPayment",
+	"Matched",
+	"AcceptedByRider",
+	"EnRouteToPickup",
+	"ArrivedAtPickup",
+	"Collected",
+	"InTransit",
+	"ArrivedAtDropoff",
+];
 
-interface FeaturedProduct {
-	product: Product;
-	vendorId: string;
-	vendorName: string;
-	categoryName: string;
-}
-
-const logisticsShortcuts: LogisticsShortcut[] = [
+const promoSlides: PromoSlide[] = [
 	{
-		id: "package-delivery",
-		title: "Send a package",
-		subtitle: "Pickup and drop-off in minutes",
-		icon: "📦",
-		category: "PackageDelivery",
-		accent: "#DCFCE7",
+		id: "free-delivery",
+		eyebrow: "This week",
+		title: "₦0 delivery on first order",
+		subtitle: "Use code RUNAM0 at checkout.",
+		icon: "bicycle-outline",
+		accent: "#DDF3E7",
 	},
 	{
-		id: "document-delivery",
-		title: "Move documents",
-		subtitle: "Fast handoff for urgent files",
-		icon: "📄",
-		category: "DocumentDelivery",
-		accent: "#E0F2FE",
+		id: "send-package",
+		eyebrow: "Send anything",
+		title: "Same-day package delivery",
+		subtitle: "Pickup in minutes, track live.",
+		icon: "cube-outline",
+		accent: "#FFE3D6",
+	},
+	{
+		id: "groceries",
+		eyebrow: "Stock the kitchen",
+		title: "Groceries from local markets",
+		subtitle: "Curated picks delivered cold.",
+		icon: "basket-outline",
+		accent: "#E5F1FB",
 	},
 ];
 
@@ -67,19 +81,35 @@ export default function HomeScreen() {
 	const router = useRouter();
 	const { user, isAuthenticated } = useAuthStore();
 	const cartItems = useCartStore((state) => state.items);
+	const cartVendorName = useCartStore((state) => state.vendorName);
+	const { activeAddress } = useDeliveryAddressStore();
 	const { lat, lng, request, hasRequested } = useLocationStore();
 	const [refreshing, setRefreshing] = useState(false);
+	const [searchOpen, setSearchOpen] = useState(false);
 	const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+	const effectiveLat = activeAddress?.latitude ?? lat;
+	const effectiveLng = activeAddress?.longitude ?? lng;
+
 	useEffect(() => {
-		if (!hasRequested && lat == null && lng == null) {
+		if (!hasRequested && lat == null && lng == null && !activeAddress) {
 			void request();
 		}
-	}, [hasRequested, lat, lng, request]);
+	}, [hasRequested, lat, lng, request, activeAddress]);
 
 	const { data: unreadCount } = useQuery({
 		queryKey: ["notifications", "unread-count"],
 		queryFn: getUnreadCount,
+		enabled: isAuthenticated,
+	});
+
+	const {
+		data: recentOrders,
+		isLoading: ordersLoading,
+		refetch: refetchOrders,
+	} = useQuery({
+		queryKey: ["home", "recent-orders"],
+		queryFn: () => getErrands({ page: 1, pageSize: 6 }),
 		enabled: isAuthenticated,
 	});
 
@@ -93,102 +123,147 @@ export default function HomeScreen() {
 	});
 
 	const {
-		data: vendorsData,
+		data: vendorResult,
 		isLoading: vendorsLoading,
 		refetch: refetchVendors,
 	} = useQuery({
-		queryKey: ["vendors", "marketplace-home", lat, lng],
-		queryFn: () =>
-			getVendors({
-				lat,
-				lng,
-				radius: lat != null && lng != null ? 15 : undefined,
-				pageSize: 6,
-			}),
-	});
-
-	const featuredVendors = (vendorsData?.items ?? []).filter(
-		(vendor) => vendor.status === "Active",
-	);
-
-	const {
-		data: featuredProducts,
-		isLoading: featuredLoading,
-		refetch: refetchProducts,
-	} = useQuery<FeaturedProduct[]>({
-		queryKey: [
-			"vendors",
-			"featured-products",
-			featuredVendors.map((vendor) => vendor.id).join(","),
-		],
-		enabled: featuredVendors.length > 0,
+		queryKey: ["home", "recommendations", effectiveLat, effectiveLng],
 		queryFn: async () => {
-			const vendors = featuredVendors.slice(0, 4);
-			const productGroups = await Promise.all(
-				vendors.map(async (vendor) => ({
-					vendor,
-					categories: await getVendorProducts(vendor.id),
-				})),
-			);
+			const params = { pageSize: 8 };
 
-			return productGroups
-				.flatMap(({ vendor, categories }) =>
-					categories.flatMap((category) =>
-						category.products
-							.filter((product) => product.isActive && product.isAvailable)
-							.slice(0, 2)
-							.map((product) => ({
-								product,
-								vendorId: vendor.id,
-								vendorName: vendor.businessName,
-								categoryName: category.name,
-							})),
-					),
-				)
-				.slice(0, 8);
+			if (effectiveLat != null && effectiveLng != null) {
+				const nearby = await getVendors({
+					...params,
+					lat: effectiveLat,
+					lng: effectiveLng,
+					radius: 15,
+				});
+
+				if (nearby.items.length > 0) {
+					return nearby;
+				}
+			}
+
+			return getVendors(params);
 		},
 	});
 
-	const vendorCategories = (serviceCategories ?? [])
-		.filter((category) => category.requiresVendor && category.isActive)
-		.sort((first, second) => first.sortOrder - second.sortOrder)
-		.slice(0, 8);
+	const activeOrders = useMemo(
+		() =>
+			(recentOrders?.items ?? []).filter((order) =>
+				ACTIVE_STATUSES.includes(order.status),
+			),
+		[recentOrders],
+	);
+
+	const recommendedCategories = useMemo(
+		() =>
+			(serviceCategories ?? [])
+				.filter((category) => category.requiresVendor && category.isActive)
+				.sort((first, second) => first.sortOrder - second.sortOrder),
+		[serviceCategories],
+	);
+
+	const activeVendors = useMemo(
+		() =>
+			(vendorResult?.items ?? []).filter(
+				(vendor: Vendor) => vendor.status === "Active",
+			),
+		[vendorResult],
+	);
+
+	const topRatedVendors = useMemo(
+		() =>
+			[...activeVendors]
+				.sort((first, second) => second.rating - first.rating)
+				.slice(0, 5),
+		[activeVendors],
+	);
+
+	const fastestVendors = useMemo(
+		() =>
+			[...activeVendors]
+				.sort(
+					(first, second) =>
+						first.estimatedPrepTimeMinutes - second.estimatedPrepTimeMinutes,
+				)
+				.slice(0, 5),
+		[activeVendors],
+	);
+
+	const completedShortcuts = useMemo(
+		() =>
+			(recentOrders?.items ?? [])
+				.filter(
+					(order) =>
+						!ACTIVE_STATUSES.includes(order.status) &&
+						order.status !== "Cancelled" &&
+						order.status !== "Disputed",
+				)
+				.slice(0, 5),
+		[recentOrders],
+	);
+
+	const popularSuggestions = useMemo(
+		() => recommendedCategories.map((category) => category.name).slice(0, 6),
+		[recommendedCategories],
+	);
+
+	const categoryTiles = useMemo(() => {
+		const baseTiles = buildVendorCategoryTiles(
+			recommendedCategories,
+			(category) =>
+				router.push({
+					pathname: "/vendors/list",
+					params: { categoryId: category.id, categoryName: category.name },
+				}),
+		);
+		return [
+			{
+				id: "send-package",
+				title: "Send package",
+				icon: "cube-outline" as const,
+				accent: "#FFE3D6",
+				onPress: () =>
+					router.push({
+						pathname: "/errand/new",
+						params: { category: "PackageDelivery" satisfies ErrandCategory },
+					}),
+			},
+			...baseTiles,
+		];
+	}, [recommendedCategories, router]);
 
 	const handleRefresh = async () => {
 		setRefreshing(true);
-		await Promise.all([
-			refetchCategories(),
-			refetchVendors(),
-			refetchProducts(),
-		]);
+		await Promise.all([refetchOrders(), refetchCategories(), refetchVendors()]);
 		setRefreshing(false);
 	};
 
-	const openLogistics = (category: ErrandCategory) => {
-		router.push({ pathname: "/errand/new", params: { category } });
-	};
-
-	const openCategory = (category: ServiceCategory) => {
+	const submitSearch = (term: string) => {
+		setSearchOpen(false);
 		router.push({
 			pathname: "/vendors/list",
-			params: { categoryId: category.id, categoryName: category.name },
-		});
-	};
-
-	const openProduct = (entry: FeaturedProduct) => {
-		router.push({
-			pathname: "/vendors/product",
-			params: {
-				productId: entry.product.id,
-				vendorId: entry.vendorId,
-				vendorName: entry.vendorName,
-				productJson: JSON.stringify(entry.product),
-			},
+			params: term ? { search: term } : {},
 		});
 	};
 
 	const openVendor = (vendor: Vendor) => {
 		router.push({ pathname: "/vendors/[id]", params: { id: vendor.id } });
+	};
+
+	const openOrderAgain = (order: Errand) => {
+		if (
+			order.category === "FoodDelivery" ||
+			order.category === "GroceryShopping"
+		) {
+			router.push("/(tabs)/services");
+			return;
+		}
+		router.push({
+			pathname: "/errand/new",
+			params: { category: order.category },
+		});
 	};
 
 	return (
@@ -200,248 +275,295 @@ export default function HomeScreen() {
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={handleRefresh}
-						tintColor="#2F8F4E"
+						tintColor={colors.brandAccent}
 					/>
 				}>
-				<View style={styles.heroCard}>
-					<View style={styles.heroGlowOne} />
-					<View style={styles.heroGlowTwo} />
-					<View style={styles.headerRow}>
-						<View style={styles.headerCopy}>
-							<Text style={styles.kicker}>Marketplace</Text>
-							<Text style={styles.heroTitle}>
-								Hello, {user?.firstName || "there"}
-							</Text>
-							<Text style={styles.heroSubtitle}>
-								Shop vendors nearby, add items to cart, and only sign in when
-								you&apos;re ready to check out.
-							</Text>
-						</View>
-						<View style={styles.iconCluster}>
-							<TouchableOpacity
-								style={styles.headerIconButton}
-								onPress={() => router.push("/notifications")}
-								activeOpacity={0.8}>
-								<Text style={styles.headerIcon}>🔔</Text>
-								{isAuthenticated && (unreadCount?.unreadCount ?? 0) > 0 ? (
-									<View style={styles.badge}>
-										<Text style={styles.badgeText}>
-											{Math.min(unreadCount?.unreadCount ?? 0, 99)}
-										</Text>
-									</View>
-								) : null}
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.headerIconButton}
-								onPress={() => router.push("/cart")}
-								activeOpacity={0.8}>
-								<Text style={styles.headerIcon}>🛒</Text>
-								{cartCount > 0 ? (
-									<View style={styles.badge}>
-										<Text style={styles.badgeText}>{Math.min(cartCount, 99)}</Text>
-									</View>
-								) : null}
-							</TouchableOpacity>
-						</View>
-					</View>
+				<AddressPickerHeader
+					notificationsCount={unreadCount?.unreadCount ?? 0}
+					cartCount={cartCount}
+					onNotificationsPress={() => router.push("/notifications")}
+					onCartPress={() => router.push("/cart")}
+				/>
 
-					<View style={styles.heroActionsRow}>
-						<TouchableOpacity
-							style={styles.primaryHeroButton}
-							onPress={() => router.push("/(tabs)/services")}
-							activeOpacity={0.85}>
-							<Text style={styles.primaryHeroButtonText}>Browse Services</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.secondaryHeroButton}
-							onPress={() => openLogistics("PackageDelivery")}
-							activeOpacity={0.85}>
-							<Text style={styles.secondaryHeroButtonText}>Quick Delivery</Text>
-						</TouchableOpacity>
+				<TouchableOpacity
+					style={styles.searchTrigger}
+					activeOpacity={0.85}
+					onPress={() => setSearchOpen(true)}>
+					<Ionicons name="search-outline" size={18} color={colors.textMuted} />
+					<Text style={styles.searchTriggerText}>
+						{`Hey ${user?.firstName || "there"}, what can we get you today?`}
+					</Text>
+					<View style={styles.searchTriggerIcon}>
+						<Ionicons name="options-outline" size={16} color={colors.white} />
 					</View>
-				</View>
+				</TouchableOpacity>
 
-				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>Logistics shortcuts</Text>
-						<TouchableOpacity onPress={() => router.push("/(tabs)/services")}>
-							<Text style={styles.sectionAction}>More services</Text>
-						</TouchableOpacity>
-					</View>
-					<View style={styles.shortcutsRow}>
-						{logisticsShortcuts.map((shortcut) => (
-							<TouchableOpacity
-								key={shortcut.id}
-								style={[styles.shortcutCard, { backgroundColor: shortcut.accent }]}
-								onPress={() => openLogistics(shortcut.category)}
-								activeOpacity={0.85}>
-								<Text style={styles.shortcutIcon}>{shortcut.icon}</Text>
-								<Text style={styles.shortcutTitle}>{shortcut.title}</Text>
-								<Text style={styles.shortcutSubtitle}>{shortcut.subtitle}</Text>
-							</TouchableOpacity>
-						))}
-					</View>
-				</View>
-
-				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>Shop by category</Text>
-						<TouchableOpacity onPress={() => router.push("/vendors/categories")}>
-							<Text style={styles.sectionAction}>See all</Text>
-						</TouchableOpacity>
-					</View>
-					{categoriesLoading ? (
-						<View style={styles.loadingWrap}>
-							<ActivityIndicator color="#2F8F4E" />
+				<View style={styles.categoriesBlock}>
+					{categoriesLoading && categoryTiles.length === 1 ? (
+						<View style={styles.categoryLoading}>
+							<ActivityIndicator color={colors.brandAccent} />
 						</View>
 					) : (
-						<ScrollView
-							horizontal
-							showsHorizontalScrollIndicator={false}
-							contentContainerStyle={styles.categoryStrip}>
-							{vendorCategories.map((category) => (
-								<TouchableOpacity
-									key={category.id}
-									style={styles.categoryPill}
-									onPress={() => openCategory(category)}
-									activeOpacity={0.8}>
-									<Text style={styles.categoryPillIcon}>{category.iconUrl || "🏪"}</Text>
-									<Text style={styles.categoryPillText}>{category.name}</Text>
-								</TouchableOpacity>
-							))}
-						</ScrollView>
+						<CategoryRail tiles={categoryTiles} />
 					)}
 				</View>
 
-				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>Featured products</Text>
-						<TouchableOpacity onPress={() => router.push("/cart")}>
-							<Text style={styles.sectionAction}>Open cart</Text>
-						</TouchableOpacity>
-					</View>
-					{featuredLoading ? (
-						<View style={styles.loadingWrap}>
-							<ActivityIndicator color="#2F8F4E" />
+				<PromoCarousel slides={promoSlides} />
+
+				{cartCount > 0 ? (
+					<TouchableOpacity
+						style={styles.resumeCard}
+						onPress={() => router.push("/cart")}
+						activeOpacity={0.85}>
+						<View style={styles.resumeIconWrap}>
+							<Ionicons
+								name="bag-check-outline"
+								size={22}
+								color={colors.brandAccent}
+							/>
 						</View>
-					) : featuredProducts && featuredProducts.length > 0 ? (
+						<View style={styles.resumeCopy}>
+							<Text style={styles.resumeTitle}>Resume your cart</Text>
+							<Text style={styles.resumeText}>
+								{cartCount} item{cartCount === 1 ? "" : "s"}
+								{cartVendorName
+									? ` from ${cartVendorName}`
+									: " waiting for checkout"}
+							</Text>
+						</View>
+						<Ionicons
+							name="arrow-forward"
+							size={18}
+							color={colors.brandAccent}
+						/>
+					</TouchableOpacity>
+				) : null}
+
+				{isAuthenticated && completedShortcuts.length > 0 ? (
+					<View style={styles.section}>
+						<View style={styles.sectionHeader}>
+							<Text style={styles.sectionTitle}>Order it again</Text>
+							<TouchableOpacity onPress={() => router.push("/(tabs)/activity")}>
+								<Text style={styles.sectionAction}>History</Text>
+							</TouchableOpacity>
+						</View>
 						<ScrollView
 							horizontal
 							showsHorizontalScrollIndicator={false}
-							contentContainerStyle={styles.productStrip}>
-							{featuredProducts.map((entry) => (
-								<TouchableOpacity
-									key={`${entry.vendorId}-${entry.product.id}`}
-									style={styles.productCard}
-									onPress={() => openProduct(entry)}
-									activeOpacity={0.85}>
-									{entry.product.imageUrl ? (
-										<Image
-											source={{ uri: entry.product.imageUrl }}
-											style={styles.productImage}
-										/>
-									) : (
-										<View style={styles.productImageFallback}>
-											<Text style={styles.productImageEmoji}>🛍️</Text>
+							contentContainerStyle={styles.recentRail}>
+							{completedShortcuts.map((order) => {
+								const initials = (order.description ?? order.category)
+									.split(" ")
+									.map((part) => part.charAt(0))
+									.slice(0, 2)
+									.join("")
+									.toUpperCase();
+								return (
+									<TouchableOpacity
+										key={order.id}
+										style={styles.reorderCard}
+										onPress={() => openOrderAgain(order)}
+										activeOpacity={0.85}>
+										<View style={styles.reorderAvatar}>
+											<Text style={styles.reorderAvatarText}>
+												{initials || "RA"}
+											</Text>
 										</View>
-									)}
-									<Text style={styles.productVendor}>{entry.vendorName}</Text>
-									<Text style={styles.productName} numberOfLines={2}>
-										{entry.product.name}
-									</Text>
-									<Text style={styles.productMeta}>{entry.categoryName}</Text>
-									<Text style={styles.productPrice}>
-										₦{entry.product.price.toLocaleString()}
-									</Text>
-								</TouchableOpacity>
-							))}
+										<View style={styles.reorderCopy}>
+											<Text style={styles.reorderTitle} numberOfLines={1}>
+												{order.description?.trim() || order.category}
+											</Text>
+											<Text style={styles.reorderMeta} numberOfLines={1}>
+												#{order.trackingNumber}
+											</Text>
+										</View>
+										<View style={styles.reorderButton}>
+											<Ionicons
+												name="repeat"
+												size={14}
+												color={colors.brandAccent}
+											/>
+											<Text style={styles.reorderButtonText}>Reorder</Text>
+										</View>
+									</TouchableOpacity>
+								);
+							})}
 						</ScrollView>
-					) : (
-						<View style={styles.emptyCard}>
-							<Text style={styles.emptyTitle}>No featured products yet</Text>
-							<Text style={styles.emptyCopy}>
-								Vendor catalogues will appear here as stores publish products.
-							</Text>
-						</View>
-					)}
-				</View>
+					</View>
+				) : null}
 
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>Top vendors nearby</Text>
-						<TouchableOpacity onPress={() => router.push("/vendors/categories")}>
-							<Text style={styles.sectionAction}>Explore</Text>
+						<Text style={styles.sectionTitle}>Top rated near you</Text>
+						<TouchableOpacity
+							onPress={() =>
+								router.push({
+									pathname: "/vendors/list",
+									params: { sort: "rating" },
+								})
+							}>
+							<Text style={styles.sectionAction}>See more</Text>
 						</TouchableOpacity>
 					</View>
 					{vendorsLoading ? (
-						<View style={styles.loadingWrap}>
-							<ActivityIndicator color="#2F8F4E" />
+						<View style={styles.loadingCard}>
+							<ActivityIndicator color={colors.brandAccent} />
 						</View>
-					) : featuredVendors.length > 0 ? (
-						featuredVendors.map((vendor) => (
-							<TouchableOpacity
-								key={vendor.id}
-								style={styles.vendorCard}
-								onPress={() => openVendor(vendor)}
-								activeOpacity={0.85}>
-								<View style={styles.vendorIdentity}>
-									{vendor.logoUrl ? (
-										<Image
-											source={{ uri: vendor.logoUrl }}
-											style={styles.vendorLogo}
-										/>
-									) : (
-										<View style={styles.vendorLogoFallback}>
-											<Text style={styles.vendorLogoText}>🏬</Text>
-										</View>
+					) : topRatedVendors.length > 0 ? (
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.railRow}>
+							{topRatedVendors.map((vendor) => (
+								<VendorCard
+									key={`rated-${vendor.id}`}
+									vendor={vendor}
+									onPress={() => openVendor(vendor)}
+									style={styles.railCard}
+									distanceKm={getVendorDistanceKm(
+										vendor,
+										effectiveLat,
+										effectiveLng,
 									)}
-									<View style={styles.vendorCopy}>
-										<Text style={styles.vendorName}>{vendor.businessName}</Text>
-										<Text style={styles.vendorMeta} numberOfLines={1}>
-											{vendor.serviceCategories.map((item) => item.name).join(" • ")}
-										</Text>
-										<Text style={styles.vendorMeta} numberOfLines={1}>
-											{vendor.address}
-										</Text>
-									</View>
-								</View>
-								<View style={styles.vendorStatsRow}>
-									<View style={styles.vendorChip}>
-										<Text style={styles.vendorChipText}>
-											⭐ {vendor.rating.toFixed(1)}
-										</Text>
-									</View>
-									<View style={styles.vendorChip}>
-										<Text style={styles.vendorChipText}>
-											₦{vendor.deliveryFee.toLocaleString()} delivery
-										</Text>
-									</View>
-									<View
-										style={[
-											styles.statusPill,
-											vendor.isOpen ? styles.statusOpen : styles.statusClosed,
-										]}>
-										<Text
-											style={[
-												styles.statusPillText,
-												vendor.isOpen ? styles.statusOpenText : styles.statusClosedText,
-											]}>
-											{vendor.isOpen ? "Open now" : "Closed"}
-										</Text>
-									</View>
-								</View>
-							</TouchableOpacity>
-						))
+									rankingLabel="Top rated nearby"
+									tags={getVendorDiscoveryTags(vendor)}
+								/>
+							))}
+						</ScrollView>
 					) : (
-						<View style={styles.emptyCard}>
-							<Text style={styles.emptyTitle}>No vendors nearby yet</Text>
-							<Text style={styles.emptyCopy}>
-								Enable location or pull to refresh after vendors come online.
-							</Text>
-						</View>
+						<EmptyState
+							icon="storefront-outline"
+							title="No vendors yet"
+							description="Pull to refresh once stores come online in your area."
+						/>
 					)}
 				</View>
+
+				<View style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Text style={styles.sectionTitle}>Fast delivery</Text>
+						<TouchableOpacity onPress={() => router.push("/(tabs)/services")}>
+							<Text style={styles.sectionAction}>Explore</Text>
+						</TouchableOpacity>
+					</View>
+
+					{effectiveLat == null || effectiveLng == null ? (
+						<View style={styles.recommendationBanner}>
+							<Ionicons
+								name="location-outline"
+								size={18}
+								color={colors.brandAccent}
+							/>
+							<Text style={styles.recommendationBannerText}>
+								Set a delivery address to see picks ranked by distance.
+							</Text>
+						</View>
+					) : null}
+
+					{vendorsLoading ? (
+						<View style={styles.loadingCard}>
+							<ActivityIndicator color={colors.brandAccent} />
+						</View>
+					) : fastestVendors.length > 0 ? (
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.railRow}>
+							{fastestVendors.map((vendor) => (
+								<VendorCard
+									key={`fast-${vendor.id}`}
+									vendor={vendor}
+									onPress={() => openVendor(vendor)}
+									style={styles.railCard}
+									distanceKm={getVendorDistanceKm(
+										vendor,
+										effectiveLat,
+										effectiveLng,
+									)}
+									rankingLabel="Fast prep"
+									tags={getVendorDiscoveryTags(vendor)}
+								/>
+							))}
+						</ScrollView>
+					) : (
+						<EmptyState
+							icon="flash-outline"
+							title="No fast picks"
+							description="We'll surface quick-prep stores once they're live."
+						/>
+					)}
+				</View>
+
+				{ordersLoading || activeOrders.length === 0 ? null : (
+					<View style={styles.section}>
+						<View style={styles.sectionHeader}>
+							<Text style={styles.sectionTitle}>Live orders</Text>
+							<TouchableOpacity onPress={() => router.push("/(tabs)/activity")}>
+								<Text style={styles.sectionAction}>See all</Text>
+							</TouchableOpacity>
+						</View>
+						{activeOrders.slice(0, 2).map((order) => {
+							const pickup = order.stops?.find((s) => s.stopType === "Pickup");
+							const dropoff = order.stops?.find(
+								(s) => s.stopType === "Dropoff",
+							);
+							return (
+								<TouchableOpacity
+									key={order.id}
+									style={styles.orderCard}
+									onPress={() =>
+										router.push({
+											pathname: "/errand/tracking",
+											params: { id: order.id },
+										})
+									}
+									activeOpacity={0.85}>
+									<View style={styles.orderTopRow}>
+										<View>
+											<Text style={styles.orderLabel}>
+												#{order.trackingNumber}
+											</Text>
+											<Text style={styles.orderTitle}>{order.status}</Text>
+										</View>
+										<View style={styles.orderStatusPill}>
+											<Text style={styles.orderStatusText}>
+												{order.category}
+											</Text>
+										</View>
+									</View>
+									<View style={styles.routeRow}>
+										<Ionicons
+											name="ellipse"
+											size={10}
+											color={colors.brandAccent}
+										/>
+										<Text style={styles.routeText} numberOfLines={1}>
+											{pickup?.address || "Pickup pending"}
+										</Text>
+									</View>
+									<View style={styles.routeRow}>
+										<Ionicons name="navigate" size={12} color={colors.error} />
+										<Text style={styles.routeText} numberOfLines={1}>
+											{dropoff?.address || "Dropoff pending"}
+										</Text>
+									</View>
+								</TouchableOpacity>
+							);
+						})}
+					</View>
+				)}
+
+				<View style={styles.bottomSpacer} />
 			</ScrollView>
+
+			<SearchSheet
+				visible={searchOpen}
+				onClose={() => setSearchOpen(false)}
+				onSubmit={submitSearch}
+				suggestions={popularSuggestions}
+			/>
+
+			<LiveOrderBar />
 		</SafeAreaView>
 	);
 }
@@ -449,359 +571,237 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#F5F7F1",
+		backgroundColor: colors.background,
 	},
 	scrollContent: {
-		paddingBottom: 32,
+		paddingHorizontal: 20,
+		paddingBottom: 36,
 	},
-	heroCard: {
-		marginHorizontal: 20,
-		marginTop: 12,
-		padding: 22,
-		borderRadius: 28,
-		backgroundColor: "#103E2B",
-		overflow: "hidden",
-	},
-	heroGlowOne: {
-		position: "absolute",
-		top: -40,
-		right: -20,
-		width: 180,
-		height: 180,
-		borderRadius: 90,
-		backgroundColor: "#1F7A56",
-		opacity: 0.45,
-	},
-	heroGlowTwo: {
-		position: "absolute",
-		bottom: -60,
-		left: -20,
-		width: 160,
-		height: 160,
-		borderRadius: 80,
-		backgroundColor: "#F4B63D",
-		opacity: 0.18,
-	},
-	headerRow: {
+	searchTrigger: {
 		flexDirection: "row",
-		justifyContent: "space-between",
-		gap: 16,
-	},
-	headerCopy: {
-		flex: 1,
-	},
-	kicker: {
-		fontSize: 12,
-		fontWeight: "700",
-		letterSpacing: 2,
-		textTransform: "uppercase",
-		color: "#B7E4C7",
-		marginBottom: 8,
-	},
-	heroTitle: {
-		fontSize: 30,
-		fontWeight: "800",
-		color: "#FFFFFF",
-		letterSpacing: -0.8,
-	},
-	heroSubtitle: {
-		fontSize: 15,
-		lineHeight: 22,
-		color: "#D1FAE5",
-		marginTop: 10,
-		maxWidth: 260,
-	},
-	iconCluster: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: 10,
-	},
-	headerIconButton: {
-		width: 46,
-		height: 46,
-		borderRadius: 16,
-		backgroundColor: "rgba(255,255,255,0.14)",
 		alignItems: "center",
-		justifyContent: "center",
-	},
-	headerIcon: {
-		fontSize: 20,
-	},
-	badge: {
-		position: "absolute",
-		top: -6,
-		right: -6,
-		minWidth: 20,
-		height: 20,
-		paddingHorizontal: 5,
-		borderRadius: 10,
-		backgroundColor: "#F97316",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	badgeText: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	heroActionsRow: {
-		flexDirection: "row",
 		gap: 12,
-		marginTop: 26,
-	},
-	primaryHeroButton: {
-		flex: 1,
-		backgroundColor: "#F5F7F1",
-		borderRadius: 16,
-		paddingVertical: 14,
-		alignItems: "center",
-	},
-	primaryHeroButtonText: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: "#103E2B",
-	},
-	secondaryHeroButton: {
-		paddingHorizontal: 18,
-		borderRadius: 16,
-		paddingVertical: 14,
+		backgroundColor: colors.surface,
+		borderRadius: 999,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.24)",
+		borderColor: colors.border,
+		paddingHorizontal: 14,
+		paddingVertical: 12,
+		marginBottom: 18,
+	},
+	searchTriggerText: {
+		flex: 1,
+		fontSize: 14,
+		fontWeight: "600",
+		color: colors.textSecondary,
+	},
+	searchTriggerIcon: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		backgroundColor: colors.brandAccent,
 		alignItems: "center",
 		justifyContent: "center",
 	},
-	secondaryHeroButtonText: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#FFFFFF",
+	categoriesBlock: {
+		marginBottom: 18,
+	},
+	categoryLoading: {
+		paddingVertical: 24,
+		alignItems: "center",
+	},
+	resumeCard: {
+		backgroundColor: colors.surface,
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: colors.border,
+		padding: 16,
+		marginBottom: 18,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 14,
+	},
+	resumeIconWrap: {
+		width: 44,
+		height: 44,
+		borderRadius: 14,
+		backgroundColor: colors.brandSoft,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	resumeCopy: {
+		flex: 1,
+	},
+	resumeTitle: {
+		fontSize: 15,
+		fontWeight: "800",
+		color: colors.textPrimary,
+	},
+	resumeText: {
+		fontSize: 12,
+		color: colors.textSecondary,
+		marginTop: 2,
 	},
 	section: {
-		marginTop: 28,
-		paddingHorizontal: 20,
+		marginBottom: 22,
 	},
 	sectionHeader: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		marginBottom: 14,
+		marginBottom: 12,
 	},
 	sectionTitle: {
-		fontSize: 22,
+		fontSize: 20,
 		fontWeight: "800",
-		color: "#142013",
-		letterSpacing: -0.5,
-	},
-	sectionAction: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#2F8F4E",
-	},
-	shortcutsRow: {
-		flexDirection: "row",
-		gap: 12,
-	},
-	shortcutCard: {
-		flex: 1,
-		borderRadius: 20,
-		padding: 16,
-		minHeight: 150,
-		justifyContent: "space-between",
-	},
-	shortcutIcon: {
-		fontSize: 30,
-		marginBottom: 16,
-	},
-	shortcutTitle: {
-		fontSize: 18,
-		fontWeight: "800",
-		color: "#142013",
+		color: colors.textPrimary,
 		letterSpacing: -0.4,
 	},
-	shortcutSubtitle: {
+	sectionAction: {
 		fontSize: 13,
-		lineHeight: 18,
-		color: "#3F3F46",
-		marginTop: 8,
-	},
-	loadingWrap: {
-		paddingVertical: 24,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	categoryStrip: {
-		paddingRight: 20,
-		gap: 10,
-	},
-	categoryPill: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 18,
-		paddingVertical: 14,
-		paddingHorizontal: 16,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 10,
-		borderWidth: 1,
-		borderColor: "#E7EAE1",
-	},
-	categoryPillIcon: {
-		fontSize: 20,
-	},
-	categoryPillText: {
-		fontSize: 14,
 		fontWeight: "700",
-		color: "#243121",
+		color: colors.brandAccent,
 	},
-	productStrip: {
-		paddingRight: 20,
-		gap: 14,
-	},
-	productCard: {
-		width: 210,
-		backgroundColor: "#FFFFFF",
+	loadingCard: {
+		backgroundColor: colors.surface,
 		borderRadius: 22,
-		padding: 12,
 		borderWidth: 1,
-		borderColor: "#E7EAE1",
-	},
-	productImage: {
-		width: "100%",
-		height: 128,
-		borderRadius: 16,
-		marginBottom: 12,
-	},
-	productImageFallback: {
-		width: "100%",
-		height: 128,
-		borderRadius: 16,
-		marginBottom: 12,
-		backgroundColor: "#F1F5EF",
+		borderColor: colors.border,
+		paddingVertical: 28,
 		alignItems: "center",
-		justifyContent: "center",
 	},
-	productImageEmoji: {
-		fontSize: 32,
-	},
-	productVendor: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#2F8F4E",
-		textTransform: "uppercase",
-		letterSpacing: 1,
-	},
-	productName: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#142013",
-		marginTop: 8,
-		minHeight: 40,
-	},
-	productMeta: {
-		fontSize: 13,
-		color: "#6B7280",
-		marginTop: 4,
-	},
-	productPrice: {
-		fontSize: 18,
-		fontWeight: "800",
-		color: "#111827",
-		marginTop: 10,
-	},
-	vendorCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 22,
-		padding: 16,
-		borderWidth: 1,
-		borderColor: "#E7EAE1",
-		marginBottom: 14,
-	},
-	vendorIdentity: {
-		flexDirection: "row",
+	recentRail: {
 		gap: 12,
+		paddingBottom: 2,
+	},
+	reorderCard: {
+		width: 220,
+		backgroundColor: colors.surface,
+		borderRadius: 18,
+		borderWidth: 1,
+		borderColor: colors.border,
+		padding: 12,
+		flexDirection: "row",
 		alignItems: "center",
+		gap: 12,
 	},
-	vendorLogo: {
-		width: 58,
-		height: 58,
-		borderRadius: 18,
-	},
-	vendorLogoFallback: {
-		width: 58,
-		height: 58,
-		borderRadius: 18,
+	reorderAvatar: {
+		width: 44,
+		height: 44,
+		borderRadius: 14,
+		backgroundColor: colors.brandSoft,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#F1F5EF",
 	},
-	vendorLogoText: {
-		fontSize: 28,
+	reorderAvatarText: {
+		fontSize: 14,
+		fontWeight: "800",
+		color: colors.brand,
 	},
-	vendorCopy: {
+	reorderCopy: {
 		flex: 1,
 	},
-	vendorName: {
-		fontSize: 17,
+	reorderTitle: {
+		fontSize: 14,
 		fontWeight: "800",
-		color: "#142013",
+		color: colors.textPrimary,
 	},
-	vendorMeta: {
-		fontSize: 13,
-		color: "#6B7280",
-		marginTop: 4,
+	reorderMeta: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: colors.textMuted,
+		marginTop: 2,
 	},
-	vendorStatsRow: {
+	reorderButton: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
-		marginTop: 14,
-	},
-	vendorChip: {
-		paddingHorizontal: 10,
-		paddingVertical: 8,
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 6,
 		borderRadius: 999,
-		backgroundColor: "#F1F5EF",
+		backgroundColor: colors.brandSoft,
 	},
-	vendorChipText: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#374151",
+	reorderButtonText: {
+		fontSize: 11,
+		fontWeight: "800",
+		color: colors.brandAccent,
 	},
-	statusPill: {
-		paddingHorizontal: 10,
-		paddingVertical: 8,
-		borderRadius: 999,
+	railRow: {
+		gap: 12,
+		paddingBottom: 2,
 	},
-	statusOpen: {
-		backgroundColor: "#DCFCE7",
+	railCard: {
+		width: 286,
 	},
-	statusClosed: {
-		backgroundColor: "#FEE2E2",
-	},
-	statusPillText: {
-		fontSize: 12,
-		fontWeight: "700",
-	},
-	statusOpenText: {
-		color: "#166534",
-	},
-	statusClosedText: {
-		color: "#B91C1C",
-	},
-	emptyCard: {
-		backgroundColor: "#FFFFFF",
+	orderCard: {
+		backgroundColor: colors.surface,
 		borderRadius: 22,
-		padding: 20,
 		borderWidth: 1,
-		borderColor: "#E7EAE1",
+		borderColor: colors.border,
+		padding: 18,
+		marginBottom: 12,
 	},
-	emptyTitle: {
+	orderTopRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		marginBottom: 10,
+		gap: 10,
+	},
+	orderLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		color: colors.textMuted,
+		marginBottom: 4,
+	},
+	orderTitle: {
 		fontSize: 16,
 		fontWeight: "800",
-		color: "#142013",
+		color: colors.textPrimary,
 	},
-	emptyCopy: {
-		fontSize: 14,
-		lineHeight: 21,
-		color: "#6B7280",
+	orderStatusPill: {
+		borderRadius: 999,
+		backgroundColor: colors.infoSoft,
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+	},
+	orderStatusText: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: colors.brandAccent,
+		textTransform: "uppercase",
+		letterSpacing: 0.7,
+	},
+	routeRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
 		marginTop: 6,
+	},
+	routeText: {
+		flex: 1,
+		fontSize: 13,
+		lineHeight: 18,
+		color: colors.textSecondary,
+	},
+	recommendationBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: colors.infoSoft,
+		borderRadius: 18,
+		padding: 14,
+		marginBottom: 12,
+	},
+	recommendationBannerText: {
+		flex: 1,
+		fontSize: 13,
+		lineHeight: 18,
+		color: colors.textSecondary,
+	},
+	bottomSpacer: {
+		height: 80,
 	},
 });

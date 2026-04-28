@@ -46,7 +46,6 @@ public class CreateVendorCommandHandler : IRequestHandler<CreateVendorCommand, V
             Longitude = req.Longitude,
             OperatingHours = req.OperatingHours,
             MinimumOrderAmount = req.MinimumOrderAmount,
-            DeliveryFee = req.DeliveryFee,
             EstimatedPrepTimeMinutes = req.EstimatedPrepTimeMinutes,
             Status = VendorStatus.Pending
         };
@@ -116,7 +115,6 @@ public class UpdateVendorCommandHandler : IRequestHandler<UpdateVendorCommand, V
         vendor.Longitude = req.Longitude ?? vendor.Longitude;
         vendor.OperatingHours = req.OperatingHours ?? vendor.OperatingHours;
         vendor.MinimumOrderAmount = req.MinimumOrderAmount ?? vendor.MinimumOrderAmount;
-        vendor.DeliveryFee = req.DeliveryFee ?? vendor.DeliveryFee;
         vendor.EstimatedPrepTimeMinutes = req.EstimatedPrepTimeMinutes ?? vendor.EstimatedPrepTimeMinutes;
 
         if (req.LogoUrl is not null)

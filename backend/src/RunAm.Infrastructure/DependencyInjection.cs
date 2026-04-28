@@ -12,6 +12,7 @@ using RunAm.Infrastructure.Identity;
 using RunAm.Infrastructure.Persistence;
 using RunAm.Infrastructure.Persistence.Repositories;
 using RunAm.Infrastructure.Services;
+using StackExchange.Redis;
 
 namespace RunAm.Infrastructure;
 
@@ -25,6 +26,7 @@ public static class DependencyInjection
                 configuration.GetConnectionString("DefaultConnection"),
                 npgsqlOptions =>
                 {
+                    npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
                     npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                     npgsqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 5,
@@ -93,7 +95,14 @@ public static class DependencyInjection
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+            var redisConfiguration = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+            var redisOptions = ConfigurationOptions.Parse(redisConfiguration, true);
+            redisOptions.AbortOnConnectFail = false;
+            redisOptions.ConnectRetry = 1;
+            redisOptions.ConnectTimeout = 1000;
+            redisOptions.AsyncTimeout = 1000;
+
+            options.ConfigurationOptions = redisOptions;
             options.InstanceName = "runam:";
         });
 

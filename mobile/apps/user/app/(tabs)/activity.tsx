@@ -1,22 +1,25 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-	View,
-	Text,
-	StyleSheet,
-	FlatList,
-	TouchableOpacity,
-	RefreshControl,
 	ActivityIndicator,
-	TextInput,
+	FlatList,
+	RefreshControl,
 	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { Ionicons } from "@expo/vector-icons";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import { getErrands } from "@runam/shared/api/errands";
 import type { Errand } from "@runam/shared/types";
 import AuthRequiredState from "../components/AuthRequiredState";
+import EmptyState from "../components/EmptyState";
+import HeroCard from "../components/HeroCard";
 
 const statusColors: Record<string, string> = {
 	Draft: "#9CA3AF",
@@ -36,21 +39,41 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-	PendingPayment: "Pending Payment",
+	PendingPayment: "Pending payment",
 	AcceptedByRider: "Accepted",
-	EnRouteToPickup: "En Route",
-	ArrivedAtPickup: "At Pickup",
-	ArrivedAtDropoff: "At Dropoff",
-	InTransit: "In Transit",
+	EnRouteToPickup: "Heading to pickup",
+	ArrivedAtPickup: "At pickup",
+	ArrivedAtDropoff: "At dropoff",
+	InTransit: "In transit",
+};
+
+const statusIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+	Pending: "search-outline",
+	PendingPayment: "card-outline",
+	Matched: "person-add-outline",
+	AcceptedByRider: "checkmark-circle-outline",
+	EnRouteToPickup: "navigate-outline",
+	ArrivedAtPickup: "location-outline",
+	Collected: "cube-outline",
+	InTransit: "bicycle-outline",
+	ArrivedAtDropoff: "flag-outline",
+	Delivered: "checkmark-done-outline",
+	Completed: "checkmark-done-outline",
+	Cancelled: "close-circle-outline",
+	Disputed: "alert-circle-outline",
 };
 
 type FilterTab = "All" | "Active" | "Completed" | "Cancelled";
 
-const FILTER_TABS: { key: FilterTab; label: string; icon: string }[] = [
-	{ key: "All", label: "All", icon: "📋" },
-	{ key: "Active", label: "Active", icon: "🚀" },
-	{ key: "Completed", label: "Done", icon: "✅" },
-	{ key: "Cancelled", label: "Cancelled", icon: "❌" },
+const FILTER_TABS: {
+	key: FilterTab;
+	label: string;
+	icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+	{ key: "All", label: "All", icon: "apps-outline" },
+	{ key: "Active", label: "Live", icon: "flash-outline" },
+	{ key: "Completed", label: "Done", icon: "checkmark-circle-outline" },
+	{ key: "Cancelled", label: "Cancelled", icon: "close-circle-outline" },
 ];
 
 const ACTIVE_STATUSES = [
@@ -65,6 +88,22 @@ const ACTIVE_STATUSES = [
 	"ArrivedAtDropoff",
 ];
 
+function getNextStepCopy(errand: Errand): string {
+	if (ACTIVE_STATUSES.includes(errand.status)) {
+		return "Keep this screen handy. Tracking will keep updating until delivery is complete.";
+	}
+
+	if (errand.status === "Delivered" || errand.status === "Completed") {
+		return "Delivered successfully. You can reopen tracking or rate the rider when available.";
+	}
+
+	if (errand.status === "Cancelled" || errand.status === "Disputed") {
+		return "This order is no longer moving. Revisit the details if you need the full route or payment context.";
+	}
+
+	return "Open the order to see the latest route, timeline, and payment status.";
+}
+
 export default function ActivityScreen() {
 	const router = useRouter();
 	const { isAuthenticated } = useAuthStore();
@@ -73,16 +112,30 @@ export default function ActivityScreen() {
 	const [searchQuery, setSearchQuery] = useState("");
 
 	const {
-		data: errandsData,
+		data: errandsPages,
 		refetch,
 		isLoading,
-	} = useQuery({
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+	} = useInfiniteQuery({
 		queryKey: ["errands", "all"],
-		queryFn: () => getErrands({ pageSize: 50 }),
+		initialPageParam: 1,
+		queryFn: ({ pageParam }) => getErrands({ page: pageParam, pageSize: 20 }),
+		getNextPageParam: (lastPage) =>
+			lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
 		enabled: isAuthenticated,
 	});
 
-	const data = errandsData?.items;
+	const data = useMemo(
+		() => errandsPages?.pages.flatMap((page) => page.items) ?? [],
+		[errandsPages],
+	);
+
+	const activeOrders = useMemo(
+		() => data.filter((entry) => ACTIVE_STATUSES.includes(entry.status)),
+		[data],
+	);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -90,10 +143,17 @@ export default function ActivityScreen() {
 		setRefreshing(false);
 	}, [refetch]);
 
-	const filteredData = useMemo(() => {
-		let result = data || [];
+	const handleLoadMore = useCallback(() => {
+		if (!hasNextPage || isFetchingNextPage) {
+			return;
+		}
 
-		// Filter by tab
+		void fetchNextPage();
+	}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+	const filteredData = useMemo(() => {
+		let result = data;
+
 		if (activeFilter === "Active") {
 			result = result.filter((e) => ACTIVE_STATUSES.includes(e.status));
 		} else if (activeFilter === "Completed") {
@@ -106,7 +166,6 @@ export default function ActivityScreen() {
 			);
 		}
 
-		// Search
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
 			result = result.filter(
@@ -129,7 +188,7 @@ export default function ActivityScreen() {
 		return (
 			<TouchableOpacity
 				style={styles.card}
-				activeOpacity={0.7}
+				activeOpacity={0.78}
 				onPress={() =>
 					router.push({
 						pathname: "/errand/tracking" as any,
@@ -142,28 +201,37 @@ export default function ActivityScreen() {
 						<Text style={styles.category}>{item.category}</Text>
 					</View>
 					<View style={[styles.badge, { backgroundColor: color + "18" }]}>
-						<View style={[styles.badgeDot, { backgroundColor: color }]} />
+						<Ionicons
+							name={statusIcons[item.status] || "receipt-outline"}
+							size={14}
+							color={color}
+						/>
 						<Text style={[styles.badgeText, { color }]}>{displayStatus}</Text>
 					</View>
 				</View>
 
 				<View style={styles.routeContainer}>
-					{pickupStop && (
+					{pickupStop ? (
 						<View style={styles.routeRow}>
-							<View style={[styles.routeDot, { backgroundColor: "#2F8F4E" }]} />
+							<Ionicons name="ellipse" size={10} color="#19543B" />
 							<Text style={styles.routeText} numberOfLines={1}>
 								{pickupStop.address}
 							</Text>
 						</View>
-					)}
-					{dropoffStop && (
+					) : null}
+					{dropoffStop ? (
 						<View style={styles.routeRow}>
-							<View style={[styles.routeDot, { backgroundColor: "#10B981" }]} />
+							<Ionicons name="navigate" size={12} color="#C93C37" />
 							<Text style={styles.routeText} numberOfLines={1}>
 								{dropoffStop.address}
 							</Text>
 						</View>
-					)}
+					) : null}
+				</View>
+
+				<View style={styles.nextStepCard}>
+					<Ionicons name="sparkles-outline" size={16} color="#19543B" />
+					<Text style={styles.nextStepText}>{getNextStepCopy(item)}</Text>
 				</View>
 
 				<View style={styles.cardBottom}>
@@ -182,8 +250,8 @@ export default function ActivityScreen() {
 	if (!isAuthenticated) {
 		return (
 			<AuthRequiredState
-				title="Sign in to view your activity"
-				description="Your errand history, live deliveries, and past orders will show up here after you log in."
+				title="Sign in to view your orders"
+				description="Your live deliveries, order history, and tracking updates will appear here once you log in."
 				redirectTo="/(tabs)/activity"
 			/>
 		);
@@ -192,82 +260,175 @@ export default function ActivityScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#2F8F4E" />
+				<ActivityIndicator size="large" color="#19543B" />
 			</View>
 		);
 	}
 
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
-			{/* Search bar */}
-			<View style={styles.searchContainer}>
-				<TextInput
-					style={styles.searchInput}
-					placeholder="🔍  Search errands..."
-					placeholderTextColor="#9CA3AF"
-					value={searchQuery}
-					onChangeText={setSearchQuery}
-				/>
-			</View>
-
-			{/* Filter tabs */}
-			<ScrollView
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				contentContainerStyle={styles.filterRow}
-				style={styles.filterContainer}>
-				{FILTER_TABS.map((tab) => (
-					<TouchableOpacity
-						key={tab.key}
-						style={[
-							styles.filterTab,
-							activeFilter === tab.key && styles.filterTabActive,
-						]}
-						onPress={() => setActiveFilter(tab.key)}>
-						<Text style={styles.filterIcon}>{tab.icon}</Text>
-						<Text
-							style={[
-								styles.filterLabel,
-								activeFilter === tab.key && styles.filterLabelActive,
-							]}>
-							{tab.label}
-						</Text>
-						{activeFilter === tab.key && data && (
-							<View style={styles.filterCount}>
-								<Text style={styles.filterCountText}>
-									{filteredData.length}
-								</Text>
-							</View>
-						)}
-					</TouchableOpacity>
-				))}
-			</ScrollView>
-
 			<FlatList
 				data={filteredData}
 				keyExtractor={(item) => item.id}
 				renderItem={renderErrand}
 				contentContainerStyle={styles.list}
 				showsVerticalScrollIndicator={false}
+				onEndReached={handleLoadMore}
+				onEndReachedThreshold={0.3}
 				refreshControl={
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#2F8F4E"
+						tintColor="#19543B"
 					/>
 				}
-				ListEmptyComponent={
-					<View style={styles.emptyState}>
-						<Text style={styles.emptyIcon}>📋</Text>
-						<Text style={styles.emptyTitle}>
-							{searchQuery ? "No results found" : "No errands yet"}
-						</Text>
-						<Text style={styles.emptySubtitle}>
-							{searchQuery
-								? "Try a different search term"
-								: "Your errand history will appear here"}
-						</Text>
+				ListHeaderComponent={
+					<View>
+						<HeroCard
+							kicker="Orders"
+							title="Track what is live and revisit what is done."
+							subtitle="Orders is now the always-visible place for live deliveries, status changes, and your full activity history."
+							style={styles.heroCard}>
+							<View style={styles.heroStatsRow}>
+								<View style={styles.heroStatCard}>
+									<Text style={styles.heroStatValue}>
+										{activeOrders.length}
+									</Text>
+									<Text style={styles.heroStatLabel}>Live now</Text>
+								</View>
+								<View style={styles.heroStatCard}>
+									<Text style={styles.heroStatValue}>{data.length}</Text>
+									<Text style={styles.heroStatLabel}>Total orders</Text>
+								</View>
+							</View>
+						</HeroCard>
+
+						<View style={styles.reassuranceCard}>
+							<Ionicons name="trail-sign-outline" size={18} color="#19543B" />
+							<Text style={styles.reassuranceText}>
+								Live orders stay pinned above history, and every order card now
+								tells you what to do next instead of leaving the status on its
+								own.
+							</Text>
+						</View>
+
+						{activeOrders.length > 0 ? (
+							<View style={styles.liveSection}>
+								<Text style={styles.liveSectionTitle}>Live tracking hub</Text>
+								{activeOrders.slice(0, 2).map((item) => {
+									const displayStatus =
+										statusLabels[item.status] || item.status;
+									const color = statusColors[item.status] || "#6B7280";
+
+									return (
+										<TouchableOpacity
+											key={`live-${item.id}`}
+											style={styles.liveCard}
+											onPress={() =>
+												router.push({
+													pathname: "/errand/tracking",
+													params: { id: item.id },
+												})
+											}
+											activeOpacity={0.82}>
+											<View
+												style={[
+													styles.liveIconWrap,
+													{ backgroundColor: color + "18" },
+												]}>
+												<Ionicons
+													name={statusIcons[item.status] || "receipt-outline"}
+													size={20}
+													color={color}
+												/>
+											</View>
+											<View style={styles.liveCopy}>
+												<Text style={styles.liveTitle}>{displayStatus}</Text>
+												<Text style={styles.liveMeta}>
+													#{item.trackingNumber}
+												</Text>
+											</View>
+											<Ionicons
+												name="arrow-forward"
+												size={18}
+												color="#64748B"
+											/>
+										</TouchableOpacity>
+									);
+								})}
+							</View>
+						) : null}
+
+						<View style={styles.searchContainer}>
+							<Ionicons name="search-outline" size={18} color="#9CA3AF" />
+							<TextInput
+								style={styles.searchInput}
+								placeholder="Search tracking numbers or addresses"
+								placeholderTextColor="#9CA3AF"
+								value={searchQuery}
+								onChangeText={setSearchQuery}
+							/>
+						</View>
+
+						<ScrollView
+							horizontal
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={styles.filterRow}
+							style={styles.filterContainer}>
+							{FILTER_TABS.map((tab) => (
+								<TouchableOpacity
+									key={tab.key}
+									style={[
+										styles.filterTab,
+										activeFilter === tab.key && styles.filterTabActive,
+									]}
+									onPress={() => setActiveFilter(tab.key)}>
+									<Ionicons
+										name={tab.icon}
+										size={14}
+										color={activeFilter === tab.key ? "#FFFFFF" : "#374151"}
+									/>
+									<Text
+										style={[
+											styles.filterLabel,
+											activeFilter === tab.key && styles.filterLabelActive,
+										]}>
+										{tab.label}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</ScrollView>
 					</View>
+				}
+				ListEmptyComponent={
+					<EmptyState
+						icon="receipt-outline"
+						title={searchQuery ? "No results found" : "No orders yet"}
+						description={
+							searchQuery
+								? "Try a different search term."
+								: "Your errand history will appear here."
+						}
+						style={styles.emptyState}
+					/>
+				}
+				ListFooterComponent={
+					hasNextPage ? (
+						<TouchableOpacity
+							style={styles.loadMoreButton}
+							onPress={handleLoadMore}
+							disabled={isFetchingNextPage}>
+							{isFetchingNextPage ? (
+								<ActivityIndicator size="small" color="#19543B" />
+							) : (
+								<Text style={styles.loadMoreText}>Load older activity</Text>
+							)}
+						</TouchableOpacity>
+					) : data.length > 0 ? (
+						<Text style={styles.historyEndText}>
+							You have reached the end of your order history.
+						</Text>
+					) : null
 				}
 			/>
 		</SafeAreaView>
@@ -275,65 +436,153 @@ export default function ActivityScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#F9FAFB" },
+	container: { flex: 1, backgroundColor: "#F3F5EF" },
 	centered: {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#F9FAFB",
+		backgroundColor: "#F3F5EF",
 	},
-	searchContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-	searchInput: {
+	heroCard: {
+		marginHorizontal: 20,
+		marginTop: 12,
+		marginBottom: 16,
+	},
+	heroStatsRow: {
+		gap: 10,
+		marginTop: 18,
+	},
+	heroStatCard: {
 		backgroundColor: "#FFFFFF",
+		borderRadius: 20,
+		padding: 16,
+	},
+	heroStatValue: {
+		fontSize: 24,
+		fontWeight: "800",
+		color: "#142013",
+	},
+	heroStatLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 0.8,
+		textTransform: "uppercase",
+		color: "#748175",
+		marginTop: 4,
+	},
+	liveSection: {
+		gap: 10,
+		paddingHorizontal: 20,
+		marginBottom: 16,
+	},
+	reassuranceCard: {
+		marginHorizontal: 20,
+		marginBottom: 16,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 18,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		paddingHorizontal: 16,
+		borderColor: "#E4E8DE",
+		padding: 14,
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 10,
+	},
+	reassuranceText: {
+		flex: 1,
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#475569",
+	},
+	liveSectionTitle: {
+		fontSize: 20,
+		fontWeight: "800",
+		letterSpacing: -0.5,
+		color: "#142013",
+	},
+	liveCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		padding: 16,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	liveIconWrap: {
+		width: 44,
+		height: 44,
+		borderRadius: 14,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	liveCopy: {
+		flex: 1,
+	},
+	liveTitle: {
+		fontSize: 15,
+		fontWeight: "800",
+		color: "#142013",
+	},
+	liveMeta: {
+		fontSize: 12,
+		color: "#6B7280",
+		marginTop: 3,
+	},
+	searchContainer: {
+		paddingHorizontal: 20,
+		paddingBottom: 8,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+		backgroundColor: "#FFFFFF",
+		marginHorizontal: 20,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		borderRadius: 18,
+	},
+	searchInput: {
+		flex: 1,
+		paddingRight: 16,
 		paddingVertical: 12,
 		fontSize: 15,
 		color: "#111827",
 	},
-	filterContainer: { maxHeight: 52 },
+	filterContainer: { maxHeight: 54 },
 	filterRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
 	filterTab: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 6,
 		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
+		borderRadius: 999,
 		paddingHorizontal: 14,
-		paddingVertical: 8,
+		paddingVertical: 10,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: "#E4E8DE",
 	},
 	filterTabActive: {
-		backgroundColor: "#2F8F4E",
-		borderColor: "#2F8F4E",
+		backgroundColor: "#19543B",
+		borderColor: "#19543B",
 	},
-	filterIcon: { fontSize: 14 },
 	filterLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },
 	filterLabelActive: { color: "#FFFFFF" },
-	filterCount: {
-		backgroundColor: "rgba(255,255,255,0.3)",
-		borderRadius: 10,
-		paddingHorizontal: 7,
-		paddingVertical: 1,
-	},
-	filterCountText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
-	list: { padding: 20, paddingBottom: 40, paddingTop: 4 },
+	list: { paddingBottom: 40, paddingTop: 4 },
 	card: {
 		backgroundColor: "#FFFFFF",
-		borderRadius: 14,
+		borderRadius: 22,
 		padding: 16,
 		marginBottom: 12,
 		borderWidth: 1,
-		borderColor: "#F3F4F6",
+		borderColor: "#E4E8DE",
+		marginHorizontal: 20,
 	},
 	cardTop: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "flex-start",
 		marginBottom: 12,
+		gap: 12,
 	},
 	trackingNumber: { fontSize: 15, fontWeight: "700", color: "#111827" },
 	category: { fontSize: 13, color: "#6B7280", marginTop: 2 },
@@ -341,28 +590,82 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		paddingHorizontal: 10,
-		paddingVertical: 5,
-		borderRadius: 20,
+		paddingVertical: 6,
+		borderRadius: 999,
 		gap: 6,
 	},
-	badgeDot: { width: 6, height: 6, borderRadius: 3 },
-	badgeText: { fontSize: 12, fontWeight: "600" },
+	badgeText: { fontSize: 12, fontWeight: "700" },
 	routeContainer: { gap: 8, marginBottom: 12 },
 	routeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-	routeDot: { width: 8, height: 8, borderRadius: 4 },
 	routeText: { fontSize: 13, color: "#374151", flex: 1 },
+	nextStepCard: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		gap: 8,
+		backgroundColor: "#EDF2EA",
+		borderRadius: 14,
+		padding: 12,
+		marginBottom: 12,
+	},
+	nextStepText: {
+		flex: 1,
+		fontSize: 12,
+		lineHeight: 17,
+		color: "#3D5140",
+	},
 	cardBottom: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
 		borderTopWidth: 1,
-		borderTopColor: "#F3F4F6",
+		borderTopColor: "#EEF1EA",
 		paddingTop: 12,
 	},
-	price: { fontSize: 15, fontWeight: "700", color: "#111827" },
-	date: { fontSize: 13, color: "#9CA3AF" },
-	emptyState: { alignItems: "center", paddingTop: 80 },
-	emptyIcon: { fontSize: 56, marginBottom: 16 },
-	emptyTitle: { fontSize: 18, fontWeight: "600", color: "#374151" },
-	emptySubtitle: { fontSize: 14, color: "#9CA3AF", marginTop: 4 },
+	price: { fontSize: 15, fontWeight: "800", color: "#142013" },
+	date: { fontSize: 12, color: "#6B7280" },
+	emptyState: {
+		marginHorizontal: 20,
+		alignItems: "center",
+		paddingTop: 60,
+		paddingBottom: 20,
+	},
+	emptyIconWrap: {
+		width: 64,
+		height: 64,
+		borderRadius: 20,
+		backgroundColor: "#FFFFFF",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		alignItems: "center",
+		justifyContent: "center",
+		marginBottom: 12,
+	},
+	emptyTitle: { fontSize: 16, fontWeight: "600", color: "#374151" },
+	emptySubtitle: {
+		fontSize: 14,
+		color: "#9CA3AF",
+		marginTop: 4,
+		textAlign: "center",
+	},
+	loadMoreButton: {
+		marginHorizontal: 20,
+		marginTop: 4,
+		marginBottom: 16,
+		paddingVertical: 14,
+		borderRadius: 14,
+		borderWidth: 1,
+		borderColor: "#D6DDD1",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#FFFFFF",
+	},
+	loadMoreText: { fontSize: 14, fontWeight: "700", color: "#19543B" },
+	historyEndText: {
+		textAlign: "center",
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#6B7280",
+		marginHorizontal: 32,
+		marginTop: 4,
+	},
 });

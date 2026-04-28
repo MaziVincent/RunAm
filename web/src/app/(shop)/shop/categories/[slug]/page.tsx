@@ -33,7 +33,6 @@ import {
 const SORT_OPTIONS = [
 	{ value: "rating", label: "Top Rated" },
 	{ value: "deliveryTime", label: "Fastest Delivery" },
-	{ value: "deliveryFee", label: "Lowest Delivery Fee" },
 	{ value: "newest", label: "Newest" },
 	{ value: "popular", label: "Most Popular" },
 ] as const;

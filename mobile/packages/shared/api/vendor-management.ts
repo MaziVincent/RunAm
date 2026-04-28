@@ -16,7 +16,6 @@ export interface CreateVendorRequest {
 	longitude: number;
 	operatingHours?: string;
 	minimumOrderAmount: number;
-	deliveryFee: number;
 	estimatedPrepTimeMinutes: number;
 	serviceCategoryIds: string[];
 }
@@ -33,7 +32,6 @@ export interface UpdateVendorRequest {
 	longitude: number;
 	operatingHours?: string;
 	minimumOrderAmount: number;
-	deliveryFee: number;
 	estimatedPrepTimeMinutes: number;
 	serviceCategoryIds: string[];
 }

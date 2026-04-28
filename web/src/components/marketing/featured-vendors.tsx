@@ -178,9 +178,7 @@ export function FeaturedVendors() {
 														{vendor.estimatedPrepTimeMinutes + 15} min
 													</span>
 													<span className="ml-auto text-xs font-medium">
-														{vendor.deliveryFee === 0
-															? "Free delivery"
-															: `₦${vendor.deliveryFee.toLocaleString()} delivery`}
+														Delivery from checkout
 													</span>
 												</div>
 											</div>

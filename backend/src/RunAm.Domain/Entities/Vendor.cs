@@ -20,7 +20,6 @@ public class Vendor : BaseEntity
     public bool IsOpen { get; set; }
     public bool IsActive { get; set; } = true;
     public decimal MinimumOrderAmount { get; set; }
-    public decimal DeliveryFee { get; set; }
     public int EstimatedPrepTimeMinutes { get; set; }
 
     // Rating

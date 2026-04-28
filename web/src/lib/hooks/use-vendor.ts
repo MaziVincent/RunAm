@@ -33,7 +33,6 @@ export function useUpdateVendorProfile() {
 			latitude?: number;
 			longitude?: number;
 			minimumOrderAmount?: number;
-			deliveryFee?: number;
 			estimatedPrepTimeMinutes?: number;
 			operatingHours?: string;
 			logoUrl?: string;
@@ -66,7 +65,6 @@ export function useRegisterVendor() {
 			longitude: number;
 			serviceCategoryIds: string[];
 			minimumOrderAmount: number;
-			deliveryFee: number;
 			estimatedPrepTimeMinutes: number;
 			operatingHours?: string;
 		}) => {

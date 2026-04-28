@@ -299,9 +299,9 @@ export default function VendorDetailPage() {
 						sub: `${vendor.productCategories?.length ?? 0} categories`,
 					},
 					{
-						label: "Delivery Fee",
-						value: formatCurrency(vendor.deliveryFee),
-						sub: `Min: ${formatCurrency(vendor.minimumOrderAmount)}`,
+						label: "Min Order",
+						value: formatCurrency(vendor.minimumOrderAmount),
+						sub: "Calculated at checkout",
 					},
 					{
 						label: "Prep Time",

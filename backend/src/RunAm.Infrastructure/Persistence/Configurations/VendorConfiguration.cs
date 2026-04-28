@@ -22,7 +22,6 @@ public class VendorConfiguration : IEntityTypeConfiguration<Vendor>
         builder.Property(e => e.Address).HasMaxLength(500).IsRequired();
         builder.Property(e => e.OperatingHours).HasColumnType("jsonb");
         builder.Property(e => e.MinimumOrderAmount).HasPrecision(18, 2);
-        builder.Property(e => e.DeliveryFee).HasPrecision(18, 2);
 
         builder.HasOne(e => e.User)
             .WithOne()

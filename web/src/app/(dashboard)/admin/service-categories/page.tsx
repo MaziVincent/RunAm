@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	Search,
@@ -10,6 +10,8 @@ import {
 	ChevronUp,
 	ChevronDown,
 	GripVertical,
+	Upload,
+	X as XIcon,
 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,8 @@ export default function ServiceCategoriesPage() {
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [iconUrl, setIconUrl] = useState("");
+	const [iconUploading, setIconUploading] = useState(false);
+	const iconFileInputRef = useRef<HTMLInputElement | null>(null);
 	const [sortOrder, setSortOrder] = useState(0);
 	const [isActive, setIsActive] = useState(true);
 	const [requiresVendor, setRequiresVendor] = useState(false);
@@ -68,6 +72,36 @@ export default function ServiceCategoriesPage() {
 			queryClient.invalidateQueries({ queryKey: ["service-categories"] });
 		},
 	});
+
+	async function handleIconUpload(e: React.ChangeEvent<HTMLInputElement>) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (file.size > 2 * 1024 * 1024) {
+			alert("Icon must be under 2MB");
+			return;
+		}
+		if (!file.type.startsWith("image/")) {
+			alert("Please select an image file");
+			return;
+		}
+		setIconUploading(true);
+		try {
+			const r = await api.upload<{ url: string }>(
+				"/files/service-category-icon",
+				file,
+			);
+			if (r.success && r.data?.url) {
+				setIconUrl(r.data.url);
+			} else {
+				alert(r.error?.message ?? "Upload failed");
+			}
+		} catch {
+			alert("Failed to upload icon");
+		} finally {
+			setIconUploading(false);
+			if (iconFileInputRef.current) iconFileInputRef.current.value = "";
+		}
+	}
 
 	const resetForm = () => {
 		setShowForm(false);
@@ -159,60 +193,61 @@ export default function ServiceCategoriesPage() {
 							<label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
 								Icon
 							</label>
-							<div className="flex flex-wrap gap-1.5">
-								{[
-									"🍔",
-									"🍕",
-									"🛒",
-									"📦",
-									"🚚",
-									"🏪",
-									"💊",
-									"🧹",
-									"👕",
-									"💇",
-									"🔧",
-									"📚",
-									"🌸",
-									"🎁",
-									"🍞",
-									"☕",
-									"🥗",
-									"🍣",
-									"🧁",
-									"🛍️",
-									"💻",
-									"🏠",
-									"🐾",
-									"🚗",
-								].map((emoji) => (
-									<button
-										type="button"
-										key={emoji}
-										onClick={() => setIconUrl(emoji)}
-										className={cn(
-											"flex h-9 w-9 items-center justify-center rounded-lg border text-lg transition-colors",
-											iconUrl === emoji
-												? "border-blue-500 bg-blue-50 ring-2 ring-blue-200 dark:bg-blue-900/30 dark:ring-blue-800"
-												: "border-slate-200 hover:border-blue-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:border-blue-600 dark:hover:bg-slate-800",
-										)}>
-										{emoji}
-									</button>
-								))}
-								{iconUrl && (
-									<button
-										type="button"
-										onClick={() => setIconUrl("")}
-										className="flex h-9 items-center rounded-lg border border-slate-200 px-2 text-xs text-slate-500 hover:bg-red-50 hover:text-red-600 dark:border-slate-700">
-										Clear
-									</button>
-								)}
+							<div className="flex items-start gap-3">
+								<div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
+									{iconUrl ? (
+										iconUrl.startsWith("http") ? (
+											// eslint-disable-next-line @next/next/no-img-element
+											<img
+												src={iconUrl}
+												alt="Icon preview"
+												className="h-full w-full object-cover"
+											/>
+										) : (
+											<span className="text-2xl">{iconUrl}</span>
+										)
+									) : (
+										<span className="text-xs text-slate-400">No icon</span>
+									)}
+								</div>
+								<div className="flex-1 space-y-2">
+									<div className="flex flex-wrap items-center gap-2">
+										<button
+											type="button"
+											onClick={() => iconFileInputRef.current?.click()}
+											disabled={iconUploading}
+											className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+											<Upload className="h-3.5 w-3.5" />
+											{iconUploading ? "Uploading…" : "Upload icon"}
+										</button>
+										<input
+											ref={iconFileInputRef}
+											type="file"
+											accept="image/*"
+											className="hidden"
+											onChange={handleIconUpload}
+										/>
+										{iconUrl && (
+											<button
+												type="button"
+												onClick={() => setIconUrl("")}
+												className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-500 hover:bg-red-50 hover:text-red-600 dark:border-slate-700">
+												<XIcon className="h-3 w-3" /> Clear
+											</button>
+										)}
+									</div>
+									<input
+										type="text"
+										value={iconUrl}
+										onChange={(e) => setIconUrl(e.target.value)}
+										placeholder="Or paste URL / emoji (e.g. 🍔)"
+										className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+									/>
+									<p className="text-xs text-slate-500">
+										PNG/SVG up to 2MB. URL or emoji also accepted.
+									</p>
+								</div>
 							</div>
-							{iconUrl && (
-								<p className="mt-1.5 text-xs text-slate-500">
-									Selected: <span className="text-lg">{iconUrl}</span>
-								</p>
-							)}
 						</div>
 						<div className="sm:col-span-2">
 							<label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">

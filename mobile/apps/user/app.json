@@ -17,6 +17,11 @@
 			"bundleIdentifier": "com.vincent.runam",
 			"appleTeamId": "7V85XXD2BL",
 			"infoPlist": {
+				"NSAppTransportSecurity": {
+					"NSAllowsArbitraryLoads": true,
+					"NSAllowsLocalNetworking": true
+				},
+				"NSLocalNetworkUsageDescription": "RunAm needs local network access in development to connect to your computer's backend.",
 				"NSLocationWhenInUseUsageDescription": "RunAm needs your location to show nearby riders and estimate delivery times.",
 				"NSCameraUsageDescription": "RunAm needs camera access to scan packages and capture delivery proof."
 			}

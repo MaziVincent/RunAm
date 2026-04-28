@@ -1347,10 +1347,6 @@ namespace RunAm.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("DeliveryFee")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
                     b.Property<int>("EstimatedPrepTimeMinutes")
                         .HasColumnType("integer");
 

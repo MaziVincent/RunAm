@@ -1,18 +1,17 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
-	View,
-	Text,
-	StyleSheet,
-	FlatList,
-	TouchableOpacity,
-	RefreshControl,
 	ActivityIndicator,
-	Alert,
-	Modal,
+	RefreshControl,
+	ScrollView,
+	Share,
+	StyleSheet,
+	Text,
 	TextInput,
+	TouchableOpacity,
+	View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@runam/shared/stores/auth-store";
 import {
@@ -22,13 +21,14 @@ import {
 } from "@runam/shared/api/wallet";
 import type { Wallet, WalletTransaction } from "@runam/shared/types";
 import AuthRequiredState from "../components/AuthRequiredState";
+import EmptyState from "../components/EmptyState";
+import HeroCard from "../components/HeroCard";
+import SectionCard from "../components/SectionCard";
 
 export default function WalletScreen() {
-	const router = useRouter();
 	const { isAuthenticated } = useAuthStore();
 	const queryClient = useQueryClient();
 	const [refreshing, setRefreshing] = useState(false);
-	const [showCreateWallet, setShowCreateWallet] = useState(false);
 	const [nin, setNin] = useState("");
 
 	const { data: wallet, refetch: refetchWallet } = useQuery<Wallet | null>({
@@ -43,24 +43,13 @@ export default function WalletScreen() {
 		enabled: isAuthenticated,
 	});
 
-	const transactions = transactionsData?.items;
+	const transactions = transactionsData?.items ?? [];
 
 	const createWalletMutation = useMutation({
 		mutationFn: (normalizedNin: string) => createWallet({ nin: normalizedNin }),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["wallet"] });
-			setShowCreateWallet(false);
+		onSuccess: async () => {
+			await queryClient.invalidateQueries({ queryKey: ["wallet"] });
 			setNin("");
-			Alert.alert(
-				"Success",
-				"Wallet created. Fund it through your reserved Monnify account.",
-			);
-		},
-		onError: (err: any) => {
-			Alert.alert(
-				"Error",
-				err?.message || "Wallet creation failed. Please try again.",
-			);
 		},
 	});
 
@@ -68,70 +57,46 @@ export default function WalletScreen() {
 		setRefreshing(true);
 		await Promise.all([refetchWallet(), refetchTransactions()]);
 		setRefreshing(false);
-	}, [refetchWallet, refetchTransactions]);
+	}, [refetchTransactions, refetchWallet]);
 
 	const handleCreateWallet = () => {
 		const normalizedNin = nin.replace(/\D/g, "");
 		if (normalizedNin.length !== 11) {
-			Alert.alert("Invalid NIN", "NIN must be exactly 11 digits.");
 			return;
 		}
+
 		createWalletMutation.mutate(normalizedNin);
 	};
 
-	const transactionIcons: Record<string, string> = {
-		TopUp: "💰",
-		Payment: "💸",
-		Refund: "↩️",
-		Withdrawal: "🏦",
+	const transactionIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
+		TopUp: "arrow-down-circle-outline",
+		Payment: "card-outline",
+		Refund: "return-up-back-outline",
+		Withdrawal: "business-outline",
 	};
 
 	const transactionColors: Record<string, string> = {
 		TopUp: "#10B981",
-		Payment: "#EF4444",
-		Refund: "#2F8F4E",
+		Payment: "#C93C37",
+		Refund: "#19543B",
 		Withdrawal: "#F59E0B",
 	};
 
-	const renderTransaction = ({ item }: { item: WalletTransaction }) => {
-		const isCredit = item.type === "TopUp" || item.type === "Refund";
-		return (
-			<View style={styles.txRow}>
-				<View
-					style={[
-						styles.txIconContainer,
-						{
-							backgroundColor:
-								(transactionColors[item.type] || "#6B7280") + "15",
-						},
-					]}>
-					<Text style={styles.txIcon}>
-						{transactionIcons[item.type] || "💳"}
-					</Text>
-				</View>
-				<View style={styles.txDetails}>
-					<Text style={styles.txDescription}>{item.description}</Text>
-					<Text style={styles.txDate}>
-						{new Date(item.createdAt).toLocaleDateString()}
-					</Text>
-				</View>
-				<Text
-					style={[
-						styles.txAmount,
-						{ color: isCredit ? "#10B981" : "#EF4444" },
-					]}>
-					{isCredit ? "+" : "-"}
-					{item.currency} {Math.abs(item.amount).toLocaleString()}
-				</Text>
-			</View>
-		);
+	const handleShareFundingDetails = async () => {
+		if (!wallet?.accountNumber) {
+			return;
+		}
+
+		await Share.share({
+			message: `Fund your RunAm wallet\nBank: ${wallet.bankName || "Pending"}\nAccount number: ${wallet.accountNumber}\nAccount name: ${wallet.accountName || "RunAm wallet"}`,
+		});
 	};
 
 	if (!isAuthenticated) {
 		return (
 			<AuthRequiredState
 				title="Sign in to use your wallet"
-				description="Your balance, cards, and transfer details live here. Create an account or log in to continue."
+				description="Wallet setup, transfer funding details, and transaction history live here once you log in."
 				redirectTo="/(tabs)/wallet"
 			/>
 		);
@@ -139,178 +104,400 @@ export default function WalletScreen() {
 
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
-			<FlatList
-				data={transactions || []}
-				keyExtractor={(item) => item.id}
-				renderItem={renderTransaction}
-				contentContainerStyle={styles.listContent}
+			<ScrollView
+				contentContainerStyle={styles.content}
 				showsVerticalScrollIndicator={false}
 				refreshControl={
 					<RefreshControl
 						refreshing={refreshing}
 						onRefresh={onRefresh}
-						tintColor="#2F8F4E"
+						tintColor="#19543B"
 					/>
-				}
-				ListHeaderComponent={
-					<View>
-						{/* Balance Card */}
-						<View style={styles.balanceCard}>
-							<Text style={styles.balanceLabel}>Available Balance</Text>
-							<Text style={styles.balanceAmount}>
-								{wallet?.currency || "NGN"}{" "}
-								{(wallet?.balance ?? 0).toLocaleString()}
-							</Text>
-							<View style={styles.balanceActions}>
-								{wallet?.isActive ? (
-									<TouchableOpacity
-										style={styles.topUpButton}
-										activeOpacity={0.8}>
-										<Text style={styles.topUpText}>🏦 Fund by Transfer</Text>
-									</TouchableOpacity>
-								) : (
-									<TouchableOpacity
-										style={styles.topUpButton}
-										onPress={() => setShowCreateWallet(true)}
-										activeOpacity={0.8}>
-										<Text style={styles.topUpText}>🆔 Create Wallet</Text>
-									</TouchableOpacity>
-								)}
-								<TouchableOpacity
-									style={styles.methodsButton}
-									onPress={() =>
-										router.push("/settings/payment-methods" as never)
-									}
-									activeOpacity={0.8}>
-									<Text style={styles.methodsText}>💳 Cards</Text>
-								</TouchableOpacity>
+				}>
+				<HeroCard
+					kicker="Wallet"
+					title="Keep funding simple and visible."
+					subtitle="Wallet is now a dedicated flow. Funding details, setup, and transaction history sit on one screen instead of modal branches."
+					style={styles.heroCard}>
+					<View style={styles.balanceCard}>
+						<Text style={styles.balanceLabel}>Available balance</Text>
+						<Text style={styles.balanceAmount}>
+							{wallet?.currency || "NGN"}{" "}
+							{(wallet?.balance ?? 0).toLocaleString()}
+						</Text>
+						<View style={styles.balanceMetaRow}>
+							<View style={styles.balanceMetaChip}>
+								<Ionicons
+									name="shield-checkmark-outline"
+									size={14}
+									color="#19543B"
+								/>
+								<Text style={styles.balanceMetaText}>
+									{wallet?.isActive ? "Wallet active" : "Setup required"}
+								</Text>
 							</View>
-							{wallet?.isActive && wallet.bankName && wallet.accountNumber && (
-								<View style={{ marginTop: 16 }}>
-									<Text style={styles.balanceLabel}>Reserved Account</Text>
+							<View style={styles.balanceMetaChip}>
+								<Ionicons name="card-outline" size={14} color="#19543B" />
+								<Text style={styles.balanceMetaText}>Use at checkout</Text>
+							</View>
+						</View>
+					</View>
+				</HeroCard>
+
+				{wallet?.isActive ? (
+					<SectionCard title="Fund by transfer" style={styles.section}>
+						<Text style={styles.sectionCopy}>
+							Send a transfer to the reserved account below. Your wallet balance
+							updates after the payment provider confirms the transfer.
+						</Text>
+						<View style={styles.accountCard}>
+							<View style={styles.accountRow}>
+								<Text style={styles.accountLabel}>Bank</Text>
+								<Text style={styles.accountValue}>
+									{wallet.bankName || "Reserved bank pending"}
+								</Text>
+							</View>
+							<View style={styles.accountRow}>
+								<Text style={styles.accountLabel}>Account number</Text>
+								<Text style={styles.accountValue}>
+									{wallet.accountNumber || "Pending"}
+								</Text>
+							</View>
+							<View style={styles.accountRow}>
+								<Text style={styles.accountLabel}>Account name</Text>
+								<Text style={styles.accountValue}>
+									{wallet.accountName || "RunAm wallet"}
+								</Text>
+							</View>
+						</View>
+						<View style={styles.accountActionRow}>
+							<TouchableOpacity
+								style={styles.secondaryButton}
+								onPress={() => void handleShareFundingDetails()}
+								activeOpacity={0.85}>
+								<Ionicons
+									name="share-social-outline"
+									size={16}
+									color="#19543B"
+								/>
+								<Text style={styles.secondaryButtonText}>Share details</Text>
+							</TouchableOpacity>
+							<View style={styles.secondaryInfoPill}>
+								<Text style={styles.secondaryInfoText}>
+									Transfers can take a short while to settle
+								</Text>
+							</View>
+						</View>
+						<View style={styles.noteCard}>
+							<Ionicons
+								name="information-circle-outline"
+								size={18}
+								color="#19543B"
+							/>
+							<Text style={styles.noteText}>
+								Wallet is most useful inside checkout. If you pay by wallet,
+								your balance is validated before the order is submitted.
+							</Text>
+						</View>
+					</SectionCard>
+				) : (
+					<SectionCard title="Set up your wallet" style={styles.section}>
+						<Text style={styles.sectionCopy}>
+							Enter your 11-digit NIN once to create the wallet and unlock
+							wallet payments during checkout.
+						</Text>
+						<View style={styles.guidanceCard}>
+							<Text style={styles.guidanceTitle}>Before you submit</Text>
+							<Text style={styles.guidanceText}>
+								Use the exact 11-digit NIN tied to your identity record. RunAm
+								only uses it during wallet creation and you will not need to
+								re-enter it after setup.
+							</Text>
+						</View>
+						<View style={styles.setupCard}>
+							<Text style={styles.inputLabel}>NIN</Text>
+							<TextInput
+								style={styles.input}
+								value={nin}
+								onChangeText={(value) => setNin(value.replace(/\D/g, ""))}
+								placeholder="Enter your 11-digit NIN"
+								placeholderTextColor="#9CA3AF"
+								keyboardType="number-pad"
+								maxLength={11}
+							/>
+							<TouchableOpacity
+								style={[
+									styles.primaryButton,
+									(createWalletMutation.isPending ||
+										nin.replace(/\D/g, "").length !== 11) &&
+										styles.primaryButtonDisabled,
+								]}
+								onPress={handleCreateWallet}
+								disabled={
+									createWalletMutation.isPending ||
+									nin.replace(/\D/g, "").length !== 11
+								}
+								activeOpacity={0.85}>
+								{createWalletMutation.isPending ? (
+									<ActivityIndicator color="#FFFFFF" />
+								) : (
+									<Text style={styles.primaryButtonText}>Create wallet</Text>
+								)}
+							</TouchableOpacity>
+						</View>
+					</SectionCard>
+				)}
+
+				<SectionCard title="Transaction history" style={styles.section}>
+					{transactions.length > 0 ? (
+						transactions.map((item: WalletTransaction) => {
+							const isCredit = item.type === "TopUp" || item.type === "Refund";
+							const transactionLabel =
+								item.type === "TopUp"
+									? "Wallet funded"
+									: item.type === "Payment"
+										? "Checkout payment"
+										: item.type === "Refund"
+											? "Refund received"
+											: "Withdrawal";
+							return (
+								<View key={item.id} style={styles.txRow}>
+									<View
+										style={[
+											styles.txIconContainer,
+											{
+												backgroundColor:
+													(transactionColors[item.type] || "#6B7280") + "15",
+											},
+										]}>
+										<Ionicons
+											name={transactionIcons[item.type] || "wallet-outline"}
+											size={20}
+											color={transactionColors[item.type] || "#6B7280"}
+										/>
+									</View>
+									<View style={styles.txDetails}>
+										<Text style={styles.txDescription}>{item.description}</Text>
+										<Text style={styles.txLabel}>{transactionLabel}</Text>
+										<Text style={styles.txDate}>
+											{new Date(item.createdAt).toLocaleDateString()}
+										</Text>
+									</View>
 									<Text
-										style={{
-											color: "#FFFFFF",
-											fontWeight: "700",
-											marginTop: 4,
-										}}>
-										{wallet.bankName} • {wallet.accountNumber}
-									</Text>
-									<Text style={{ color: "#BFDBFE", marginTop: 4 }}>
-										{wallet.accountName}
+										style={[
+											styles.txAmount,
+											{ color: isCredit ? "#10B981" : "#C93C37" },
+										]}>
+										{isCredit ? "+" : "-"}
+										{item.currency} {Math.abs(item.amount).toLocaleString()}
 									</Text>
 								</View>
-							)}
-						</View>
-
-						{/* Transactions Header */}
-						<Text style={styles.sectionTitle}>Transaction History</Text>
-					</View>
-				}
-				ListEmptyComponent={
-					<View style={styles.emptyState}>
-						<Text style={styles.emptyIcon}>💳</Text>
-						<Text style={styles.emptyText}>No transactions yet</Text>
-					</View>
-				}
-			/>
-
-			{/* Create Wallet Modal */}
-			<Modal visible={showCreateWallet} animationType="slide" transparent>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalContent}>
-						<View style={styles.modalHandle} />
-						<Text style={styles.modalTitle}>Create Wallet</Text>
-
-						<Text style={styles.inputLabel}>NIN</Text>
-						<TextInput
-							style={styles.amountInput}
-							value={nin}
-							onChangeText={(value) => setNin(value.replace(/\D/g, ""))}
-							placeholder="Enter your 11-digit NIN"
-							placeholderTextColor="#9CA3AF"
-							keyboardType="number-pad"
-							maxLength={11}
+							);
+						})
+					) : (
+						<EmptyState
+							icon="receipt-outline"
+							title="No transactions yet"
+							description="Your wallet activity will appear here after the first top-up, payment, or refund."
+							style={styles.emptyCard}
 						/>
-
-						{/* Actions */}
-						<TouchableOpacity
-							style={[
-								styles.confirmBtn,
-								createWalletMutation.isPending && { opacity: 0.6 },
-							]}
-							onPress={handleCreateWallet}
-							disabled={createWalletMutation.isPending}>
-							{createWalletMutation.isPending ? (
-								<ActivityIndicator color="#FFF" />
-							) : (
-								<Text style={styles.confirmBtnText}>Create Wallet</Text>
-							)}
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.cancelBtn}
-							onPress={() => setShowCreateWallet(false)}>
-							<Text style={styles.cancelBtnText}>Cancel</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+					)}
+				</SectionCard>
+			</ScrollView>
 		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: "#F9FAFB" },
-	listContent: { padding: 20, paddingBottom: 40 },
+	container: { flex: 1, backgroundColor: "#F3F5EF" },
+	content: { padding: 20, paddingBottom: 36 },
+	heroCard: {
+		marginBottom: 16,
+	},
 	balanceCard: {
-		backgroundColor: "#2F8F4E",
-		borderRadius: 20,
-		padding: 28,
-		alignItems: "center",
-		marginBottom: 28,
+		backgroundColor: "#FFFFFF",
+		borderRadius: 24,
+		padding: 18,
+		marginTop: 18,
 	},
 	balanceLabel: {
-		fontSize: 14,
-		color: "#BFDBFE",
-		fontWeight: "500",
-		marginBottom: 8,
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		color: "#748175",
+		marginBottom: 6,
 	},
 	balanceAmount: {
-		fontSize: 36,
+		fontSize: 30,
+		fontWeight: "800",
+		letterSpacing: -0.8,
+		color: "#142013",
+	},
+	balanceMetaRow: {
+		flexDirection: "row",
+		gap: 8,
+		marginTop: 14,
+		flexWrap: "wrap",
+	},
+	balanceMetaChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		backgroundColor: "#EDF2EA",
+		borderRadius: 999,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+	},
+	balanceMetaText: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#19543B",
+	},
+	section: { marginBottom: 24 },
+	sectionCopy: {
+		fontSize: 13,
+		lineHeight: 19,
+		color: "#667268",
+		marginBottom: 12,
+	},
+	accountCard: {
+		backgroundColor: "#F7F8F4",
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		padding: 18,
+		gap: 12,
+	},
+	accountRow: {
+		gap: 4,
+	},
+	accountLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		color: "#7A8579",
+	},
+	accountValue: {
+		fontSize: 16,
+		fontWeight: "800",
+		color: "#142013",
+	},
+	accountActionRow: {
+		marginTop: 12,
+		gap: 10,
+	},
+	secondaryButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+		paddingVertical: 13,
+		borderRadius: 16,
+		backgroundColor: "#EDF2EA",
+	},
+	secondaryButtonText: {
+		fontSize: 14,
+		fontWeight: "800",
+		color: "#19543B",
+	},
+	secondaryInfoPill: {
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		borderRadius: 14,
+		backgroundColor: "#F7F8F4",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+	},
+	secondaryInfoText: {
+		fontSize: 12,
+		color: "#667268",
+		fontWeight: "600",
+	},
+	noteCard: {
+		backgroundColor: "#E9F0E8",
+		borderRadius: 18,
+		padding: 14,
+		marginTop: 12,
+		flexDirection: "row",
+		gap: 10,
+		alignItems: "flex-start",
+	},
+	noteText: {
+		flex: 1,
+		fontSize: 13,
+		lineHeight: 18,
+		color: "#3D5140",
+	},
+	setupCard: {
+		backgroundColor: "#F7F8F4",
+		borderRadius: 22,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		padding: 18,
+	},
+	guidanceCard: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 18,
+		padding: 14,
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		marginBottom: 12,
+	},
+	guidanceTitle: {
+		fontSize: 14,
+		fontWeight: "800",
+		color: "#142013",
+	},
+	guidanceText: {
+		fontSize: 12,
+		lineHeight: 18,
+		color: "#667268",
+		marginTop: 6,
+	},
+	inputLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 1,
+		textTransform: "uppercase",
+		color: "#748175",
+		marginBottom: 8,
+	},
+	input: {
+		backgroundColor: "#F7F8F4",
+		borderWidth: 1,
+		borderColor: "#E4E8DE",
+		borderRadius: 16,
+		paddingHorizontal: 14,
+		paddingVertical: 14,
+		fontSize: 16,
+		color: "#142013",
+	},
+	primaryButton: {
+		marginTop: 14,
+		backgroundColor: "#19543B",
+		borderRadius: 18,
+		paddingVertical: 15,
+		alignItems: "center",
+	},
+	primaryButtonDisabled: {
+		opacity: 0.45,
+	},
+	primaryButtonText: {
+		fontSize: 15,
 		fontWeight: "800",
 		color: "#FFFFFF",
-		marginBottom: 20,
-	},
-	balanceActions: { flexDirection: "row", gap: 12 },
-	topUpButton: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		paddingHorizontal: 24,
-		paddingVertical: 12,
-	},
-	topUpText: { fontSize: 15, fontWeight: "700", color: "#2F8F4E" },
-	methodsButton: {
-		backgroundColor: "rgba(255,255,255,0.2)",
-		borderRadius: 12,
-		paddingHorizontal: 24,
-		paddingVertical: 12,
-	},
-	methodsText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
-	sectionTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#111827",
-		marginBottom: 16,
 	},
 	txRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
+		borderRadius: 18,
 		padding: 14,
 		marginBottom: 10,
 		borderWidth: 1,
-		borderColor: "#F3F4F6",
+		borderColor: "#E4E8DE",
 	},
 	txIconContainer: {
 		width: 44,
@@ -320,103 +507,17 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		marginRight: 12,
 	},
-	txIcon: { fontSize: 20 },
 	txDetails: { flex: 1 },
-	txDescription: { fontSize: 14, fontWeight: "600", color: "#374151" },
-	txDate: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-	txAmount: { fontSize: 15, fontWeight: "700" },
-	emptyState: { alignItems: "center", paddingTop: 40 },
-	emptyIcon: { fontSize: 48, marginBottom: 12 },
-	emptyText: { fontSize: 16, fontWeight: "600", color: "#9CA3AF" },
-	// Modal styles
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
-		justifyContent: "flex-end",
-	},
-	modalContent: {
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 24,
-		borderTopRightRadius: 24,
-		padding: 24,
-		paddingBottom: 40,
-	},
-	modalHandle: {
-		width: 40,
-		height: 4,
-		backgroundColor: "#D1D5DB",
-		borderRadius: 2,
-		alignSelf: "center",
-		marginBottom: 16,
-	},
-	modalTitle: {
-		fontSize: 22,
-		fontWeight: "800",
-		color: "#111827",
-		marginBottom: 20,
-		textAlign: "center",
-	},
-	quickAmountRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 10,
-		marginBottom: 20,
-	},
-	quickAmountBtn: {
-		backgroundColor: "#F3F4F6",
-		borderRadius: 10,
-		paddingHorizontal: 18,
-		paddingVertical: 10,
-		borderWidth: 2,
-		borderColor: "transparent",
-	},
-	quickAmountBtnActive: { borderColor: "#2F8F4E", backgroundColor: "#F0FDF4" },
-	quickAmountText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-	quickAmountTextActive: { color: "#2F8F4E" },
-	inputLabel: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#374151",
-		marginBottom: 8,
-	},
-	amountInput: {
-		backgroundColor: "#F9FAFB",
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-		fontSize: 18,
+	txDescription: { fontSize: 14, fontWeight: "700", color: "#374151" },
+	txLabel: {
+		fontSize: 12,
+		color: "#19543B",
 		fontWeight: "700",
-		color: "#111827",
-		marginBottom: 20,
+		marginTop: 3,
 	},
-	methodRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-	methodChip: {
-		flex: 1,
-		backgroundColor: "#F3F4F6",
-		borderRadius: 12,
-		paddingVertical: 14,
-		alignItems: "center",
-		borderWidth: 2,
-		borderColor: "transparent",
+	txDate: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
+	txAmount: { fontSize: 15, fontWeight: "800" },
+	emptyCard: {
+		padding: 0,
 	},
-	methodChipActive: { borderColor: "#2F8F4E", backgroundColor: "#F0FDF4" },
-	methodChipText: { fontSize: 14, fontWeight: "600", color: "#374151" },
-	methodChipTextActive: { color: "#2F8F4E" },
-	confirmBtn: {
-		backgroundColor: "#2F8F4E",
-		borderRadius: 14,
-		paddingVertical: 16,
-		alignItems: "center",
-		marginBottom: 10,
-	},
-	confirmBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
-	cancelBtn: {
-		backgroundColor: "#F3F4F6",
-		borderRadius: 14,
-		paddingVertical: 16,
-		alignItems: "center",
-	},
-	cancelBtnText: { fontSize: 16, fontWeight: "600", color: "#374151" },
 });

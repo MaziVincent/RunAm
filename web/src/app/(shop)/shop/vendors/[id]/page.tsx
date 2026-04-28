@@ -39,7 +39,6 @@ function VendorHero({
 		rating: number;
 		totalReviews: number;
 		estimatedPrepTimeMinutes: number;
-		deliveryFee: number;
 		minimumOrderAmount: number;
 		address: string;
 		serviceCategories: { name: string }[];
@@ -119,11 +118,7 @@ function VendorHero({
 					</div>
 					<div className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm shadow-sm">
 						<Truck className="h-3.5 w-3.5 text-primary" />
-						<span>
-							{vendor.deliveryFee === 0
-								? "Free delivery"
-								: formatCurrency(vendor.deliveryFee)}
-						</span>
+						<span>Delivery from checkout</span>
 					</div>
 					{vendor.minimumOrderAmount > 0 && (
 						<div className="flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm shadow-sm">

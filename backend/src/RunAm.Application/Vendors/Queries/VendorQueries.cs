@@ -55,7 +55,7 @@ public class GetVendorsQueryHandler : IRequestHandler<GetVendorsQuery, (IReadOnl
         v.Id, v.UserId, v.BusinessName, v.BusinessDescription,
         v.LogoUrl, v.BannerUrl, v.User?.PhoneNumber, v.Address, v.Latitude, v.Longitude,
         v.OperatingHours, v.IsOpen, v.IsActive,
-        v.MinimumOrderAmount, v.DeliveryFee, v.EstimatedPrepTimeMinutes,
+        v.MinimumOrderAmount, v.EstimatedPrepTimeMinutes,
         v.Rating, v.TotalReviews, v.TotalOrders,
         v.Status.ToString(),
         v.VendorServiceCategories.Select(vsc => new ServiceCategorySlimDto(
@@ -106,7 +106,7 @@ public class GetVendorByIdQueryHandler : IRequestHandler<GetVendorByIdQuery, Ven
             v.Id, v.UserId, v.BusinessName, v.BusinessDescription,
             v.LogoUrl, v.BannerUrl, v.User?.PhoneNumber, v.Address, v.Latitude, v.Longitude,
             v.OperatingHours, v.IsOpen, v.IsActive,
-            v.MinimumOrderAmount, v.DeliveryFee, v.EstimatedPrepTimeMinutes,
+            v.MinimumOrderAmount, v.EstimatedPrepTimeMinutes,
             v.Rating, v.TotalReviews, v.TotalOrders,
             v.Status.ToString(),
             v.VendorServiceCategories.Select(vsc => new ServiceCategorySlimDto(
@@ -140,7 +140,7 @@ public class GetVendorByIdAdminQueryHandler : IRequestHandler<GetVendorByIdAdmin
             v.Id, v.UserId, v.BusinessName, v.BusinessDescription,
             v.LogoUrl, v.BannerUrl, v.User?.PhoneNumber, v.Address, v.Latitude, v.Longitude,
             v.OperatingHours, v.IsOpen, v.IsActive,
-            v.MinimumOrderAmount, v.DeliveryFee, v.EstimatedPrepTimeMinutes,
+            v.MinimumOrderAmount, v.EstimatedPrepTimeMinutes,
             v.Rating, v.TotalReviews, v.TotalOrders,
             v.Status.ToString(),
             v.VendorServiceCategories.Select(vsc => new ServiceCategorySlimDto(

@@ -148,9 +148,7 @@ public class CreateMarketplaceOrderCommandHandler : IRequestHandler<CreateMarket
             req.DropoffLatitude, req.DropoffLongitude);
         var deliveryFee = req.DeliveryFeeOverride is >= 0
             ? req.DeliveryFeeOverride.Value
-            : vendor.DeliveryFee > 0
-                ? vendor.DeliveryFee
-                : (decimal)distanceKm * AppConstants.Pricing.PerKmRate + AppConstants.Pricing.BaseFare;
+            : (decimal)distanceKm * AppConstants.Pricing.PerKmRate + AppConstants.Pricing.BaseFare;
         var preDiscountTotal = itemsTotal + deliveryFee;
         var discountAmount = 0m;
 

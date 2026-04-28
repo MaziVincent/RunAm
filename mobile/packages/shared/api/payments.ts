@@ -3,6 +3,7 @@ import type {
 	PaymentResult,
 	ApplyPromoResult,
 	PaymentMethod,
+	PaymentStatus,
 	PromoCode,
 } from "../types";
 
@@ -18,6 +19,14 @@ export function processPayment(
 	data: ProcessPaymentRequest,
 ): Promise<PaymentResult> {
 	return apiClient.post<PaymentResult>("/payments", data);
+}
+
+export function getErrandPaymentStatus(
+	errandId: string,
+): Promise<PaymentResult | null> {
+	return apiClient.get<PaymentResult | null>(
+		`/payments/errand/${errandId}/status`,
+	);
 }
 
 // ── Tip Rider ────────────────────────────────────────────────
