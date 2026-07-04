@@ -1,0 +1,6 @@
+# melos_managed_dependency_overrides: runam_core,runam_ui
+dependency_overrides:
+  runam_core:
+    path: ../../packages/runam_core
+  runam_ui:
+    path: ../../packages/runam_ui
