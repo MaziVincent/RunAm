@@ -3,10 +3,18 @@ name: Backend CI
 on:
   push:
     branches: [main, develop]
-    paths: ["backend/**"]
+    paths:
+      - "backend/**"
+      - "Makefile"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/workflows/database-migrate.yml"
   pull_request:
     branches: [main, develop]
-    paths: ["backend/**"]
+    paths:
+      - "backend/**"
+      - "Makefile"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/workflows/database-migrate.yml"
 
 jobs:
   build-and-test:
@@ -38,6 +46,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore backend/RunAm.sln
 
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 8.0.0
+
       - name: Build
         run: dotnet build backend/RunAm.sln --no-restore --configuration Release
 
@@ -45,6 +56,58 @@ jobs:
         run: dotnet test backend/RunAm.sln --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
         env:
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=runam_test;Username=runam;Password=runam_test_password"
+
+      - name: Validate migration model and full lifecycle
+        env:
+          DATABASE_URL: "Host=localhost;Port=5432;Database=runam_test;Username=runam;Password=runam_test_password;SSL Mode=Disable"
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
+          dotnet ef database update \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
+          dotnet ef database update 0 \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
+          dotnet ef database update \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
+          ADMIN_SEED_ENABLED=true \
+          ADMIN_SEED_EMAIL=ci-admin@runam.test \
+          ADMIN_SEED_PASSWORD='CI-Admin-Password-123' \
+          dotnet run --project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release \
+            -- --seed-admin
+          ADMIN_SEED_ENABLED=true \
+          ADMIN_SEED_EMAIL=ci-admin@runam.test \
+          ADMIN_SEED_PASSWORD='CI-Admin-Password-123' \
+          dotnet run --project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release \
+            -- --seed-admin
+          mkdir -p artifacts
+          dotnet ef migrations script --idempotent \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release \
+            --output artifacts/runam-migrations.sql
+
+      - name: Upload migration script
+        uses: actions/upload-artifact@v4
+        with:
+          name: runam-migrations
+          path: artifacts/runam-migrations.sql
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

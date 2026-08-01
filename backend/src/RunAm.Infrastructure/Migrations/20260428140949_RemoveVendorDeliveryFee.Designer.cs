@@ -9,7 +9,7 @@ using RunAm.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace RunAm.Infrastructure.Persistence.Migrations
+namespace RunAm.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260428140949_RemoveVendorDeliveryFee")]

@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down backend-run backend-test web-dev mobile-user mobile-rider mobile-user-dev mobile-user-ios-device db-migrate db-seed test
+.PHONY: help infra-up infra-down backend-run backend-test web-dev mobile-user mobile-rider mobile-user-dev mobile-user-ios-device db-migrate db-seed db-seed-admin test
 
 IOS_DEVICE ?= 00008110-000E30610E63801E
 
@@ -39,10 +39,13 @@ db-migrate: ## Apply EF Core migrations
 	dotnet ef database update --project backend/src/RunAm.Infrastructure --startup-project backend/src/RunAm.Api
 
 db-migration-add: ## Add new migration (usage: make db-migration-add NAME=MigrationName)
-	dotnet ef migrations add $(NAME) --project backend/src/RunAm.Infrastructure --startup-project backend/src/RunAm.Api -o Persistence/Migrations
+	dotnet ef migrations add $(NAME) --project backend/src/RunAm.Infrastructure --startup-project backend/src/RunAm.Api -o Migrations
 
 db-seed: ## Seed database with test data
 	dotnet run --project backend/src/RunAm.Api -- --seed
+
+db-seed-admin: ## One-shot production admin seed (requires ADMIN_SEED_* variables)
+	dotnet run --project backend/src/RunAm.Api -- --seed-admin
 
 # ─── Web Dashboard ────────────────────────────────────────────
 

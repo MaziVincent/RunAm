@@ -11,18 +11,23 @@ using DotNetEnv;
 using System.Threading.RateLimiting;
 
 // Load .env file (no-throw if missing — production uses real env vars)
-Env.Load();
+// Existing process variables (CI, containers, hosting platforms) must win over
+// local .env values.
+Env.NoClobber().Load();
 NormalizeDevelopmentUrls();
+
+var seedAdminOnly = args.Any(arg =>
+    string.Equals(arg, "--seed-admin", StringComparison.OrdinalIgnoreCase));
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Map environment variables → Configuration sections
+var databaseConnectionString = DatabaseConnectionStringResolver.FromEnvironment();
 builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 {
     // Database — prefer DATABASE_URL (production) over individual vars (local dev)
-    ["ConnectionStrings:DefaultConnection"] =
-        AppendNpgsqlDefaults(E("DATABASE_URL") ??
-        $"Host={E("DATABASE_HOST")};Port={E("DATABASE_PORT")};Database={E("DATABASE_NAME")};Username={E("DATABASE_USER")};Password={E("DATABASE_PASSWORD")}"),
+    // If neither is present, preserve appsettings/ConnectionStrings__DefaultConnection.
+    ["ConnectionStrings:DefaultConnection"] = databaseConnectionString,
     ["ConnectionStrings:Redis"] = E("REDIS_CONNECTION"),
 
     // JWT
@@ -31,6 +36,13 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
     ["JwtSettings:Audience"] = E("JWT_AUDIENCE"),
     ["JwtSettings:ExpiryMinutes"] = E("JWT_EXPIRY_MINUTES"),
     ["JwtSettings:RefreshExpiryDays"] = E("JWT_REFRESH_EXPIRY_DAYS"),
+
+    // Opt-in production administrator bootstrap
+    ["AdminSeed:Enabled"] = E("ADMIN_SEED_ENABLED"),
+    ["AdminSeed:Email"] = E("ADMIN_SEED_EMAIL"),
+    ["AdminSeed:Password"] = E("ADMIN_SEED_PASSWORD"),
+    ["AdminSeed:FirstName"] = E("ADMIN_SEED_FIRST_NAME"),
+    ["AdminSeed:LastName"] = E("ADMIN_SEED_LAST_NAME"),
 
     // Seq
     ["Seq:ServerUrl"] = E("SEQ_SERVER_URL"),
@@ -86,26 +98,6 @@ builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
 
 // Helper: read env var (returns null when not set — filtered out above)
 static string? E(string name) => Environment.GetEnvironmentVariable(name);
-
-// Append Npgsql connection-string defaults for Neon serverless compatibility
-static string AppendNpgsqlDefaults(string connStr)
-{
-    if (string.IsNullOrWhiteSpace(connStr)) return connStr;
-    var sb = new System.Text.StringBuilder(connStr.TrimEnd(';'));
-    void Set(string key, string value)
-    {
-        if (!connStr.Contains(key, StringComparison.OrdinalIgnoreCase))
-            sb.Append($";{key}={value}");
-    }
-    Set("Timeout", "30");
-    Set("Command Timeout", "30");
-    Set("Keepalive", "30");
-    Set("SSL Mode", "Require");
-    Set("Pooling", "true");
-    Set("Minimum Pool Size", "0");
-    Set("Maximum Pool Size", "20");
-    return sb.ToString();
-}
 
 static void NormalizeDevelopmentUrls()
 {
@@ -219,6 +211,20 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// One-shot mode for CI, Cloud Run Jobs, or controlled production operations.
+if (seedAdminOnly && !EF.IsDesignTime)
+{
+    if (!builder.Configuration.GetValue<bool>("AdminSeed:Enabled"))
+    {
+        throw new InvalidOperationException(
+            "--seed-admin requires ADMIN_SEED_ENABLED=true.");
+    }
+
+    using var scope = app.Services.CreateScope();
+    await ProductionAdminSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
+    return;
+}
+
 // Middleware pipeline
 
 if (!app.Environment.IsDevelopment())
@@ -269,13 +275,22 @@ app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminHub>("/hubs/admin");
 
-// Apply migrations on startup in development
-if (app.Environment.IsDevelopment())
+// Apply migrations on application startup in development, but never while the
+// EF CLI is constructing the host for a design-time command.
+if (app.Environment.IsDevelopment() && !EF.IsDesignTime)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
     await DataSeeder.SeedAsync(scope.ServiceProvider);
+}
+
+// Production admin bootstrap is explicitly enabled through configuration and
+// is separate from the development demo-data seeder.
+if (!EF.IsDesignTime && builder.Configuration.GetValue<bool>("AdminSeed:Enabled"))
+{
+    using var scope = app.Services.CreateScope();
+    await ProductionAdminSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
 }
 
 app.Run();

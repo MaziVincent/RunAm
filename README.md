@@ -53,6 +53,10 @@ make db-seed
 # Navigate to http://localhost:5001/scalar
 ```
 
+Database migrations are regression-tested in CI and can be applied to production
+through the protected GitHub Actions workflow. See
+[Database migrations](docs/DATABASE_MIGRATIONS.md).
+
 For local Redis and Seq setup, see [docs/REDIS_SEQ_DEV_SETUP.md](docs/REDIS_SEQ_DEV_SETUP.md).
 
 ## Project Structure

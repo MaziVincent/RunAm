@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace RunAm.Infrastructure.Persistence.Migrations
+namespace RunAm.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class RemoveVendorDeliveryFee : Migration

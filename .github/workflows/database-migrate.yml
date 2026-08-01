@@ -1,0 +1,75 @@
+name: Production Database Migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-database-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply production migrations
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Verify production database secret
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "The production environment must define a DATABASE_URL secret."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore backend/RunAm.sln
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 8.0.0
+
+      - name: Build migration projects
+        run: dotnet build backend/RunAm.sln --no-restore --configuration Release
+
+      - name: Verify model matches migrations
+        run: |
+          dotnet ef migrations has-pending-model-changes \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
+
+      - name: Generate auditable migration script
+        run: |
+          mkdir -p artifacts
+          dotnet ef migrations script --idempotent \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release \
+            --output artifacts/runam-production-migrations.sql
+
+      - name: Upload migration script
+        uses: actions/upload-artifact@v4
+        with:
+          name: runam-production-migrations
+          path: artifacts/runam-production-migrations.sql
+
+      - name: Apply production migrations
+        run: |
+          dotnet ef database update \
+            --project backend/src/RunAm.Infrastructure \
+            --startup-project backend/src/RunAm.Api \
+            --no-build \
+            --configuration Release
