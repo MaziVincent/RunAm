@@ -17,6 +17,10 @@ jobs:
     environment: production
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ASPNETCORE_ENVIRONMENT: Production
+      # EF may construct the API host while discovering the design-time context.
+      # This value is never used to serve requests or issue tokens.
+      JWT_SECRET_KEY: migration-design-time-only-key-not-for-runtime-use
 
     steps:
       - name: Verify production database secret
