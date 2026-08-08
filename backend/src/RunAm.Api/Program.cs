@@ -146,6 +146,11 @@ if (decimal.TryParse(builder.Configuration["Pricing:PerKmRate"], out var perKmRa
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpClient("OutboundIp", client =>
+{
+    client.BaseAddress = new Uri("https://api.ipify.org/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 // CORS — read origins from config, fallback to defaults
 var corsOrigins = builder.Configuration["Cors:Origins"]?
