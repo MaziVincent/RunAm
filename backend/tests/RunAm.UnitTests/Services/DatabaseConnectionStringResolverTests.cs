@@ -44,6 +44,7 @@ public class DatabaseConnectionStringResolverTests
             ["DATABASE_NAME"] = "runam",
             ["DATABASE_USER"] = "runam",
             ["DATABASE_PASSWORD"] = "password",
+            ["DATABASE_SSL_MODE"] = "Require",
         };
 
         var result = DatabaseConnectionStringResolver.FromEnvironment(
@@ -55,7 +56,7 @@ public class DatabaseConnectionStringResolverTests
         parsed.Database.Should().Be("runam");
         parsed.Username.Should().Be("runam");
         parsed.Password.Should().Be("password");
-        parsed.SslMode.Should().Be(SslMode.Prefer);
+        parsed.SslMode.Should().Be(SslMode.Require);
     }
 
     [Fact]
@@ -73,5 +74,26 @@ public class DatabaseConnectionStringResolverTests
         action.Should()
             .Throw<InvalidOperationException>()
             .WithMessage("*DATABASE_NAME*DATABASE_USER*DATABASE_PASSWORD*");
+    }
+
+    [Fact]
+    public void FromEnvironment_RejectsInvalidSslMode()
+    {
+        var variables = new Dictionary<string, string?>
+        {
+            ["DATABASE_HOST"] = "localhost",
+            ["DATABASE_PORT"] = "5434",
+            ["DATABASE_NAME"] = "runam",
+            ["DATABASE_USER"] = "runam",
+            ["DATABASE_PASSWORD"] = "password",
+            ["DATABASE_SSL_MODE"] = "NotARealMode",
+        };
+
+        var action = () => DatabaseConnectionStringResolver.FromEnvironment(
+            name => variables.GetValueOrDefault(name));
+
+        action.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("DATABASE_SSL_MODE 'NotARealMode' is invalid*");
     }
 }

@@ -57,6 +57,19 @@ public static class DatabaseConnectionStringResolver
             Password = values["DATABASE_PASSWORD"]!,
         };
 
+        var configuredSslMode = NullIfWhiteSpace(getEnvironmentVariable("DATABASE_SSL_MODE"));
+        if (configuredSslMode is not null)
+        {
+            if (!Enum.TryParse<SslMode>(configuredSslMode, ignoreCase: true, out var sslMode))
+            {
+                throw new InvalidOperationException(
+                    $"DATABASE_SSL_MODE '{configuredSslMode}' is invalid. " +
+                    $"Valid values are: {string.Join(", ", Enum.GetNames<SslMode>())}.");
+            }
+
+            builder.SslMode = sslMode;
+        }
+
         // Individual DATABASE_* variables are primarily used by local Docker.
         // Keep Npgsql's SSL preference instead of forcing SSL against that container.
         return ApplyNpgsqlDefaults(builder.ConnectionString, requireSsl: false);

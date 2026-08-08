@@ -45,6 +45,10 @@ Partial `DATABASE_*` configuration fails immediately with a list of missing
 variables. Local `.env` values never overwrite variables supplied by CI,
 containers, or the hosting platform.
 
+When individual database variables are used, set `DATABASE_SSL_MODE=Require`
+for a server that requires TLS. `SSL MODE` with a space is not a valid
+environment-variable name.
+
 ## CI regression validation
 
 The backend CI workflow uses a clean PostgreSQL service and:
